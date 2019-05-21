@@ -1,0 +1,38 @@
+{
+  "name": "dvcp",
+  "version": "0.0.1",
+  "description": "Decentralized Verifiable Credential Platform",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "compile": "truffle compile",
+    "console": "truffle console",
+    "migrate": "truffle migrate --reset",
+    "ganache-cli": "ganache-cli --deterministic --networkId 42",
+    "test": "truffle test",
+    "test:ganache": "truffle test --network ganache",
+    "lint": "npm run lint:js && npm run lint:sol",
+    "lint:js": "eslint .",
+    "lint:js:fix": "eslint . --fix",
+    "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\""
+  },
+  "author": "Rodrigo Q. Saramago",
+  "license": "GPLv3",
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "eslint": "^5.16.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-mocha-no-only": "^1.1.0",
+    "eslint-plugin-node": "^9.0.1",
+    "eslint-plugin-promise": "^4.1.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "ganache-cli": "^6.4.3",
+    "openzeppelin-solidity": "^2.2.0",
+    "openzeppelin-test-helpers": "^0.3.2",
+    "solhint": "^2.0.0",
+    "truffle": "^5.0.12"
+  }
+}
