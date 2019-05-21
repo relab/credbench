@@ -34,7 +34,7 @@ contract Notary is Owners {
     event CredentialRevoked(bytes32 indexed digest, address indexed issuer, uint revokedBlock);
 
     /**
-     * @dev Constructor create an Owners contract
+     * @dev Constructor creates an Owners contract
      */
     constructor (address[] memory _owners, uint _quorum) Owners(_owners, _quorum) public {}
 

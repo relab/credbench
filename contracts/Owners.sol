@@ -8,7 +8,7 @@ contract Owners {
     mapping (address => bool) public owners;
     address[] public allOwners;
     
-    // The required number of owners necessary to authorize actions
+    // The required number of owners to authorize actions
     uint public quorum;
 
     modifier onlyOwner {
