@@ -9,12 +9,11 @@ contract('Notary', accounts => {
     const digest = web3.utils.sha3('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG');
 
     describe('constructor', () => {
-
         it('should successfully deploy the contract initializing the owners', async () => {
             notary = await Notary.new([issuer1, issuer2], 2);
             (await notary.owners(issuer1)).should.equal(true);
             (await notary.owners(issuer2)).should.equal(true);
-            assert(notary.quorum(),2);
+            assert(notary.quorum(), 2);
         });
     });
 
@@ -35,12 +34,18 @@ contract('Notary', accounts => {
             notary = await Notary.new([issuer1], 1);
             await notary.issue(subject1, digest, { from: issuer1 });
 
-            await shouldFail.reverting.withMessage(notary.issue(subject1, digest, { from: issuer1 }), "Notary: sender already signed");
+            await shouldFail.reverting.withMessage(
+                notary.issue(subject1, digest, { from: issuer1 }),
+                'Notary: sender already signed'
+            );
         });
 
         it('should not issue a credential proof from a un-authorized address', async () => {
             notary = await Notary.new([issuer1], 1);
-            await shouldFail.reverting.withMessage(notary.issue(subject1, digest, { from: issuer2 }), "Owners: sender isn't an owner");
+            await shouldFail.reverting.withMessage(
+                notary.issue(subject1, digest, { from: issuer2 }),
+                'Owners: sender is not an owner'
+            );
         });
 
         it('should compute a quorum of owners signatures', async () => {
@@ -51,9 +56,9 @@ contract('Notary', accounts => {
             const length = await notary.ownersLength();
             let quorum = await notary.quorum();
             for (let i = 0; i < length; i++) {
-                let owner = await notary.allOwners(i);
-                let signed = await notary.ownersSigned(digest, owner)
-                if (signed) --quorum;
+                const owner = await notary.allOwners(i);
+                const signed = await notary.ownersSigned(digest, owner);
+                if (signed)--quorum;
             }
             (quorum).should.equal(0);
         });
@@ -67,7 +72,10 @@ contract('Notary', accounts => {
         it('should revert when requesting a credential proof without a quorum formed', async () => {
             await notary.issue(subject1, digest, { from: issuer1 });
 
-            await shouldFail.reverting.withMessage(notary.requestProof(digest, { from: subject1 }), "Notary: not sufficient quorum of signatures");
+            await shouldFail.reverting.withMessage(
+                notary.requestProof(digest, { from: subject1 }),
+                'Notary: not sufficient quorum of signatures'
+            );
 
             const credential = await notary.issued(digest);
             (credential.subjectSigned).should.equal(false);
@@ -97,7 +105,10 @@ contract('Notary', accounts => {
             await notary.issue(subject1, digest, { from: issuer1 });
             await notary.issue(subject1, digest, { from: issuer2 });
 
-            await shouldFail.reverting.withMessage(notary.requestProof(digest, { from: subject2 }), "Notary: subject isn't related with this credential");
+            await shouldFail.reverting.withMessage(
+                notary.requestProof(digest, { from: subject2 }),
+                'Notary: subject is not related with this credential'
+            );
         });
 
         it('should not allow a subject to re-sign a issued credential proof', async () => {
@@ -105,15 +116,18 @@ contract('Notary', accounts => {
             await notary.issue(subject1, digest, { from: issuer2 });
             await notary.requestProof(digest, { from: subject1 });
 
-            await shouldFail.reverting.withMessage(notary.requestProof(digest, { from: subject1 }), "Notary: subject already signed this credential");
+            await shouldFail.reverting.withMessage(
+                notary.requestProof(digest, { from: subject1 }),
+                'Notary: subject already signed this credential'
+            );
         });
 
         it('should certified that a credential proof was signed by all parties', async () => {
             await notary.issue(subject1, digest, { from: issuer1 });
             await notary.issue(subject1, digest, { from: issuer2 });
-            
+
             (await notary.certified(digest)).should.equal(false);
-            
+
             await notary.requestProof(digest, { from: subject1 });
 
             (await notary.certified(digest)).should.equal(true);
@@ -127,17 +141,23 @@ contract('Notary', accounts => {
 
         it('should not revoke a credential proof from a un-authorized address', async () => {
             await notary.issue(subject1, digest, { from: issuer1 });
-            await shouldFail.reverting.withMessage(notary.revoke(digest, { from: issuer3 }), "Owners: sender isn't an owner");
+            await shouldFail.reverting.withMessage(
+                notary.revoke(digest, { from: issuer3 }),
+                'Owners: sender is not an owner'
+            );
         });
 
         it('should not revoke a not issued credential proof', async () => {
-            await shouldFail.reverting.withMessage(notary.revoke(digest, { from: issuer1 }), "Notary: no credential proof found");
+            await shouldFail.reverting.withMessage(
+                notary.revoke(digest, { from: issuer1 }),
+                'Notary: no credential proof found'
+            );
         });
 
         it('should verify if a credential proof was revoked based on the digest', async () => {
             await notary.issue(subject1, digest, { from: issuer1 });
             (await notary.wasRevoked(digest)).should.equal(false);
-            
+
             await notary.revoke(digest, { from: issuer1 });
             (await notary.wasRevoked(digest)).should.equal(true);
         });

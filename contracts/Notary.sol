@@ -53,7 +53,10 @@ contract Notary is Owners {
         address _subject,
         bytes32 _digest
     ) public onlyOwner {
-        require(!ownersSigned[_digest][msg.sender], "Notary: sender already signed");
+        require(
+            !ownersSigned[_digest][msg.sender],
+            "Notary: sender already signed"
+        );
         if (issued[_digest].insertedBlock == 0) {
             // Creation
             issued[_digest] = CredentialProof(
@@ -83,9 +86,18 @@ contract Notary is Owners {
      */
     function requestProof(bytes32 _digest) public {
         CredentialProof storage proof = issued[_digest];
-        require(proof.subject == msg.sender, "Notary: subject isn't related with this credential");
-        require(!proof.subjectSigned, "Notary: subject already signed this credential");
-        require(proof.signed >= quorum, "Notary: not sufficient quorum of signatures");
+        require(
+            proof.subject == msg.sender,
+            "Notary: subject is not related with this credential"
+        );
+        require(
+            !proof.subjectSigned,
+            "Notary: subject already signed this credential"
+        );
+        require(
+            proof.signed >= quorum,
+            "Notary: not sufficient quorum of signatures"
+        );
         proof.subjectSigned = true;
         emit CredentialIssued(_digest, proof.subject);
     }
@@ -94,7 +106,10 @@ contract Notary is Owners {
      * @dev revoke a credential proof
      */
     function revoke(bytes32 _digest) public onlyOwner {
-        require(issued[_digest].insertedBlock != 0, "Notary: no credential proof found");
+        require(
+            issued[_digest].insertedBlock != 0,
+            "Notary: no credential proof found"
+        );
         revoked[_digest] = RevocationProof(
             msg.sender,
             block.number
