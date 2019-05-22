@@ -11,7 +11,7 @@ GOGET = $(GOCMD) get
 SOLC_BUILD_DIR = ./ethereum/build
 GO_BINDINGS_DIR = ./go-bindings
 
-all: test build generate
+all: generate test build
 
 build: 
 		$(GOBUILD) -o $(BINARY_NAME) -v
@@ -23,15 +23,12 @@ clean:
 run:
 		$(GOBUILD) -o $(BINARY_NAME) -v ./...
 		$(BINARY_NAME)
-
 deps:
 		$(GOGET) github.com/spf13/viper
-
 #TODO: use generate to create the directory structure too
 generate:
 		mkdir -p $(GO_BINDINGS_DIR)/{course,notary,owners}
 		$(GOCMD) generate ./...
-
 # Cross compilation
 # TODO: add others OS (osx, windows)
 build-linux:
