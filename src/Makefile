@@ -11,7 +11,7 @@ GOGET = $(GOCMD) get
 SOLC_BUILD_DIR = ./ethereum/build
 GO_BINDINGS_DIR = ./go-bindings
 
-all: generate test build
+all: generate build
 
 build: 
 		$(GOBUILD) -o $(BINARY_NAME) -v
