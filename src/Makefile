@@ -27,7 +27,7 @@ deps:
 		$(GOGET) github.com/spf13/viper
 #TODO: use generate to create the directory structure too
 generate:
-		mkdir -p $(GO_BINDINGS_DIR)/{course,notary,owners}
+		mkdir -p $(GO_BINDINGS_DIR)/course
 		$(GOCMD) generate ./...
 # Cross compilation
 # TODO: add others OS (osx, windows)

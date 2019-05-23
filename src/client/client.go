@@ -25,19 +25,19 @@ func getKeys(hexkey string) (*ecdsa.PrivateKey, common.Address) {
 	return key, address
 }
 
-func Connect(host string) {
+func Connect(host string, key *ecdsa.PrivateKey) {
 	client, err := ethclient.Dial(host)
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
 	defer client.Close()
 
-	// FIXME: remove this to a account manager class
+	// FIXME: remove this to a account manager class (temporary keys from ganache)
 	teacher, teacherAddress := getKeys("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d")
 
 	_, evaluatorAddress := getKeys("6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1")
 
-	// student, studentAddress := getKeys("6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c")
+	_, studentAddress := getKeys("6370fd033278c143179d81c5526140625662b8daa446c22ee2d73db3707e620c")
 
 	// sender setup
 	nonce, err := client.PendingNonceAt(context.Background(), teacherAddress)
@@ -46,7 +46,6 @@ func Connect(host string) {
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
-	fmt.Println("gas price: ", gasPrice)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,14 +56,27 @@ func Connect(host string) {
 	auth.GasLimit = uint64(6721975)
 	auth.GasPrice = gasPrice
 
-	contractAddress, contractInstance, err := course.DeployCourse(auth, client, []common.Address{teacherAddress, evaluatorAddress}, big.NewInt(2))
+	contractAddress, err := course.DeployCourse(auth, client, []common.Address{teacherAddress, evaluatorAddress}, big.NewInt(2))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(contractAddress.Hex())
-	b, _ := contractInstance.Owners()
+	course, err := course.NewCourse(auth, client, contractAddress, teacher)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	b, _ := course.Owners()
+	fmt.Printf("Owners: ")
 	for _, addr := range b {
-		fmt.Println(addr.Hex())
+		fmt.Printf("%v ", addr.Hex())
+	}
+	fmt.Println()
+
+	course.AddStudent(studentAddress)
+
+	ok, _ := course.IsEnrolled(studentAddress)
+	if ok {
+		fmt.Println("student successfully enrolled!")
 	}
 }

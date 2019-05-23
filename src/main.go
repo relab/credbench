@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/r0qs/dvcp/src/accounts"
 	"github.com/r0qs/dvcp/src/client"
 	"github.com/r0qs/dvcp/src/config"
 )
@@ -25,7 +26,8 @@ func parseFlags() {
 }
 
 func main() {
-	chainConfig := config.Get().Network
+	chainConfig := config.GetNetworkConfig()
 	backend := fmt.Sprintf("http://%s:%d", chainConfig.Address, chainConfig.Port)
-	client.Connect(backend)
+	key, _ := accounts.OpenKeystore()
+	client.Connect(backend, key)
 }
