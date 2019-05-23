@@ -9,8 +9,8 @@ contract('Course', accounts => {
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
             course = await Course.new([teacher, evaluator], 2);
-            (await course.owners(teacher)).should.equal(true);
-            (await course.owners(evaluator)).should.equal(true);
+            (await course.isOwner(teacher)).should.equal(true);
+            (await course.isOwner(evaluator)).should.equal(true);
             assert(course.quorum(), 2);
         });
     });

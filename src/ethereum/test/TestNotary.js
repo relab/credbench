@@ -11,8 +11,8 @@ contract('Notary', accounts => {
     describe('constructor', () => {
         it('should successfully deploy the contract initializing the owners', async () => {
             notary = await Notary.new([issuer1, issuer2], 2);
-            (await notary.owners(issuer1)).should.equal(true);
-            (await notary.owners(issuer2)).should.equal(true);
+            (await notary.isOwner(issuer1)).should.equal(true);
+            (await notary.isOwner(issuer2)).should.equal(true);
             assert(notary.quorum(), 2);
         });
     });
@@ -56,7 +56,7 @@ contract('Notary', accounts => {
             const length = await notary.ownersLength();
             let quorum = await notary.quorum();
             for (let i = 0; i < length; i++) {
-                const owner = await notary.allOwners(i);
+                const owner = await notary.owners(i);
                 const signed = await notary.ownersSigned(digest, owner);
                 if (signed)--quorum;
             }
@@ -162,7 +162,17 @@ contract('Notary', accounts => {
             (await notary.wasRevoked(digest)).should.equal(true);
         });
 
-        it('should successfully emits a revocation proof by any owner', async () => {
+        it('should successfully create a revocation proof by any owner', async () => {
+            await notary.issue(subject1, digest, { from: issuer1 });
+            await notary.revoke(digest, { from: issuer1 });
+
+            const revocation = await notary.revoked(digest);
+            expect(await time.latestBlock()).to.be.bignumber.equal(new BN(revocation.revokedBlock));
+            assert(revocation.subject, subject1);
+            assert(revocation.issuer, issuer1);
+        });
+
+        it('should emits an event when create a revocation proof', async () => {
             await notary.issue(subject1, digest, { from: issuer1 });
             const { logs } = await notary.revoke(digest, { from: issuer2 });
             const blockNumber = await time.latestBlock();

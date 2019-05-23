@@ -5,14 +5,14 @@ pragma solidity >=0.5.7 <0.7.0;
 */
 contract Owners {
     // Map of owners
-    mapping (address => bool) public owners;
-    address[] public allOwners;
+    mapping (address => bool) public isOwner;
+    address[] public owners;
     
     // The required number of owners to authorize actions
     uint public quorum;
 
     modifier onlyOwner {
-        require(owners[msg.sender], "Owners: sender is not an owner");
+        require(isOwner[msg.sender], "Owners: sender is not an owner");
         _;
     }
 
@@ -31,22 +31,15 @@ contract Owners {
             "Owners: quorum out of range"
         );
         for (uint i = 0; i < _owners.length; ++i)
-            owners[_owners[i]] = true;
-        allOwners = _owners;
+            isOwner[_owners[i]] = true;
+        owners = _owners;
         quorum = _quorum;
-    }
-
-    /**
-     * @return true if `msg.sender` is an owner
-     */
-    function isOwner() public view returns (bool) {
-        return owners[msg.sender];
     }
 
     /**
      * @return the length of the owners array
      */
     function ownersLength() public view returns (uint) {
-        return allOwners.length;
+        return owners.length;
     }
 }
