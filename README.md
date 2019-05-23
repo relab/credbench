@@ -15,7 +15,10 @@ npm test
 
 If you prefer, you can use geth
 ```
-geth --networkid=42 --nodiscover --rpc --rpcport=8545 --ws --wsport=8546 --rpccorsdomain="*" --dev --dev.period 0 --datadir=/<YOUR_PATH_TO>/devchain console 2>>dev.log
+geth --networkid=42 --nodiscover \
+--rpc --rpcport=8545 --ws --wsport=8546 --rpccorsdomain="*" \
+--dev --dev.period 0 \
+--datadir=/<YOUR_PATH_TO>/devchain console 2>>dev.log
 ```
 
 ## Client
