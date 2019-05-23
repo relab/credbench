@@ -18,6 +18,7 @@ contract Notary is Owners {
 
     struct RevocationProof {
         address issuer;
+        address subject;
         uint revokedBlock;  // The block number of the revocation (0 if not revoked)
     }
 
@@ -30,7 +31,10 @@ contract Notary is Owners {
     // Map digest to owners that already signed it
     mapping (bytes32 => mapping (address => bool)) public ownersSigned;
     
+    // Logged when a credential is issued and signed by all parties (owners + subject).
     event CredentialIssued(bytes32 indexed digest, address indexed subject);
+
+    // Logged when a credential is revoked by some owner.
     event CredentialRevoked(bytes32 indexed digest, address indexed issuer, uint revokedBlock);
 
     /**
@@ -112,6 +116,7 @@ contract Notary is Owners {
         );
         revoked[_digest] = RevocationProof(
             msg.sender,
+            issued[_digest].subject,
             block.number
         );
         delete issued[_digest];
