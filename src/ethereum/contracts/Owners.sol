@@ -30,8 +30,11 @@ contract Owners {
             _quorum > 0 && _quorum <= _owners.length,
             "Owners: quorum out of range"
         );
-        for (uint i = 0; i < _owners.length; ++i)
+        for (uint i = 0; i < _owners.length; ++i) {
+            // prevent duplicate and zero value address attack
+            assert(!isOwner[_owners[i]] && _owners[i] != address(0));
             isOwner[_owners[i]] = true;
+        }
         owners = _owners;
         quorum = _quorum;
     }
