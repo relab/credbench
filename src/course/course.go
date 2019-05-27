@@ -61,7 +61,7 @@ func (c *Course) Address() common.Address {
 }
 
 func (c *Course) IsOwner(address common.Address) (bool, error) {
-	return c.session.Contract.IsOwner(&c.session.CallOpts, address)
+	return c.session.IsOwner(address)
 }
 
 func (c *Course) Owners() ([]common.Address, error) {
@@ -92,9 +92,9 @@ func (c *Course) RenounceCourse() (*types.Transaction, error) {
 }
 
 func (c *Course) EnrolledStudents(student common.Address) (bool, error) {
-	return c.session.Contract.EnrolledStudents(&c.session.CallOpts, student)
+	return c.session.EnrolledStudents(student)
 }
 
 func (c *Course) IsEnrolled(student common.Address) (bool, error) {
-	return c.session.Contract.IsEnrolled(&c.session.CallOpts, student)
+	return c.session.IsEnrolled(student)
 }
