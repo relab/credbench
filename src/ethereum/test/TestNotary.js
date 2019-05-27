@@ -1,4 +1,4 @@
-const { BN, expectEvent, shouldFail, time, constants } = require('openzeppelin-test-helpers');
+const { BN, expectEvent, expectRevert, time, constants } = require('openzeppelin-test-helpers');
 const { expect } = require('chai');
 
 const Notary = artifacts.require('Notary');
@@ -34,7 +34,7 @@ contract('Notary', accounts => {
             notary = await Notary.new([issuer1], 1);
             await notary.issue(subject1, digest, { from: issuer1 });
 
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 notary.issue(subject1, digest, { from: issuer1 }),
                 'Notary: sender already signed'
             );
@@ -42,7 +42,7 @@ contract('Notary', accounts => {
 
         it('should not issue a credential proof from a un-authorized address', async () => {
             notary = await Notary.new([issuer1], 1);
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 notary.issue(subject1, digest, { from: issuer2 }),
                 'Owners: sender is not an owner'
             );
@@ -72,7 +72,7 @@ contract('Notary', accounts => {
         it('should revert when requesting a credential proof without a quorum formed', async () => {
             await notary.issue(subject1, digest, { from: issuer1 });
 
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 notary.requestProof(digest, { from: subject1 }),
                 'Notary: not sufficient quorum of signatures'
             );
@@ -105,7 +105,7 @@ contract('Notary', accounts => {
             await notary.issue(subject1, digest, { from: issuer1 });
             await notary.issue(subject1, digest, { from: issuer2 });
 
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 notary.requestProof(digest, { from: subject2 }),
                 'Notary: subject is not related with this credential'
             );
@@ -116,7 +116,7 @@ contract('Notary', accounts => {
             await notary.issue(subject1, digest, { from: issuer2 });
             await notary.requestProof(digest, { from: subject1 });
 
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 notary.requestProof(digest, { from: subject1 }),
                 'Notary: subject already signed this credential'
             );
@@ -141,14 +141,14 @@ contract('Notary', accounts => {
 
         it('should not revoke a credential proof from a un-authorized address', async () => {
             await notary.issue(subject1, digest, { from: issuer1 });
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 notary.revoke(digest, { from: issuer3 }),
                 'Owners: sender is not an owner'
             );
         });
 
         it('should not revoke a not issued credential proof', async () => {
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 notary.revoke(digest, { from: issuer1 }),
                 'Notary: no credential proof found'
             );

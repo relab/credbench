@@ -6,7 +6,7 @@ A list of things to do, or maybe not...
  - Choose a better repository name
  - Add documentation (running, compiling, testing)
  - Add the flow charts
- - Study anonymization approaches that allow smart contracts (https://www.aztecprotocol.com/)
+ - Study anonymization approaches that allow smart contracts (https://www.aztecprotocol.com/, https://zokrates.github.io/)
   
 ## Contracts (Verifiable credential registry system)
 

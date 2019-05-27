@@ -1,4 +1,4 @@
-const { expectEvent, constants, shouldFail } = require('openzeppelin-test-helpers');
+const { expectEvent, constants, expectRevert } = require('openzeppelin-test-helpers');
 
 const Course = artifacts.require('Course');
 
@@ -34,7 +34,7 @@ contract('Course', accounts => {
 
         it('should not add a student twice', async () => {
             await course.addStudent(student, {from: teacher});
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 course.addStudent(student, {from: evaluator}),
                 "Course: student already registered in this course"
             );
@@ -47,7 +47,7 @@ contract('Course', accounts => {
         });
 
         it('should not allow zero address', async () => {
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 course.addStudent(constants.ZERO_ADDRESS, {from: teacher}),
                 "Course: student is the zero address"
             );
@@ -68,7 +68,7 @@ contract('Course', accounts => {
         });
 
         it('should revert if try to remove an unregistered student', async () => {
-            await shouldFail.reverting.withMessage(
+            await expectRevert(
                 course.removeStudent(student, { from: teacher }),
                 "Course: student does not registered in this course"
             );

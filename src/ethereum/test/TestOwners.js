@@ -1,4 +1,4 @@
-const { shouldFail } = require('openzeppelin-test-helpers');
+const { constants, expectRevert } = require('openzeppelin-test-helpers');
 const Owners = artifacts.require('Owners');
 
 contract('Owners', accounts => {
@@ -14,15 +14,23 @@ contract('Owners', accounts => {
         });
 
         it('should require a non-empty array of owners', async () => {
-            await shouldFail.reverting.withMessage(Owners.new([], 0), 'Owners: not enough owners');
+            await expectRevert(Owners.new([], 0), 'Owners: not enough owners');
         });
 
         it('should require a quorum value greater than 0', async () => {
-            await shouldFail.reverting.withMessage(Owners.new([owner1], 0), 'Owners: quorum out of range');
+            await expectRevert(Owners.new([owner1], 0), 'Owners: quorum out of range');
         });
 
         it('should require a quorum value less than the amount of owners', async () => {
-            await shouldFail.reverting.withMessage(Owners.new([owner1, owner2], 3), 'Owners: quorum out of range');
+            await expectRevert(Owners.new([owner1, owner2], 3), 'Owners: quorum out of range');
+        });
+
+        it('should not allow duplicated owners addresses', async () => {
+            await expectRevert.assertion(Owners.new([owner1, owner1], 2));
+        });
+
+        it('should not allow zero address for owner', async () => {
+            await expectRevert.assertion(Owners.new([owner1, constants.ZERO_ADDRESS], 2));
         });
     });
 });
