@@ -15,9 +15,9 @@ GO_BINDINGS_DIR =  $(PKG)/go-bindings
 
 BINARY_FILE = $(GOBIN_DIR)/client
 
-all: build
+all: generate build
 
-build: generate
+build:
 	@echo "+ building source"
 	$(GOBUILD) -v -o $(BINARY_FILE)
 
@@ -62,7 +62,7 @@ vet:
 
 # Cross compilation
 # TODO: add others OS (osx, windows)
-build-linux: generate
+build-linux:
 	@echo "+ building $@"
 	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GOBUILD) -v -o $(BINARY_FILE)
 
