@@ -66,4 +66,18 @@ contract Course is Notary {
     function renounceCourse() public {
         _removeStudent(msg.sender);
     }
+
+    /**
+     * @dev issue a credential proof for enrolled students
+     */
+    function issue(
+        address _student,
+        bytes32 _digest
+    ) public onlyOwner {
+        require(
+            enrolled_students[_student],
+            "Course: student not registered"
+        );
+        super.issue(_student, _digest);
+    }
 }

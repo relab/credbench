@@ -3,8 +3,9 @@ const { expectEvent, constants, expectRevert } = require('openzeppelin-test-help
 const Course = artifacts.require('Course');
 
 contract('Course', accounts => {
-    const [teacher, evaluator, student] = accounts;
+    const [teacher, evaluator, student, other] = accounts;
     let course = null;
+    const digest = web3.utils.sha3('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG');
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
@@ -86,6 +87,25 @@ contract('Course', accounts => {
             });
 
             (await course.enrolled_students(student)).should.equal(false);
+        });
+    });
+
+    describe('Base class operations', () => {
+
+        beforeEach(async () => {
+            course = await Course.new([teacher, evaluator], 2);
+        });
+
+        it('should issue a credential for a enrolled student', async () => {
+            await course.addStudent(student, {from: teacher});
+            await course.issue(student, digest, { from: teacher });
+        });
+
+        it('should not issue a credential for a non-enrolled address', async () => {
+            await expectRevert(
+                course.issue(other, digest, { from: teacher }),
+                'Course: student not registered'
+            );
         });
     });
 });
