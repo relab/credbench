@@ -1,14 +1,16 @@
 package course
 
-//go:generate abigen --sol ../ethereum/contracts/Course.sol --exc ../ethereum/contracts/Notary.sol:Notary,../ethereum/contracts/Owners.sol:Owners --pkg contract --out ../go-bindings/course/course.go
+//go:generate abigen --sol ../../ethereum/contracts/Course.sol --exc ../../ethereum/contracts/Notary.sol:Notary,../../ethereum/contracts/Owners.sol:Owners --pkg contract --out ../go-bindings/course/course.go
 
 import (
 	"crypto/ecdsa"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/r0qs/dvcp/src/go-bindings/course"
-	"math/big"
+	"github.com/r0qs/dvcp/src/core/go-bindings/course"
+	"github.com/r0qs/dvcp/src/core/notary"
 )
 
 type Params struct {
@@ -31,7 +33,6 @@ func DeployCourse(transactOpts *bind.TransactOpts, backend bind.ContractBackend,
 	if err != nil {
 		return common.Address{}, err
 	}
-
 	return courseAddr, nil
 }
 
@@ -60,22 +61,6 @@ func (c *Course) Address() common.Address {
 	return c.contractAddr
 }
 
-func (c *Course) IsOwner(address common.Address) (bool, error) {
-	return c.session.IsOwner(address)
-}
-
-func (c *Course) Owners() ([]common.Address, error) {
-	length, err := c.session.OwnersLength()
-	var owners []common.Address
-	i := big.NewInt(0)
-	for i.Cmp(length) < 0 {
-		owner, _ := c.session.Owners(i)
-		owners = append(owners, owner)
-		i.Add(i, big.NewInt(1))
-	}
-	return owners, err
-}
-
 func (c *Course) AddStudent(student common.Address) (*types.Transaction, error) {
 	transactOpts := bind.NewKeyedTransactor(c.prvKey)
 	return c.session.Contract.AddStudent(transactOpts, student)
@@ -97,4 +82,44 @@ func (c *Course) EnrolledStudents(student common.Address) (bool, error) {
 
 func (c *Course) IsEnrolled(student common.Address) (bool, error) {
 	return c.session.IsEnrolled(student)
+}
+
+// Owners functions
+func (c *Course) IsOwner(address common.Address) (bool, error) {
+	return c.session.IsOwner(address)
+}
+
+func (c *Course) Owners() ([]common.Address, error) {
+	length, err := c.session.OwnersLength()
+	var owners []common.Address
+	i := big.NewInt(0)
+	for i.Cmp(length) < 0 {
+		owner, _ := c.session.Owners(i)
+		owners = append(owners, owner)
+		i.Add(i, big.NewInt(1))
+	}
+	return owners, err
+}
+
+// Notary functions
+func (c *Course) Issue(student common.Address, digest [32]byte) (*types.Transaction, error) {
+	transactOpts := bind.NewKeyedTransactor(c.prvKey)
+	return c.session.Contract.Issue(transactOpts, student, digest)
+}
+
+func (c *Course) Revoke(digest [32]byte) (*types.Transaction, error) {
+	transactOpts := bind.NewKeyedTransactor(c.prvKey)
+	return c.session.Contract.Revoke(transactOpts, digest)
+}
+
+func (c *Course) Issued(digest [32]byte) *notary.CredentialProof {
+	proof, _ := c.session.Issued(digest)
+	var cp notary.CredentialProof = proof
+	return &cp
+}
+
+func (c *Course) Revoked(digest [32]byte) *notary.RevokeProof {
+	proof, _ := c.session.Revoked(digest)
+	var rp notary.RevokeProof = proof
+	return &rp
 }
