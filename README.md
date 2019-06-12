@@ -46,3 +46,8 @@ Then run a test chain using the ganache-cli or geth as previously and execute fr
 ```
 ./bin/client
 ```
+
+You can attach to the ganache-cli console using geth:
+```
+$ geth attach http://127.0.0.1:8545
+```

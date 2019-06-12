@@ -11,9 +11,9 @@ GOCLEAN = $(GOCMD) clean
 GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get
 GOBIN_DIR = $(PKG)/bin
-GO_BINDINGS_DIR =  $(PKG)/go-bindings
+GO_BINDINGS_DIR =  $(PKG)/core/go-bindings
 
-BINARY_FILE = $(GOBIN_DIR)/client
+BINARY_FILE = $(GOBIN_DIR)/bbchain
 
 all: generate build
 
@@ -38,6 +38,7 @@ deps:
 	@echo "+ installing dependencies"
 	$(GOGET) github.com/ethereum/go-ethereum
 	$(GOGET) github.com/spf13/viper
+	$(GOGET) github.com/spf13/cobra/cobra
 	$(GOGET) golang.org/x/lint/golint
 
 #TODO: use generate to create the directory structure too

@@ -4,6 +4,8 @@ A list of things to do, or maybe not...
 
 ## General
  - Choose a better repository name
+ - Move contracts to another repository
+ - Move uis-dapp to another repository
  - Add documentation (running, compiling, testing)
  - Add the flow charts
  - Study anonymization approaches that allow smart contracts (https://www.aztecprotocol.com/, https://zokrates.github.io/)
@@ -23,9 +25,14 @@ A list of things to do, or maybe not...
 
 ### course
  - Is necessary to have a list of enrolled students? store a array of student addresses in the contract solves the problem but has an inefficient removal operation, other option is let to the client to keep track of the enrolled students and just use the chain to check.
+ - Bind a contract instance instead of inheritance in course, this will facilitate the decouple of the client implementation and allow multiple courses to share the same notary registry contract
 
 ### faculty
  - Not implemented
+ - Implement admission process
+ - Implement enrollment process
+ - Implement issue and revocation process
+ - Implement appeals process
 
 ## Client (a.k.a [user agent](https://www.w3.org/TR/verifiable-claims-data-model/#terminology))
  - IPFS interface
@@ -35,8 +42,6 @@ A list of things to do, or maybe not...
  - Manage the keys/addresses properly and remove hardcoded
 
 ### Makefile
- - Use wildcard to match all solidity sources or 
-   use go:generate and reorganize the truffle directory tree (preferred option)
  - Generate clean code (without dependencies) using --exc parameter in abigen
  - Add support to others OS (osx, windows)
  
