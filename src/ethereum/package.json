@@ -9,7 +9,8 @@
     "compile": "truffle compile",
     "console": "truffle console",
     "migrate": "truffle migrate --reset",
-    "ganache-cli": "ganache-cli --deterministic --networkId 42",
+    "migrate:ganache": "truffle migrate --reset --network ganache",
+    "ganache-cli": "ganache-cli --deterministic --networkId 5777 --host 127.0.0.1 --port 7545",
     "test": "truffle test",
     "test:ganache": "truffle test --network ganache",
     "lint": "npm run lint:js && npm run lint:sol",
@@ -24,14 +25,14 @@
     "chai": "^4.2.0",
     "eslint": "^5.16.0",
     "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-mocha-no-only": "^1.1.0",
-    "eslint-plugin-node": "^9.0.1",
-    "eslint-plugin-promise": "^4.1.1",
-    "eslint-plugin-standard": "^4.0.0",
-    "ganache-cli": "^6.4.3",
-    "openzeppelin-test-helpers": "^0.4.0",
-    "solhint": "^2.0.0",
-    "truffle": "^5.0.12"
+    "eslint-plugin-node": "^9.2.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "ganache-cli": "^6.7.0",
+    "openzeppelin-test-helpers": "^0.4.3",
+    "solhint": "^2.3.0",
+    "truffle": "^5.1.1"
   }
 }
