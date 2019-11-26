@@ -1,4 +1,4 @@
-const { expectEvent, constants, expectRevert } = require('openzeppelin-test-helpers');
+const { expectEvent, constants, expectRevert } = require('@openzeppelin/test-helpers');
 
 const Course = artifacts.require('Course');
 
@@ -23,7 +23,7 @@ contract('Course', accounts => {
         });
 
         it('should add a new student', async () => {
-            const { logs } = await course.addStudent(student, {from: teacher});
+            const { logs } = await course.addStudent(student, { from: teacher });
 
             expectEvent.inLogs(logs, 'StudentAdded', {
                 student: student,
@@ -34,31 +34,31 @@ contract('Course', accounts => {
         });
 
         it('should not add a student twice', async () => {
-            await course.addStudent(student, {from: teacher});
+            await course.addStudent(student, { from: teacher });
             await expectRevert(
-                course.addStudent(student, {from: evaluator}),
+                course.addStudent(student, { from: evaluator }),
                 "Course: student already registered in this course"
             );
         });
 
         it('should verify if a student is enrolled in the course', async () => {
             (await course.isEnrolled(student)).should.equal(false);
-            await course.addStudent(student, {from: teacher});
+            await course.addStudent(student, { from: teacher });
             (await course.isEnrolled(student)).should.equal(true);
         });
 
         it('should not allow zero address', async () => {
             await expectRevert(
-                course.addStudent(constants.ZERO_ADDRESS, {from: teacher}),
+                course.addStudent(constants.ZERO_ADDRESS, { from: teacher }),
                 "Course: student is the zero address"
             );
         });
 
         it('should allow an owner to remove an enrolled student', async () => {
-            await course.addStudent(student, {from: evaluator});
+            await course.addStudent(student, { from: evaluator });
             (await course.enrolled_students(student)).should.equal(true);
 
-            const { logs } = await course.removeStudent(student, {from: teacher});
+            const { logs } = await course.removeStudent(student, { from: teacher });
 
             expectEvent.inLogs(logs, 'StudentRemoved', {
                 student: student,
@@ -76,10 +76,10 @@ contract('Course', accounts => {
         });
 
         it('should allow a student to renounce the course', async () => {
-            await course.addStudent(student, {from: teacher});
+            await course.addStudent(student, { from: teacher });
             (await course.enrolled_students(student)).should.equal(true);
 
-            const { logs } = await course.renounceCourse({from: student});
+            const { logs } = await course.renounceCourse({ from: student });
 
             expectEvent.inLogs(logs, 'StudentRemoved', {
                 student: student,
@@ -97,7 +97,7 @@ contract('Course', accounts => {
         });
 
         it('should issue a credential for a enrolled student', async () => {
-            await course.addStudent(student, {from: teacher});
+            await course.addStudent(student, { from: teacher });
             await course.issue(student, digest, { from: teacher });
         });
 

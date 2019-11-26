@@ -1,4 +1,4 @@
-const { constants, expectRevert } = require('openzeppelin-test-helpers');
+const { constants, expectRevert } = require('@openzeppelin/test-helpers');
 const Owners = artifacts.require('Owners');
 
 contract('Owners', accounts => {
