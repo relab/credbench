@@ -1,6 +1,8 @@
-pragma solidity >=0.5.7 <0.7.0;
+pragma solidity >=0.5.8;
 
-import './Owners.sol';
+import "./Owners.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+// import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 
 // TODO: how to manage key changes? e.g. a student that lost his previous key. Reissue the certificates may not work, since the time ordering, thus a possible solution is the contract to store a key update information for the subject, or something like that.
 
@@ -10,6 +12,7 @@ import './Owners.sol';
  * @title Notary's contract
 */
 contract Notary is Owners {
+    using SafeMath for uint;
 
     struct CredentialProof {
         uint signed;            // Amount of owners who signed
@@ -34,10 +37,10 @@ contract Notary is Owners {
     // TODO: add key revocation
 
     // Incremental-only counter for issued credentials per subject
-    mapping(address => uint) private nonce;
+    mapping(address => uint) private _nonce;
 
     // Maps credential digests by subjects
-    mapping(address => bytes32[]) public digestsBySubject; //TODO: keep updated with the last hash manifest instead of a list
+    mapping(address => bytes32[]) public digestsBySubject;
 
     // Maps issued credential proof by document digest
     mapping(bytes32 => CredentialProof) public issuedCredentials;
@@ -57,84 +60,87 @@ contract Notary is Owners {
     /**
      * @dev Constructor creates an Owners contract
      */
-    constructor (address[] memory _owners, uint _quorum) Owners(_owners, _quorum) public {}
+    constructor (address[] memory owners, uint quorum) public Owners(owners, quorum) {
+    }
 
     /**
      * @dev verify if a credential proof was revoked
      * @return the block number of revocation or 0 if not revoked
      */
-    function wasRevoked(bytes32 _digest) public view returns(bool) {
-        return revokedCredentials[_digest].revokedBlock != 0;
+    function wasRevoked (bytes32 digest) public view returns(bool) {
+        return revokedCredentials[digest].revokedBlock != 0;
     }
 
     /**
      * @dev issue a credential proof ensuring an append-only property
      */
-    function issue(
-        address _subject,
-        bytes32 _digest
+    function issue (
+        address subject,
+        bytes32 digest
     ) public onlyOwner {
         require(
-            !ownersSigned[_digest][msg.sender],
+            !ownersSigned[digest][msg.sender],
             "Notary: sender already signed"
         );
         require(
-            !isOwner[_subject],
+            !isOwner[subject],
             "Notary: subject cannot be the issuer"
         );
-        if (issuedCredentials[_digest].insertedBlock == 0) {
+        if (issuedCredentials[digest].insertedBlock == 0) {
             // Creation
             uint lastNonce;
             bytes32 previousDigest;
-            if (nonce[_subject] == 0) {
-                lastNonce = nonce[_subject];
+            if (_nonce[subject] == 0) {
+                lastNonce = _nonce[subject];
                 previousDigest = bytes32(0);
             } else {
-                assert (nonce[_subject] > 0);
-                lastNonce = nonce[_subject] - 1;
-                assert (digestsBySubject[_subject].length > 0);
-                previousDigest = digestsBySubject[_subject][lastNonce];
+                assert(_nonce[subject] > 0);
+                lastNonce = _nonce[subject] - 1;
+                assert(digestsBySubject[subject].length > 0);
+                previousDigest = digestsBySubject[subject][lastNonce];
                 CredentialProof memory c = issuedCredentials[previousDigest];
-                require (c.subjectSigned, "Notary: previous credential must be signed before issue a new one");
+                require(c.subjectSigned, "Notary: previous credential must be signed before issue a new one");
                 // Assert time constraints
                 // TODO: multiply by credential time factor that will be defined in the Notary constructor
-                assert(c.insertedBlock < block.number /* * TimeFactor */);
-                assert(c.blockTimestamp < block.timestamp /* * TimeFactor */);
+                // solhint-disable-next-line expression-indent
+                assert(c.insertedBlock < block.number/* * TimeFactor */);
+                // solhint-disable-next-line not-rely-on-time, expression-indent
+                assert(c.blockTimestamp < block.timestamp/* * TimeFactor */);
             }
             // TODO: assert the expect value here
             // previousDigest will be zero with didn't exists?
-            issuedCredentials[_digest] = CredentialProof(
+            issuedCredentials[digest] = CredentialProof(
                 1,
                 false,
                 block.number,
-                block.timestamp,
-                nonce[_subject],
+                block.timestamp, // solhint-disable-line not-rely-on-time
+                _nonce[subject],
                 msg.sender,
-                _subject,
-                _digest, // Do we aggregate the hashes instead of just save?
+                subject,
+                digest, // Do we aggregate the hashes instead of just save?
                 previousDigest
             );
-            ++nonce[_subject];
-            digestsBySubject[_subject].push(_digest); // append subject credential
+            ++_nonce[subject];
+            digestsBySubject[subject].push(digest); // append subject credential
         } else {
             // Signing
-            ++issuedCredentials[_digest].signed;
+            ++issuedCredentials[digest].signed;
         }
-        ownersSigned[_digest][msg.sender] = true;
+        ownersSigned[digest][msg.sender] = true;
     }
 
     /**
      * @dev Verify if a digest was already certified (i.e. signed by all parties)
      */
-    function certified(bytes32 _digest) public view returns(bool) {
-        return issuedCredentials[_digest].subjectSigned;
+    function certified (bytes32 digest) public view returns(bool) {
+        return issuedCredentials[digest].subjectSigned;
     }
 
     /**
      * @dev request the emission of a quorum signed credential proof
      */
-    function requestProof(bytes32 _digest) public {
-        CredentialProof storage proof = issuedCredentials[_digest];
+    function requestProof (bytes32 digest) public {
+        CredentialProof storage proof = issuedCredentials[digest];
         require(
             proof.subject == msg.sender,
             "Notary: subject is not related with this credential"
@@ -148,24 +154,24 @@ contract Notary is Owners {
             "Notary: not sufficient quorum of signatures"
         );
         proof.subjectSigned = true;
-        emit CredentialIssued(_digest, proof.subject, proof.issuer, proof.previousDigest, proof.insertedBlock);
+        emit CredentialIssued(digest, proof.subject, proof.issuer, proof.previousDigest, proof.insertedBlock);
     }
 
     /**
      * @dev revoke a credential proof
      */
-    function revoke(bytes32 _digest) public onlyOwner {
+    function revoke (bytes32 digest) public onlyOwner {
         require(
-            issuedCredentials[_digest].insertedBlock != 0,
+            issuedCredentials[digest].insertedBlock != 0,
             "Notary: no credential proof found"
         );
-        address subject = issuedCredentials[_digest].subject;
-        revokedCredentials[_digest] = RevocationProof(
+        address subject = issuedCredentials[digest].subject;
+        revokedCredentials[digest] = RevocationProof(
             msg.sender,
             subject,
             block.number
         );
-        delete issuedCredentials[_digest];
-        emit CredentialRevoked(_digest, subject, msg.sender, block.number);
+        delete issuedCredentials[digest];
+        emit CredentialRevoked(digest, subject, msg.sender, block.number);
     }
 }
