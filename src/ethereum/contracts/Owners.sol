@@ -1,4 +1,4 @@
-pragma solidity >=0.5.7 <0.7.0;
+pragma solidity >=0.5.8;
 
 /**
  * @title Owners contract

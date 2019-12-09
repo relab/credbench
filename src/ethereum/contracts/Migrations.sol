@@ -1,7 +1,8 @@
-pragma solidity >=0.5.7 <0.7.0;
+pragma solidity >=0.5.8;
 
 contract Migrations {
     address public owner;
+    // solhint-disable-next-line var-name-mixedcase
     uint public last_completed_migration;
 
     constructor() public {
