@@ -2,13 +2,13 @@
 
 ## Dependencies
 
-| Software  | Version | Notes |
-| --------- | ------- | ----- |
-| [Solidity](https://github.com/ethereum/solidity) | >=0.5.7 | contracts |
-| [NPM](https://github.com/npm/cli) | >=6.9.0 | contracts |
-| [Go](https://golang.org/doc/go1.12) | >=1.12.5 | client |
-| [GNU Make](http://ftp.gnu.org/gnu/make/) | >=4.2.1 | client |
-| [geth](https://github.com/ethereum/go-ethereum) | >=1.8.27 (optional) | tests on both |
+| Software                                         | Version             | Notes         |
+| ------------------------------------------------ | ------------------- | ------------- |
+| [Solidity](https://github.com/ethereum/solidity) | >=0.5.8             | contracts     |
+| [NPM](https://github.com/npm/cli)                | >=6.9.0             | contracts     |
+| [Go](https://golang.org/doc/go1.12)              | >=1.12.5            | client        |
+| [GNU Make](http://ftp.gnu.org/gnu/make/)         | >=4.2.1             | client        |
+| [geth](https://github.com/ethereum/go-ethereum)  | >=1.8.27 (optional) | tests on both |
 
 
 ## Contracts

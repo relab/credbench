@@ -1,12 +1,17 @@
 {
-  "extends": "solhint:default",
+  "extends": "solhint:recommended",
   "plugins": [],
   "rules": {
-    "indent": ["error", 4],
-
-    "bracket-align": false,
-    "compiler-fixed": false,
-    "no-simple-event-func-name": false,
-    "two-lines-top-level-separator": false
+    "indent": [
+      "error",
+      4
+    ],
+    "func-order": "off",
+    "bracket-align": "off",
+    "compiler-fixed": "off",
+    "no-simple-event-func-name": "off",
+    "separate-by-one-line-in-contract": "off",
+    "two-lines-top-level-separator": "off",
+    "mark-callable-contracts": "off"
   }
 }
