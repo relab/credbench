@@ -1,10 +1,9 @@
 const { BN, expectEvent, expectRevert, time, constants } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 
-const Notary = artifacts.require('Notary');
+const Notary = artifacts.require('NotaryMock');
 
-// TODO: mock contracts
-contract.only('Notary', accounts => {
+contract('Notary', accounts => {
     const [issuer1, issuer2, issuer3, subject1, subject2] = accounts;
     let notary = null;
     const digest1 = web3.utils.soliditySha3('cert1');
@@ -51,7 +50,7 @@ contract.only('Notary', accounts => {
             );
         });
 
-        it('should not issue a credential proof from a un-authorized address', async () => {
+        it('should not issue a credential proof from a unauthorized address', async () => {
             notary = await Notary.new([issuer1], 1);
             await expectRevert(
                 notary.issue(subject1, digest1, { from: issuer3 }),
@@ -86,10 +85,16 @@ contract.only('Notary', accounts => {
             assert(credential1.digest, digest1);
             assert(credential1.previousDigest, zeroDigest);
             (await notary.ownersSigned(digest1, issuer1)).should.equal(true);
+
+            await time.increase(time.duration.seconds(1)); // mines a new block with timestamp 1 second ahead.
+
             // Issuing a new certificate
             await notary.issue(subject1, digest2, { from: issuer1 });
 
             const credential2 = await notary.issuedCredentials(digest2);
+
+            expect(credential2.blockTimestamp).to.be.bignumber.above(credential1.blockTimestamp);
+
             assert(credential2.signed, 1);
             assert(credential2.subject, subject1);
             assert(credential2.digest, digest2);
