@@ -9,11 +9,17 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 // TODO: Make it a library
 
 /**
- * @title Notary's contract
+ * @title Notary's contract ensures that verifiable credentials are correctly
+  * issued by untrusted issuers, discouraging fraudulent processes by
+  * establishing a casual order between the certificates.
 */
 contract Notary is Owners {
     using SafeMath for uint;
 
+    /**
+     * @dev CredentialProof represents an on-chain proof that a
+     * verifiable credential was created and signed by an issuer.
+     */
     struct CredentialProof {
         uint signed;            // Amount of owners who signed
         bool subjectSigned;     // Whether the subject signed
@@ -29,6 +35,10 @@ contract Notary is Owners {
         // TODO: add "string uri" field to identify the storage type (bzz, ipfs)
     }
 
+    /**
+     * @dev RevocationProof represents an on-chain proof that a
+     * verifiable credential was revoked by an issuer.
+     */
     struct RevocationProof {
         address issuer;
         address subject;
@@ -51,6 +61,9 @@ contract Notary is Owners {
     // Map digest to owners that already signed it
     mapping (bytes32 => mapping (address => bool)) public ownersSigned;
     
+    // Logged when a credential is created by an issuer
+    event CredentialCreated(bytes32 indexed digest, address indexed subject, address indexed issuer, bytes32 previousDigest, uint insertedBlock);
+
     // Logged when a credential is issued and signed by all parties (owners + subject).
     event CredentialIssued(bytes32 indexed digest, address indexed subject, address indexed issuer, bytes32 previousDigest, uint insertedBlock);
 
@@ -63,9 +76,17 @@ contract Notary is Owners {
     constructor (address[] memory owners, uint quorum) public Owners(owners, quorum) {
     }
 
+    modifier notRevoked(bytes32 digest) {
+        require(
+            !wasRevoked(digest),
+            "Notary: this credential was already revoked"
+        );
+        _;
+    }
+
     /**
      * @dev verify if a credential proof was revoked
-     * @return the block number of revocation or 0 if not revoked
+     * @return true if a revocation exists, false otherwise.
      */
     function wasRevoked (bytes32 digest) public view returns(bool) {
         return revokedCredentials[digest].revokedBlock != 0;
@@ -77,7 +98,7 @@ contract Notary is Owners {
     function issue (
         address subject,
         bytes32 digest
-    ) public onlyOwner {
+    ) public onlyOwner notRevoked(digest) {
         require(
             !ownersSigned[digest][msg.sender],
             "Notary: sender already signed"
@@ -101,14 +122,14 @@ contract Notary is Owners {
                 CredentialProof memory c = issuedCredentials[previousDigest];
                 require(c.subjectSigned, "Notary: previous credential must be signed before issue a new one");
                 // Assert time constraints
-                // TODO: multiply by credential time factor that will be defined in the Notary constructor
+                // Ensure that a previous certificate happens before the new one.
                 // solhint-disable-next-line expression-indent
-                assert(c.insertedBlock < block.number/* * TimeFactor */);
+                assert(c.insertedBlock < block.number);
                 // solhint-disable-next-line not-rely-on-time, expression-indent
-                assert(c.blockTimestamp < block.timestamp/* * TimeFactor */);
+                assert(c.blockTimestamp < block.timestamp);
             }
             // TODO: assert the expect value here
-            // previousDigest will be zero with didn't exists?
+            // previousDigest will be zero if didn't exists?
             issuedCredentials[digest] = CredentialProof(
                 1,
                 false,
@@ -117,13 +138,14 @@ contract Notary is Owners {
                 _nonce[subject],
                 msg.sender,
                 subject,
-                digest, // Do we aggregate the hashes instead of just save?
+                digest,
                 previousDigest
             );
             ++_nonce[subject];
-            digestsBySubject[subject].push(digest); // append subject credential
+            digestsBySubject[subject].push(digest); // append subject's credential hash
+            emit CredentialCreated(digest, subject, msg.sender, previousDigest, block.number);
         } else {
-            // Signing
+            // Register "signature"
             ++issuedCredentials[digest].signed;
         }
         ownersSigned[digest][msg.sender] = true;
@@ -139,7 +161,7 @@ contract Notary is Owners {
     /**
      * @dev request the emission of a quorum signed credential proof
      */
-    function requestProof (bytes32 digest) public {
+    function requestProof (bytes32 digest) public notRevoked(digest) {
         CredentialProof storage proof = issuedCredentials[digest];
         require(
             proof.subject == msg.sender,
@@ -160,7 +182,7 @@ contract Notary is Owners {
     /**
      * @dev revoke a credential proof
      */
-    function revoke (bytes32 digest) public onlyOwner {
+    function revoke (bytes32 digest) public onlyOwner notRevoked(digest) {
         require(
             issuedCredentials[digest].insertedBlock != 0,
             "Notary: no credential proof found"
@@ -173,5 +195,24 @@ contract Notary is Owners {
         );
         delete issuedCredentials[digest];
         emit CredentialRevoked(digest, subject, msg.sender, block.number);
+    }
+
+    /**
+     * @dev aggregate the digests of a given subject
+     */
+    function aggregate(address subject) public view returns (bytes32) {
+        bytes32[] memory digests = digestsBySubject[subject];
+        // TODO: array index validation
+        require(digests.length > 0, "Notary: There is no certificate for the given subject");
+        assert(certified(digests[0])); // certificate must be signed
+        bytes32 computedHash = digests[0];
+
+        for (uint256 i = 1; i < digests.length; i++) {
+            assert(certified(digests[i])); // all subject's certificates must be signed
+            computedHash = keccak256(abi.encodePacked(computedHash, digests[i]));
+        }
+        return computedHash;
+        // TODO: after aggregation the digests can potentially be erased and a root certificate can be create as replacement.
+        // TODO: timed aggregation should only aggregate certificates within the valid period
     }
 }
