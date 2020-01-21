@@ -1,4 +1,4 @@
-var Notary = artifacts.require("Notary");
+var Notary = artifacts.require("NotaryMock");
 
 module.exports = async function (deployer, network, accounts) {
     const [issuer1, issuer2] = accounts;

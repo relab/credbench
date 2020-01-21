@@ -1,4 +1,4 @@
-pragma solidity >=0.5.8;
+pragma solidity >=0.5.13;
 
 import "./Notary.sol";
 import "./TimedNotary.sol";
@@ -21,12 +21,9 @@ contract Course is TimedNotary {
         uint quorum,
         uint256 startingTime,
         uint256 endingTime
-    )
-        public
-        Notary(owners, quorum)
-        TimedNotary(startingTime, endingTime) {
-            // solhint-disable-previous-line no-empty-blocks
-        }
+    ) public Notary(owners, quorum) TimedNotary(startingTime, endingTime) {
+        // solhint-disable-previous-line no-empty-blocks
+    }
 
     /**
      * @dev Check if a student is enrolled in the course
@@ -90,5 +87,10 @@ contract Course is TimedNotary {
             "Course: student not registered"
         );
         super.issue(student, digest);
+    }
+
+    // TODO: add tests for extenting time
+    function extendTime(uint256 endingTime) public {
+        _extendTime(endingTime);
     }
 }
