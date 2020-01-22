@@ -1,5 +1,6 @@
 pragma solidity >=0.5.13;
 
+import "./NotaryInterface.sol";
 import "./Owners.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 // import "@openzeppelin/contracts/cryptography/ECDSA.sol";
@@ -13,7 +14,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
   * issued by untrusted issuers, discouraging fraudulent processes by
   * establishing a casual order between the certificates.
 */
-contract Notary is Owners {
+contract Notary is NotaryInterface, Owners {
     using SafeMath for uint;
 
     /**
@@ -63,12 +64,6 @@ contract Notary is Owners {
     
     // Logged when a credential is created by an issuer
     event CredentialCreated(bytes32 indexed digest, address indexed subject, address indexed issuer, bytes32 previousDigest, uint insertedBlock);
-
-    // Logged when a credential is issued and signed by all parties (owners + subject).
-    event CredentialIssued(bytes32 indexed digest, address indexed subject, address indexed issuer, bytes32 previousDigest, uint insertedBlock);
-
-    // Logged when a credential is revoked by some owner.
-    event CredentialRevoked(bytes32 indexed digest, address indexed subject, address indexed issuer, uint revokedBlock);
 
     /**
      * @dev Constructor creates an Owners contract
