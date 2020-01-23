@@ -40,13 +40,27 @@ contract('Notary', accounts => {
             (await notary.ownersSigned(digest1, issuer1)).should.equal(true);
         });
 
-        it('should not issue a already issued credential proof', async () => {
+        it('should not issue an already issued credential proof', async () => {
             notary = await Notary.new([issuer1], 1);
             await notary.issue(subject1, digest1, { from: issuer1 });
 
             await expectRevert(
                 notary.issue(subject1, digest1, { from: issuer1 }),
                 'Notary: sender already signed'
+            );
+        });
+
+        it('should not allow an issuer to issue credential proof to themselves', async () => {
+            notary = await Notary.new([issuer1], 1);
+
+            await expectRevert(
+                notary.issue(issuer1, digest1, { from: issuer1 }),
+                'Notary: subject cannot be the issuer'
+            );
+
+            await expectRevert(
+                notary.issue(issuer1, digest1, { from: issuer2 }),
+                'Notary: subject cannot be the issuer'
             );
         });
 

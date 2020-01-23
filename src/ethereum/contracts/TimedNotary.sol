@@ -24,7 +24,12 @@ contract TimedNotary is Notary {
      * @dev Reverts if not in notary time range.
      */
     modifier onlyAfterStart {
-        require(isStarted(), "TimedNotary: not started");
+        require(isStarted(), "TimedNotary: the notarization period didn't start yet");
+        _;
+    }
+
+    modifier whileNotEnded {
+        require(!hasEnded(), "TimedNotary: the notarization period has already ended");
         _;
     }
 
@@ -78,8 +83,7 @@ contract TimedNotary is Notary {
      * @dev Extend the notarization time.
      * @param newEndingTime the new notary ending time
      */
-    function _extendTime(uint256 newEndingTime) internal {
-        require(!hasEnded(), "TimedNotary: already ended");
+    function _extendTime(uint256 newEndingTime) internal onlyAfterStart whileNotEnded {
         // solhint-disable-next-line max-line-length
         require(newEndingTime > _endingTime, "TimedNotary: new ending time is before current ending time");
 

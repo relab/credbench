@@ -13,6 +13,9 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
  * @title Notary's contract ensures that verifiable credentials are correctly
   * issued by untrusted issuers, discouraging fraudulent processes by
   * establishing a casual order between the certificates.
+  * This contract consider on-chain signatures verification.
+  * TODO: Implement using EIP712:
+  * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md
 */
 contract Notary is NotaryInterface, Owners {
     using SafeMath for uint;
@@ -170,7 +173,7 @@ contract Notary is NotaryInterface, Owners {
             proof.signed >= quorum,
             "Notary: not sufficient quorum of signatures"
         );
-        proof.subjectSigned = true;
+        proof.subjectSigned = true; // All parties signed
         emit CredentialIssued(digest, proof.subject, proof.issuer, proof.previousDigest, proof.insertedBlock);
     }
 
@@ -199,11 +202,11 @@ contract Notary is NotaryInterface, Owners {
         bytes32[] memory digests = digestsBySubject[subject];
         // TODO: array index validation
         require(digests.length > 0, "Notary: There is no certificate for the given subject");
-        assert(certified(digests[0])); // certificate must be signed
+        assert(certified(digests[0])); // certificate must be signed by all parties
         bytes32 computedHash = digests[0];
 
         for (uint256 i = 1; i < digests.length; i++) {
-            assert(certified(digests[i])); // all subject's certificates must be signed
+            assert(certified(digests[i])); // all subject's certificates must be signed by all parties
             computedHash = keccak256(abi.encodePacked(computedHash, digests[i]));
         }
         return computedHash;

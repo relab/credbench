@@ -1,4 +1,4 @@
-const { expectEvent, constants, expectRevert } = require('@openzeppelin/test-helpers');
+const { expectEvent, constants, time, expectRevert } = require('@openzeppelin/test-helpers');
 
 const Course = artifacts.require('Course');
 
@@ -9,7 +9,9 @@ contract('Course', accounts => {
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
-            course = await Course.new([teacher, evaluator], 2);
+            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
+            let endTimestamp = beginTimestamp.add(await time.duration.weeks(24));
+            course = await Course.new([teacher, evaluator], 2, beginTimestamp.toString(), endTimestamp.toString());
             (await course.isOwner(teacher)).should.equal(true);
             (await course.isOwner(evaluator)).should.equal(true);
             assert(course.quorum(), 2);
@@ -19,7 +21,10 @@ contract('Course', accounts => {
     describe('CRUD operations', () => {
 
         beforeEach(async () => {
-            course = await Course.new([teacher, evaluator], 2);
+            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
+            let endTimestamp = beginTimestamp.add(await time.duration.weeks(24));
+            course = await Course.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
+            await time.increase(time.duration.seconds(1));
         });
 
         it('should add a new student', async () => {
@@ -30,7 +35,7 @@ contract('Course', accounts => {
                 requester: teacher
             });
 
-            (await course.enrolled_students(student)).should.equal(true);
+            (await course.enrolledStudents(student)).should.equal(true);
         });
 
         it('should not add a student twice', async () => {
@@ -56,7 +61,7 @@ contract('Course', accounts => {
 
         it('should allow an owner to remove an enrolled student', async () => {
             await course.addStudent(student, { from: evaluator });
-            (await course.enrolled_students(student)).should.equal(true);
+            (await course.enrolledStudents(student)).should.equal(true);
 
             const { logs } = await course.removeStudent(student, { from: teacher });
 
@@ -65,7 +70,7 @@ contract('Course', accounts => {
                 requester: teacher
             });
 
-            (await course.enrolled_students(student)).should.equal(false);
+            (await course.enrolledStudents(student)).should.equal(false);
         });
 
         it('should revert if try to remove an unregistered student', async () => {
@@ -77,7 +82,7 @@ contract('Course', accounts => {
 
         it('should allow a student to renounce the course', async () => {
             await course.addStudent(student, { from: teacher });
-            (await course.enrolled_students(student)).should.equal(true);
+            (await course.enrolledStudents(student)).should.equal(true);
 
             const { logs } = await course.renounceCourse({ from: student });
 
@@ -86,14 +91,17 @@ contract('Course', accounts => {
                 requester: student
             });
 
-            (await course.enrolled_students(student)).should.equal(false);
+            (await course.enrolledStudents(student)).should.equal(false);
         });
     });
 
     describe('Base class operations', () => {
 
         beforeEach(async () => {
-            course = await Course.new([teacher, evaluator], 2);
+            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
+            let endTimestamp = beginTimestamp.add(await time.duration.weeks(24));
+            course = await Course.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
+            await time.increase(time.duration.seconds(1));
         });
 
         it('should issue a credential for a enrolled student', async () => {

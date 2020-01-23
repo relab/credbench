@@ -39,7 +39,7 @@ contract Course is TimedNotary {
      * @dev Adds a student to the course
      * @param student the address of the student to be added.
      */
-    function addStudent(address student) public onlyOwner() {
+    function addStudent(address student) public onlyOwner onlyAfterStart whileNotEnded {
         require(
             !isEnrolled(student),
             "Course: student already registered in this course"
@@ -64,24 +64,24 @@ contract Course is TimedNotary {
     /**
      * @dev Removes a student from the course
      */
-    function removeStudent(address student) public onlyOwner() {
+    function removeStudent(address student) public onlyOwner onlyAfterStart whileNotEnded {
         _removeStudent(student);
     }
 
     /**
      * @dev Gives up the course
      */
-    function renounceCourse() public {
+    function renounceCourse() public onlyAfterStart whileNotEnded {
         _removeStudent(msg.sender);
     }
 
     /**
-     * @dev addExamCertificate a credential proof for enrolled students
+     * @dev issue a credential proof for enrolled students
      */
-    function addExamCertificate(
+    function issue(
         address student,
         bytes32 digest
-    ) public onlyOwner {
+    ) public onlyOwner onlyAfterStart whileNotEnded {
         require(
             enrolledStudents[student],
             "Course: student not registered"
@@ -90,7 +90,7 @@ contract Course is TimedNotary {
     }
 
     // TODO: add tests for extenting time
-    function extendTime(uint256 endingTime) public {
-        _extendTime(endingTime);
+    function extendTime(uint256 NewEndingTime) public {
+        _extendTime(NewEndingTime);
     }
 }
