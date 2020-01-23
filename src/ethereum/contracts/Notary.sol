@@ -72,6 +72,7 @@ contract Notary is NotaryInterface, Owners {
      * @dev Constructor creates an Owners contract
      */
     constructor (address[] memory owners, uint quorum) public Owners(owners, quorum) {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     modifier notRevoked(bytes32 digest) {
@@ -143,6 +144,7 @@ contract Notary is NotaryInterface, Owners {
             digestsBySubject[subject].push(digest); // append subject's credential hash
             emit CredentialCreated(digest, subject, msg.sender, previousDigest, block.number);
         } else {
+            require(issuedCredentials[digest].subject == subject, "Notary: credential already issued for other subject");
             // Register "signature"
             ++issuedCredentials[digest].signed;
         }
@@ -198,10 +200,10 @@ contract Notary is NotaryInterface, Owners {
     /**
      * @dev aggregate the digests of a given subject
      */
-    function aggregate(address subject) public view returns (bytes32) {
+    function aggregate (address subject) public view returns (bytes32) {
         bytes32[] memory digests = digestsBySubject[subject];
         // TODO: array index validation
-        require(digests.length > 0, "Notary: There is no certificate for the given subject");
+        require(digests.length > 0, "Notary: there is no certificate for the given subject");
         assert(certified(digests[0])); // certificate must be signed by all parties
         bytes32 computedHash = digests[0];
 
@@ -210,7 +212,6 @@ contract Notary is NotaryInterface, Owners {
             computedHash = keccak256(abi.encodePacked(computedHash, digests[i]));
         }
         return computedHash;
-        // TODO: after aggregation the digests can potentially be erased and a root certificate can be create as replacement.
-        // TODO: timed aggregation should only aggregate certificates within the valid period
+        // TODO: after aggregation, the digest can potentially be erased and a root credential can be create as replacement.
     }
 }

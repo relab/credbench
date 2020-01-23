@@ -39,7 +39,7 @@ contract Course is TimedNotary {
      * @dev Adds a student to the course
      * @param student the address of the student to be added.
      */
-    function addStudent(address student) public onlyOwner onlyAfterStart whileNotEnded {
+    function addStudent(address student) public onlyOwner whileNotEnded {
         require(
             !isEnrolled(student),
             "Course: student already registered in this course"
@@ -64,7 +64,7 @@ contract Course is TimedNotary {
     /**
      * @dev Removes a student from the course
      */
-    function removeStudent(address student) public onlyOwner onlyAfterStart whileNotEnded {
+    function removeStudent(address student) public onlyOwner whileNotEnded {
         _removeStudent(student);
     }
 

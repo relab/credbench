@@ -1,5 +1,6 @@
 const { BN, expectEvent, expectRevert, time, constants } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
+const assertFailure = require('./helpers/assertFailure');
 
 const Notary = artifacts.require('NotaryMock');
 
@@ -8,6 +9,7 @@ contract('Notary', accounts => {
     let notary = null;
     const digest1 = web3.utils.soliditySha3('cert1');
     const digest2 = web3.utils.soliditySha3('cert2');
+    const digest3 = web3.utils.soliditySha3('cert3');
     const zeroDigest = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
     describe('constructor', () => {
@@ -51,7 +53,7 @@ contract('Notary', accounts => {
         });
 
         it('should not allow an issuer to issue credential proof to themselves', async () => {
-            notary = await Notary.new([issuer1], 1);
+            notary = await Notary.new([issuer1, issuer2], 1);
 
             await expectRevert(
                 notary.issue(issuer1, digest1, { from: issuer1 }),
@@ -69,6 +71,17 @@ contract('Notary', accounts => {
             await expectRevert(
                 notary.issue(subject1, digest1, { from: issuer3 }),
                 'Owners: sender is not an owner'
+            );
+        });
+
+        it('should not issue a credential proof with the same digest for different subjects', async () => {
+            notary = await Notary.new([issuer1, issuer2], 2);
+
+            await notary.issue(subject1, digest1, { from: issuer1 });
+
+            await expectRevert(
+                notary.issue(subject2, digest1, { from: issuer2 }),
+                'Notary: credential already issued for other subject'
             );
         });
 
@@ -261,6 +274,61 @@ contract('Notary', accounts => {
             assert(credential.insertedBlock, 0);
 
             (await notary.certified(digest1)).should.equal(false);
+        });
+    });
+
+    describe('aggregate', () => {
+        beforeEach(async () => {
+            notary = await Notary.new([issuer1], 1);
+        });
+
+        it('should aggregate all certificates of a subject', async () => {
+            for (d of [digest1, digest2, digest3]) {
+                await notary.issue(subject1, d, { from: issuer1 });
+                await notary.requestProof(d, { from: subject1 });
+                await time.increase(time.duration.seconds(1));
+
+                (await notary.certified(d)).should.equal(true);
+            }
+
+            let aggregated = await notary.aggregate(subject1);
+
+            let expected = digest1;
+            for (d of [digest2, digest3]) {
+                expected = web3.utils.soliditySha3(expected, d);
+            }
+            (aggregated).should.equal(expected);
+        });
+
+        it('should revert if there is no certificate for a given subject', async () => {
+            await expectRevert(
+                notary.aggregate(subject1),
+                'Notary: there is no certificate for the given subject'
+            );
+        });
+
+        it('should return the certificate hash if only one certificate exists', async () => {
+            await notary.issue(subject1, digest1, { from: issuer1 });
+            await notary.requestProof(digest1, { from: subject1 });
+
+            let aggregated = await notary.aggregate(subject1);
+
+            (aggregated).should.equal(digest1);
+        });
+
+        it('should fail if there are any certificate of a subject that isn\'t signed by all parties', async () => {
+            await notary.issue(subject1, digest1, { from: issuer1 });
+
+            let assertion = await assertFailure(notary.aggregate(subject1));
+            expect(assertion.message).to.include('invalid opcode');
+
+            await notary.requestProof(digest1, { from: subject1 });
+            await time.increase(time.duration.seconds(1));
+
+            await notary.issue(subject1, digest2, { from: issuer1 });
+
+            assertion = await assertFailure(notary.aggregate(subject1));
+            expect(assertion.message).to.include('invalid opcode');
         });
     });
 });

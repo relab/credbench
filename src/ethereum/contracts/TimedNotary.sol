@@ -90,4 +90,9 @@ contract TimedNotary is Notary {
         emit NotaryPeriodExtended(_endingTime, newEndingTime);
         _endingTime = newEndingTime;
     }
+
+    function aggregate(address subject) public view onlyAfterStart whileNotEnded returns (bytes32) {
+        //timed aggregation should only aggregate certificates within the    valid period
+        return super.aggregate(subject);
+    }
 }
