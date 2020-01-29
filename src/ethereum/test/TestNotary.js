@@ -7,6 +7,7 @@ const Notary = artifacts.require('NotaryMock');
 contract('Notary', accounts => {
     const [issuer1, issuer2, issuer3, subject1, subject2] = accounts;
     let notary = null;
+    const reason = web3.utils.soliditySha3('revoked');
     const digest1 = web3.utils.soliditySha3('cert1');
     const digest2 = web3.utils.soliditySha3('cert2');
     const digest3 = web3.utils.soliditySha3('cert3');
@@ -226,14 +227,14 @@ contract('Notary', accounts => {
         it('should not revoke a credential proof from a un-authorized address', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
             await expectRevert(
-                notary.revoke(digest1, { from: issuer3 }),
+                notary.revoke(digest1, reason, { from: issuer3 }),
                 'Owners: sender is not an owner'
             );
         });
 
         it('should not revoke a not issued credential proof', async () => {
             await expectRevert(
-                notary.revoke(digest1, { from: issuer1 }),
+                notary.revoke(digest1, reason, { from: issuer1 }),
                 'Notary: no credential proof found'
             );
         });
@@ -242,30 +243,32 @@ contract('Notary', accounts => {
             await notary.issue(subject1, digest1, { from: issuer1 });
             (await notary.wasRevoked(digest1)).should.equal(false);
 
-            await notary.revoke(digest1, { from: issuer1 });
+            await notary.revoke(digest1, reason, { from: issuer1 });
             (await notary.wasRevoked(digest1)).should.equal(true);
         });
 
         it('should successfully create a revocation proof by any owner', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
-            await notary.revoke(digest1, { from: issuer1 });
+            await notary.revoke(digest1, reason, { from: issuer1 });
 
             const revocation = await notary.revokedCredentials(digest1);
             expect(await time.latestBlock()).to.be.bignumber.equal(new BN(revocation.revokedBlock));
+            assert(revocation.reason, reason);
             assert(revocation.subject, subject1);
             assert(revocation.issuer, issuer1);
         });
 
         it('should emits an event when create a revocation proof', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
-            const { logs } = await notary.revoke(digest1, { from: issuer2 });
+            const { logs } = await notary.revoke(digest1, reason, { from: issuer2 });
             const blockNumber = await time.latestBlock();
 
             expectEvent.inLogs(logs, 'CredentialRevoked', {
                 digest: digest1,
                 subject: subject1,
                 issuer: issuer2,
-                revokedBlock: blockNumber
+                revokedBlock: blockNumber,
+                reason: reason
             });
 
             const credential = await notary.issuedCredentials(digest1);

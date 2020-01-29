@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
  * @dev Notary that emits certificates only within a time interval.
  * Based on Openzeppelin TimedCrowdsale
  */
-contract TimedNotary is Notary {
+abstract contract TimedNotary is Notary {
     using SafeMath for uint256;
 
     uint256 private _startingTime;
@@ -24,12 +24,18 @@ contract TimedNotary is Notary {
      * @dev Reverts if not in notary time range.
      */
     modifier onlyAfterStart {
-        require(isStarted(), "TimedNotary: the notarization period didn't start yet");
+        require(
+            isStarted(),
+            "TimedNotary: the notarization period didn't start yet"
+        );
         _;
     }
 
     modifier whileNotEnded {
-        require(!hasEnded(), "TimedNotary: the notarization period has already ended");
+        require(
+            stillRunning(),
+            "TimedNotary: the notarization period has already ended"
+        );
         _;
     }
 
@@ -38,11 +44,17 @@ contract TimedNotary is Notary {
      * @param startingTime notary starting time
      * @param endingTime notary ending time
      */
-    constructor (uint256 startingTime, uint256 endingTime) public {
+    constructor(uint256 startingTime, uint256 endingTime) public {
         // solhint-disable-next-line not-rely-on-time
-        require(startingTime >= block.timestamp, "TimedNotary: starting time is before current time");
+        require(
+            startingTime >= block.timestamp,
+            "TimedNotary: starting time is before current time"
+        );
         // solhint-disable-next-line max-line-length
-        require(endingTime > startingTime, "TimedNotary: starting time is not before ending time");
+        require(
+            endingTime > startingTime,
+            "TimedNotary: starting time is not before ending time"
+        );
 
         _startingTime = startingTime;
         _endingTime = endingTime;
@@ -67,7 +79,7 @@ contract TimedNotary is Notary {
      */
     function isStarted() public view returns (bool) {
         // solhint-disable-next-line not-rely-on-time
-        return block.timestamp >= _startingTime && block.timestamp <= _endingTime;
+        return block.timestamp >= _startingTime;
     }
 
     /**
@@ -80,18 +92,35 @@ contract TimedNotary is Notary {
     }
 
     /**
+     * @return true if the notarization period still running.
+     */
+    function stillRunning() public view returns (bool) {
+        // solhint-disable-next-line not-rely-on-time
+        return isStarted() && !hasEnded();
+    }
+
+    /**
      * @dev Extend the notarization time.
      * @param newEndingTime the new notary ending time
      */
-    function _extendTime(uint256 newEndingTime) internal onlyAfterStart whileNotEnded {
+    function _extendTime(uint256 newEndingTime) internal whileNotEnded {
         // solhint-disable-next-line max-line-length
-        require(newEndingTime > _endingTime, "TimedNotary: new ending time is before current ending time");
+        require(
+            newEndingTime > _endingTime,
+            "TimedNotary: new ending time is before current ending time"
+        );
 
         emit NotaryPeriodExtended(_endingTime, newEndingTime);
         _endingTime = newEndingTime;
     }
 
-    function aggregate(address subject) public view onlyAfterStart whileNotEnded returns (bytes32) {
+    function aggregate(address subject)
+        public
+        view
+        override
+        onlyAfterStart
+        returns (bytes32)
+    {
         //timed aggregation should only aggregate certificates within the    valid period
         return super.aggregate(subject);
     }
