@@ -30,14 +30,14 @@ module.exports = {
 
     compilers: {
         solc: {
-            version: '0.5.13'
-            // settings: {
-            //  optimizer: {
-            //    enabled: false,
-            //    runs: 200
-            //  },
-            //  evmVersion: "byzantium"
-            // }
+            version: '0.6.2',
+            settings: {
+                optimizer: {
+                    enabled: true,
+                    runs: 100
+                },
+                //  evmVersion: "byzantium"
+            }
         }
     }
 };

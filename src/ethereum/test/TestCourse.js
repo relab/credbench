@@ -1,16 +1,18 @@
 const { expectEvent, constants, time, expectRevert } = require('@openzeppelin/test-helpers');
 
-const Course = artifacts.require('Course');
+const Course = artifacts.require('CourseMock');
 
 contract('Course', accounts => {
     const [teacher, evaluator, student, other] = accounts;
     let course = null;
-    const digest = web3.utils.sha3('QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG');
+    const digest1 = web3.utils.soliditySha3('cert1');
+    const digest2 = web3.utils.soliditySha3('cert2');
+    const digest3 = web3.utils.soliditySha3('cert3');
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
             let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
-            let endTimestamp = beginTimestamp.add(await time.duration.weeks(24));
+            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
             course = await Course.new([teacher, evaluator], 2, beginTimestamp.toString(), endTimestamp.toString());
             (await course.isOwner(teacher)).should.equal(true);
             (await course.isOwner(evaluator)).should.equal(true);
@@ -22,7 +24,7 @@ contract('Course', accounts => {
 
         beforeEach(async () => {
             let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
-            let endTimestamp = beginTimestamp.add(await time.duration.weeks(24));
+            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
             course = await Course.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
             await time.increase(time.duration.seconds(1));
         });
@@ -95,25 +97,44 @@ contract('Course', accounts => {
         });
     });
 
-    describe('Base class operations', () => {
+    describe('Certification', () => {
 
         beforeEach(async () => {
             let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
-            let endTimestamp = beginTimestamp.add(await time.duration.weeks(24));
+            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
             course = await Course.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
             await time.increase(time.duration.seconds(1));
         });
 
         it('should issue a credential for a enrolled student', async () => {
             await course.addStudent(student, { from: teacher });
-            await course.issue(student, digest, { from: teacher });
+            await course.issueExam(student, digest1, { from: teacher });
         });
 
         it('should not issue a credential for a non-enrolled address', async () => {
             await expectRevert(
-                course.issue(other, digest, { from: teacher }),
+                course.issueExam(other, digest1, { from: teacher }),
                 'Course: student not registered'
             );
+        });
+
+        it('should create a course certificate based on all valid exams of a subject', async () => {
+            await course.enrollStudents([student, other]);
+
+            for (d of [digest1, digest2, digest3]) {
+                await course.issueExam(student, d, { from: teacher });
+                await course.issueExam(student, d, { from: evaluator });
+                await course.requestProof(d, { from: student });
+                await time.increase(time.duration.seconds(1));
+
+                (await course.certified(d)).should.equal(true);
+            }
+            (await course.hasEnded()).should.equal(false);
+
+            await time.increase(time.duration.hours(1));
+            (await course.hasEnded()).should.equal(true);
+
+            const { logs } = await course.issueCourseCertificateFor(student, { from: teacher });
         });
     });
 });

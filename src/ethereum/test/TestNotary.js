@@ -39,7 +39,6 @@ contract('Notary', accounts => {
             expect(await time.latestBlock()).to.be.bignumber.equal(new BN(credential.insertedBlock));
             assert(credential.subject, subject1);
             assert(credential.digest, digest1);
-            assert(credential.previousDigest, zeroDigest);
             (await notary.ownersSigned(digest1, issuer1)).should.equal(true);
         });
 
@@ -101,34 +100,6 @@ contract('Notary', accounts => {
             (quorum).should.equal(0);
         });
 
-        it('should successfully create a signed credential proof linked with the previous of the same subject', async () => {
-            notary = await Notary.new([issuer1, issuer2, issuer3], 2);
-            await notary.issue(subject1, digest1, { from: issuer1 });
-            await notary.issue(subject1, digest1, { from: issuer2 });
-            await notary.requestProof(digest1, { from: subject1 });
-
-            const credential1 = await notary.issuedCredentials(digest1);
-            assert(credential1.signed, 2);
-            assert(credential1.subject, subject1);
-            assert(credential1.digest, digest1);
-            assert(credential1.previousDigest, zeroDigest);
-            (await notary.ownersSigned(digest1, issuer1)).should.equal(true);
-
-            await time.increase(time.duration.seconds(1)); // mines a new block with timestamp 1 second ahead.
-
-            // Issuing a new certificate
-            await notary.issue(subject1, digest2, { from: issuer1 });
-
-            const credential2 = await notary.issuedCredentials(digest2);
-
-            expect(credential2.blockTimestamp).to.be.bignumber.above(credential1.blockTimestamp);
-
-            assert(credential2.signed, 1);
-            assert(credential2.subject, subject1);
-            assert(credential2.digest, digest2);
-            assert(credential2.previousDigest, digest1);
-        });
-
         it('should not allow issue a new certificate before sign the previous', async () => {
             notary = await Notary.new([issuer1, issuer2, issuer3], 2);
             await notary.issue(subject1, digest1, { from: issuer1 });
@@ -137,7 +108,6 @@ contract('Notary', accounts => {
             assert(credential1.signed, 2);
             assert(credential1.subject, subject1);
             assert(credential1.digest, digest1);
-            assert(credential1.previousDigest, zeroDigest);
             (await notary.ownersSigned(digest1, issuer1)).should.equal(true);
 
             await expectRevert(
@@ -181,8 +151,7 @@ contract('Notary', accounts => {
             expectEvent.inLogs(logs, 'CredentialIssued', {
                 digest: digest1,
                 subject: subject1,
-                issuer: issuer1,
-                previousDigest: zeroDigest
+                issuer: issuer1
             });
         });
 
@@ -286,7 +255,8 @@ contract('Notary', accounts => {
         });
 
         it('should aggregate all certificates of a subject', async () => {
-            for (d of [digest1, digest2, digest3]) {
+            let digests = [digest1, digest2, digest3];
+            for (d of digests) {
                 await notary.issue(subject1, d, { from: issuer1 });
                 await notary.requestProof(d, { from: subject1 });
                 await time.increase(time.duration.seconds(1));
@@ -296,10 +266,7 @@ contract('Notary', accounts => {
 
             let aggregated = await notary.aggregate(subject1);
 
-            let expected = digest1;
-            for (d of [digest2, digest3]) {
-                expected = web3.utils.soliditySha3(expected, d);
-            }
+            let expected = web3.utils.soliditySha3(web3.eth.abi.encodeParameter('bytes32[]', digests));
             (aggregated).should.equal(expected);
         });
 
@@ -315,8 +282,9 @@ contract('Notary', accounts => {
             await notary.requestProof(digest1, { from: subject1 });
 
             let aggregated = await notary.aggregate(subject1);
+            let expected = web3.utils.soliditySha3(web3.eth.abi.encodeParameter('bytes32[]', [digest1]));
 
-            (aggregated).should.equal(digest1);
+            (aggregated).should.equal(expected);
         });
 
         it('should fail if there are any certificate of a subject that isn\'t signed by all parties', async () => {

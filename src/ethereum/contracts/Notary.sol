@@ -1,8 +1,9 @@
 pragma solidity >=0.5.13;
+pragma experimental ABIEncoderV2;
 
 import "./NotaryInterface.sol";
 import "./Owners.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+// import "@openzeppelin/contracts/math/SafeMath.sol";
 
 // TODO: how to manage key changes? e.g. a student that lost his previous key. Reissue the certificates may not work, since the time ordering, thus a possible solution is the contract to store a key update information for the subject, or something like that.
 
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
   * establishing a casual order between the certificates.
 */
 abstract contract Notary is NotaryInterface, Owners {
-    using SafeMath for uint256;
+    // using SafeMath for uint256;
 
     /**
      * @dev CredentialProof represents an on-chain proof that a
@@ -23,11 +24,10 @@ abstract contract Notary is NotaryInterface, Owners {
         bool subjectSigned; // Whether the subject signed
         uint256 insertedBlock; // The block number of the proof creation
         uint256 blockTimestamp; // The block timestamp of the proof creation
-        uint256 nonce;
+        uint256 nonce;  // Increment-only counter of credentials of the same subject
         address issuer; // The issuer address of this proof
         address subject; // The entity address refered by a proof
         bytes32 digest; // The digest of the credential stored (e.g. Swarm hash)
-        bytes32 previousDigest; // The hash of the previous certificate
         // TODO: add "bytes signature" field to allow external signatures and on-chain verification
         // TODO: add "uint256 signatureType" to inform what type of signature was used
         // TODO: add "string uri" field to identify the storage type (bzz, ipfs)
@@ -46,7 +46,7 @@ abstract contract Notary is NotaryInterface, Owners {
     // TODO: add key revocation
 
     // Incremental-only counter for issued credentials per subject
-    mapping(address => uint256) private _nonce;
+    mapping(address => uint256) public nonce;
 
     // Maps credential digests by subjects
     mapping(address => bytes32[]) public digestsBySubject;
@@ -65,7 +65,7 @@ abstract contract Notary is NotaryInterface, Owners {
         bytes32 indexed digest,
         address indexed subject,
         address indexed issuer,
-        bytes32 previousDigest,
+        bytes32 previousHash,
         uint256 insertedBlock
     );
 
@@ -112,15 +112,13 @@ abstract contract Notary is NotaryInterface, Owners {
         if (issuedCredentials[digest].insertedBlock == 0) {
             // Creation
             uint256 lastNonce;
-            bytes32 previousDigest;
-            if (_nonce[subject] == 0) {
-                lastNonce = _nonce[subject];
-                previousDigest = bytes32(0);
+            if (nonce[subject] == 0) {
+                lastNonce = nonce[subject];
             } else {
-                assert(_nonce[subject] > 0);
-                lastNonce = _nonce[subject] - 1;
+                assert(nonce[subject] > 0);
+                lastNonce = nonce[subject] - 1;
                 assert(digestsBySubject[subject].length > 0);
-                previousDigest = digestsBySubject[subject][lastNonce];
+                bytes32 previousDigest = digestsBySubject[subject][lastNonce];
                 CredentialProof memory c = issuedCredentials[previousDigest];
                 require(
                     c.subjectSigned,
@@ -133,20 +131,17 @@ abstract contract Notary is NotaryInterface, Owners {
                 // solhint-disable-next-line not-rely-on-time, expression-indent
                 assert(c.blockTimestamp < block.timestamp);
             }
-            // TODO: assert the expect value here
-            // previousDigest will be zero if didn't exists?
             issuedCredentials[digest] = CredentialProof(
                 1,
                 false,
                 block.number,
                 block.timestamp, // solhint-disable-line not-rely-on-time
-                _nonce[subject],
+                nonce[subject],
                 msg.sender,
                 subject,
-                digest,
-                previousDigest
+                digest
             );
-            ++_nonce[subject];
+            ++nonce[subject];
             digestsBySubject[subject].push(digest); // append subject's credential hash
         } else {
             require(
@@ -188,7 +183,6 @@ abstract contract Notary is NotaryInterface, Owners {
             digest,
             proof.subject,
             proof.issuer,
-            proof.previousDigest,
             proof.insertedBlock
         );
     }
@@ -229,23 +223,16 @@ abstract contract Notary is NotaryInterface, Owners {
      */
     function aggregate(address subject) public view override virtual returns (bytes32) {
         bytes32[] memory digests = digestsBySubject[subject];
-        // TODO: array index validation
         require(
             digests.length > 0,
             "Notary: there is no certificate for the given subject"
         );
-        assert(certified(digests[0]) && !wasRevoked(digests[0])); // certificate must be signed by all parties and should be valid
-        bytes32 computedHash = digests[0];
-
-        // TODO: only perform the aggregation if all credentials of a subject is either valid or revoked
         // TODO: ignore the revoke credentials in the aggregation
-        for (uint256 i = 1; i < digests.length; i++) {
-            assert(certified(digests[i]) && !wasRevoked(digests[i])); // all subject's certificates must be signed by all parties and should be valid
-            computedHash = keccak256(
-                abi.encodePacked(computedHash, digests[i])
-            );
+        for (uint256 i = 0; i < digests.length; i++) {
+            assert(certified(digests[i])); //&& !wasRevoked(digests[i]));
+            // all subject's certificates must be signed by all parties and should be valid
         }
-        return computedHash;
+        return keccak256(abi.encode(digests));
         // TODO: after aggregation, the digest can potentially be erased and a root credential can be create as replacement.
     }
 }

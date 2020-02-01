@@ -1,7 +1,7 @@
 pragma solidity >=0.5.13;
 
 import "./Notary.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+// import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /**
  * @title TimedNotary
@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
  * Based on Openzeppelin TimedCrowdsale
  */
 abstract contract TimedNotary is Notary {
-    using SafeMath for uint256;
+    // using SafeMath for uint256;
 
     uint256 private _startingTime;
     uint256 private _endingTime;
@@ -48,12 +48,12 @@ abstract contract TimedNotary is Notary {
         // solhint-disable-next-line not-rely-on-time
         require(
             startingTime >= block.timestamp,
-            "TimedNotary: starting time is before current time"
+            "TimedNotary: starting time cannot be in the past"
         );
         // solhint-disable-next-line max-line-length
         require(
             endingTime > startingTime,
-            "TimedNotary: starting time is not before ending time"
+            "TimedNotary: ending time cannot be smaller than starting time"
         );
 
         _startingTime = startingTime;
@@ -88,7 +88,7 @@ abstract contract TimedNotary is Notary {
      */
     function hasEnded() public view returns (bool) {
         // solhint-disable-next-line not-rely-on-time
-        return block.timestamp > _endingTime;
+        return block.timestamp >= _endingTime;
     }
 
     /**

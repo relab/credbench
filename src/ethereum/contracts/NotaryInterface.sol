@@ -7,7 +7,6 @@ interface NotaryInterface {
         bytes32 indexed digest,
         address indexed subject,
         address indexed issuer,
-        bytes32 previousDigest,
         uint256 insertedBlock
     );
 
