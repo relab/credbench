@@ -49,27 +49,31 @@ contract Faculty is Notary {
         emit CourseCreated(semester, address(course), teachers, quorum);
     }
 
-    function issueDiploma(address subject, address[] memory courses_addresses)
-        public
-        onlyOwner
-    {
+    // the diploma should be a hash of all student course certificates, that is a hash of all student exams(even the bad ones - this is why merkle tree would be good, so the student could choose what grade to present as the certificate (i.e. json) and still be a valid diploma hash).
+    // Currently the diploma is build by hashing all digests in sequence following the given course contrats order, which can be wrong and produce different hashes. Should respect the timestamp order of certificates
+    function issueDiploma(
+        address subject,
+        bytes32 digest,
+        bytes32 diplomaRoot,
+        address[] memory courses_addresses // TODO: add period check
+    ) public onlyOwner {
+        // TODO: get all courses of a student
         bytes32[] memory digests = new bytes32[](courses_addresses.length);
+        require(courses_addresses.length > 0, "Faculty: No courses were given");
         for (uint256 i = 0; i < courses_addresses.length; i++) {
+            //collect course certificates
             require(
                 courses[address(courses_addresses[i])],
-                "Faculty: course must exists"
-            ); // all courses should exists
+                "Faculty: course doesn't registered"
+            );
             Course course = Course(address(courses_addresses[i]));
-
-            // assert(course.courseCertificate(subject).insertedBlock != 0);
-            Course.CourseProof memory proof = course.courseCertificate(subject);
-            digests[i] = proof.digest;
+            // TODO: perform time check based on the certificates timestamps
+            // TODO: sort the courses by the startingTime/endingTime
+            digests[i] = course.aggregate(subject);
         }
-        require(digests.length > 0, "Faculty: Courses certificates not found");
-        bytes32 diploma = keccak256(abi.encode(digests));
-        // Two alternatives:
-        // 1) call CertificateSum library and get the resulted proof.
-        super.issue(subject, diploma);
-        // 2) or, publish the proof as a notary
+        bytes32 diploma = keccak256(abi.encode(digests, digest));
+        assert(diploma == diplomaRoot);
+        // TODO: store list of course addresses used to generate the proof
+        super.issue(subject, digest); // create a diploma
     }
 }

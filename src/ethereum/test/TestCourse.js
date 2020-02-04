@@ -5,9 +5,10 @@ const Course = artifacts.require('CourseMock');
 contract('Course', accounts => {
     const [teacher, evaluator, student, other] = accounts;
     let course = null;
-    const digest1 = web3.utils.soliditySha3('cert1');
-    const digest2 = web3.utils.soliditySha3('cert2');
-    const digest3 = web3.utils.soliditySha3('cert3');
+    const digest1 = web3.utils.keccak256(web3.utils.toHex('cert1'));
+    const digest2 = web3.utils.keccak256(web3.utils.toHex('cert2'));
+    const digest3 = web3.utils.keccak256(web3.utils.toHex('cert3'));
+    const courseDigest = web3.utils.keccak256(web3.utils.toHex('course1'));
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
@@ -134,7 +135,19 @@ contract('Course', accounts => {
             await time.increase(time.duration.hours(1));
             (await course.hasEnded()).should.equal(true);
 
-            const { logs } = await course.issueCourseCertificateFor(student, { from: teacher });
+            await course.issueCourseCertificateFor(student, courseDigest, { from: teacher });
+            await course.issueCourseCertificateFor(student, courseDigest, { from: evaluator });
+            const { logs } = await course.requestProof(courseDigest, { from: student });
+
+            expectEvent.inLogs(logs, 'CredentialIssued', {
+                digest: courseDigest,
+                subject: student,
+                issuer: teacher
+            });
+
+            let aggregated = await course.aggregate(student);
+            let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1, digest2, digest3, courseDigest]));
+            (aggregated).should.equal(expected);
         });
     });
 });

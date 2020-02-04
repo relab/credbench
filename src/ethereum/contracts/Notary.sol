@@ -27,7 +27,7 @@ abstract contract Notary is NotaryInterface, Owners {
         uint256 nonce;  // Increment-only counter of credentials of the same subject
         address issuer; // The issuer address of this proof
         address subject; // The entity address refered by a proof
-        bytes32 digest; // The digest of the credential stored (e.g. Swarm hash)
+        bytes32 digest; // The digest of the credential stored (e.g. Swarm/IPFS hash)
         // TODO: add "bytes signature" field to allow external signatures and on-chain verification
         // TODO: add "uint256 signatureType" to inform what type of signature was used
         // TODO: add "string uri" field to identify the storage type (bzz, ipfs)
@@ -60,15 +60,6 @@ abstract contract Notary is NotaryInterface, Owners {
     // Map digest to owners that already signed it
     mapping(bytes32 => mapping(address => bool)) public ownersSigned;
 
-    // Logged when a credential is created by an issuer
-    event CredentialCreated(
-        bytes32 indexed digest,
-        address indexed subject,
-        address indexed issuer,
-        bytes32 previousHash,
-        uint256 insertedBlock
-    );
-
     /**
      * @dev Constructor creates an Owners contract
      */
@@ -95,20 +86,10 @@ abstract contract Notary is NotaryInterface, Owners {
         return revokedCredentials[digest].revokedBlock != 0;
     }
 
-    /**
-     * @dev issue a credential proof ensuring an append-only property
-     */
-    function issue(address subject, bytes32 digest)
-        public
-        override
+    function _issue(address subject, bytes32 digest)
+        internal
         onlyOwner
-        notRevoked(digest)
-    {
-        require(
-            !ownersSigned[digest][msg.sender],
-            "Notary: sender already signed"
-        );
-        require(!isOwner[subject], "Notary: subject cannot be the issuer");
+        notRevoked(digest) {
         if (issuedCredentials[digest].insertedBlock == 0) {
             // Creation
             uint256 lastNonce;
@@ -152,6 +133,23 @@ abstract contract Notary is NotaryInterface, Owners {
             ++issuedCredentials[digest].signed;
         }
         ownersSigned[digest][msg.sender] = true;
+    }
+
+    /**
+     * @dev issue a credential proof ensuring an append-only property
+     */
+    function issue(address subject, bytes32 digest)
+        public
+        override
+        onlyOwner
+        notRevoked(digest)
+    {
+        require(
+            !ownersSigned[digest][msg.sender],
+            "Notary: sender already signed"
+        );
+        require(!isOwner[subject], "Notary: subject cannot be the issuer");
+        _issue(subject, digest);
     }
 
     /**

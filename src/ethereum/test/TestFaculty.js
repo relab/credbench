@@ -3,13 +3,16 @@ const { expectEvent, constants, time, expectRevert, ether } = require('@openzepp
 const Faculty = artifacts.require('FacultyMock');
 const Course = artifacts.require('CourseMock');
 
-contract('Faculty', accounts => {
+contract.only('Faculty', accounts => {
     const [dean, adm, teacher, evaluator, student, other] = accounts;
     let faculty, courseStarts, courseEnds = null;
-    const semester = web3.utils.soliditySha3('spring2020');
-    const digest1 = web3.utils.soliditySha3('exam1');
-    const digest2 = web3.utils.soliditySha3('exam2');
-    const digest3 = web3.utils.soliditySha3('exam3');
+    const semester = web3.utils.keccak256(web3.utils.toHex('spring2020'));
+    const digest1 = web3.utils.keccak256(web3.utils.toHex('cert1'));
+    const digest2 = web3.utils.keccak256(web3.utils.toHex('cert2'));
+    const digest3 = web3.utils.keccak256(web3.utils.toHex('cert3'));
+    const courseDigest1 = web3.utils.keccak256(web3.utils.toHex('course1'));
+    const courseDigest2 = web3.utils.keccak256(web3.utils.toHex('course2'));
+    const diplomaDigest = web3.utils.keccak256(web3.utils.toHex('diploma'));
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
@@ -79,7 +82,7 @@ contract('Faculty', accounts => {
 
             await faculty.issueDiploma(student, courses);
 
-            let expected = web3.utils.soliditySha3(web3.eth.abi.encodeParameter('bytes32[]', expectedCerts));
+            let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', expectedCerts));
 
             let diploma = await faculty.digestsBySubject(student, 0);
 

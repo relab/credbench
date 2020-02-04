@@ -8,30 +8,11 @@ import "./TimedNotary.sol";
  * @title Academic Course
  */
 contract Course is TimedNotary {
-    struct CourseProof {
-        uint256 insertedBlock;
-        uint256 blockTimestamp;
-        address issuer;
-        address subject;
-        bytes32 digest;
-        bytes32[] exams;
-    }
-
-    mapping(address => CourseProof) _courseCertificate;
-
     // The teacher and the evaluator are owners of the contract
     mapping(address => bool) public enrolledStudents;
 
     event StudentAdded(address indexed student, address indexed requester);
     event StudentRemoved(address indexed student, address indexed requester);
-
-    event CourseCertificateCreated(
-        address indexed subject,
-        address indexed issuer,
-        bytes32 indexed digest,
-        bytes32[] certificates,
-        uint256 blockNumber
-    );
 
     /**
     * @dev Constructor creates a Notary contract
@@ -43,14 +24,6 @@ contract Course is TimedNotary {
         uint256 endingTime
     ) public Notary(owners, quorum) TimedNotary(startingTime, endingTime) {
         // solhint-disable-previous-line no-empty-blocks
-    }
-
-    function courseCertificate(address student)
-        public
-        view
-        returns (CourseProof memory)
-    {
-        return _courseCertificate[student];
     }
 
     /**
@@ -120,23 +93,11 @@ contract Course is TimedNotary {
         _extendTime(NewEndingTime);
     }
 
-    function issueCourseCertificateFor(address subject) public onlyOwner {
+    function issueCourseCertificateFor(address subject, bytes32 digest)
+        public
+        onlyOwner
+    {
         require(hasEnded(), "Course: course not ended yet");
-        bytes32 courseDigest = aggregate(subject);
-        _courseCertificate[subject] = CourseProof(
-            block.number,
-            block.timestamp,
-            msg.sender,
-            subject,
-            courseDigest,
-            digestsBySubject[subject]
-        );
-        emit CourseCertificateCreated(
-            subject,
-            msg.sender,
-            courseDigest,
-            digestsBySubject[subject],
-            block.number
-        );
+        super.issue(subject, digest);
     }
 }

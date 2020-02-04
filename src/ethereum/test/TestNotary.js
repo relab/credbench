@@ -7,10 +7,10 @@ const Notary = artifacts.require('NotaryMock');
 contract('Notary', accounts => {
     const [issuer1, issuer2, issuer3, subject1, subject2] = accounts;
     let notary = null;
-    const reason = web3.utils.soliditySha3('revoked');
-    const digest1 = web3.utils.soliditySha3('cert1');
-    const digest2 = web3.utils.soliditySha3('cert2');
-    const digest3 = web3.utils.soliditySha3('cert3');
+    const reason = web3.utils.keccak256(web3.utils.toHex('revoked'));
+    const digest1 = web3.utils.keccak256(web3.utils.toHex('cert1'));
+    const digest2 = web3.utils.keccak256(web3.utils.toHex('cert2'));
+    const digest3 = web3.utils.keccak256(web3.utils.toHex('cert3'));
     const zeroDigest = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
     describe('constructor', () => {
@@ -266,7 +266,7 @@ contract('Notary', accounts => {
 
             let aggregated = await notary.aggregate(subject1);
 
-            let expected = web3.utils.soliditySha3(web3.eth.abi.encodeParameter('bytes32[]', digests));
+            let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', digests));
             (aggregated).should.equal(expected);
         });
 
@@ -282,7 +282,7 @@ contract('Notary', accounts => {
             await notary.requestProof(digest1, { from: subject1 });
 
             let aggregated = await notary.aggregate(subject1);
-            let expected = web3.utils.soliditySha3(web3.eth.abi.encodeParameter('bytes32[]', [digest1]));
+            let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1]));
 
             (aggregated).should.equal(expected);
         });
