@@ -125,7 +125,7 @@ contract('Course', accounts => {
             for (d of [digest1, digest2, digest3]) {
                 await course.issueExam(student, d, { from: teacher });
                 await course.issueExam(student, d, { from: evaluator });
-                await course.requestProof(d, { from: student });
+                await course.confirmProof(d, { from: student });
                 await time.increase(time.duration.seconds(1));
 
                 (await course.certified(d)).should.equal(true);
@@ -135,15 +135,9 @@ contract('Course', accounts => {
             await time.increase(time.duration.hours(1));
             (await course.hasEnded()).should.equal(true);
 
-            await course.issueCourseCertificateFor(student, courseDigest, { from: teacher });
-            await course.issueCourseCertificateFor(student, courseDigest, { from: evaluator });
-            const { logs } = await course.requestProof(courseDigest, { from: student });
-
-            expectEvent.inLogs(logs, 'CredentialIssued', {
-                digest: courseDigest,
-                subject: student,
-                issuer: teacher
-            });
+            await course.issueCourseCertificate(student, courseDigest, { from: teacher });
+            await course.issueCourseCertificate(student, courseDigest, { from: evaluator });
+            await course.confirmProof(courseDigest, { from: student });
 
             let aggregated = await course.aggregate(student);
             let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1, digest2, digest3, courseDigest]));

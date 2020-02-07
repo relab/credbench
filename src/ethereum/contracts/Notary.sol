@@ -22,6 +22,7 @@ abstract contract Notary is NotaryInterface, Owners {
     struct CredentialProof {
         uint256 signed; // Amount of owners who signed
         bool subjectSigned; // Whether the subject signed
+        // FIXME: redundant time information. Decide on which one to use
         uint256 insertedBlock; // The block number of the proof creation
         uint256 blockTimestamp; // The block timestamp of the proof creation
         uint256 nonce;  // Increment-only counter of credentials of the same subject
@@ -124,12 +125,18 @@ abstract contract Notary is NotaryInterface, Owners {
             );
             ++nonce[subject];
             digestsBySubject[subject].push(digest); // append subject's credential hash
+            emit CredentialIssued(
+                digest,
+                subject,
+                msg.sender,
+                block.number
+            );
         } else {
             require(
                 issuedCredentials[digest].subject == subject,
                 "Notary: credential already issued for other subject"
             );
-            // Register "signature"
+            // Register sign action
             ++issuedCredentials[digest].signed;
         }
         ownersSigned[digest][msg.sender] = true;
@@ -150,6 +157,7 @@ abstract contract Notary is NotaryInterface, Owners {
         );
         require(!isOwner[subject], "Notary: subject cannot be the issuer");
         _issue(subject, digest);
+        emit CredentialSigned(msg.sender, digest, block.number);
     }
 
     /**
@@ -162,7 +170,7 @@ abstract contract Notary is NotaryInterface, Owners {
     /**
      * @dev request the emission of a quorum signed credential proof
      */
-    function requestProof(bytes32 digest) public override notRevoked(digest) {
+    function confirmProof(bytes32 digest) public override notRevoked(digest) {
         CredentialProof storage proof = issuedCredentials[digest];
         require(
             proof.subject == msg.sender,
@@ -177,12 +185,7 @@ abstract contract Notary is NotaryInterface, Owners {
             "Notary: not sufficient quorum of signatures"
         );
         proof.subjectSigned = true; // All parties signed
-        emit CredentialIssued(
-            digest,
-            proof.subject,
-            proof.issuer,
-            proof.insertedBlock
-        );
+        emit CredentialSigned(msg.sender, digest, block.number);
     }
 
     /**

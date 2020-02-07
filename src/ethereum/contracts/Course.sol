@@ -14,6 +14,11 @@ contract Course is TimedNotary {
     event StudentAdded(address indexed student, address indexed requester);
     event StudentRemoved(address indexed student, address indexed requester);
 
+    modifier registeredStudent(address student) {
+        require(enrolledStudents[student], "Course: student not registered");
+        _;
+    }
+
     /**
     * @dev Constructor creates a Notary contract
     */
@@ -76,6 +81,11 @@ contract Course is TimedNotary {
         _removeStudent(msg.sender);
     }
 
+    // TODO: add tests for extenting time
+    function extendTime(uint256 NewEndingTime) public {
+        _extendTime(NewEndingTime);
+    }
+
     /**
      * @dev issue a credential proof for enrolled students
      */
@@ -83,21 +93,17 @@ contract Course is TimedNotary {
         public
         onlyOwner
         whileNotEnded
+        registeredStudent(student)
     {
-        require(enrolledStudents[student], "Course: student not registered");
         super.issue(student, digest);
     }
 
-    // TODO: add tests for extenting time
-    function extendTime(uint256 NewEndingTime) public {
-        _extendTime(NewEndingTime);
-    }
-
-    function issueCourseCertificateFor(address subject, bytes32 digest)
+    function issueCourseCertificate(address student, bytes32 digest)
         public
         onlyOwner
+        registeredStudent(student)
     {
         require(hasEnded(), "Course: course not ended yet");
-        super.issue(subject, digest);
+        super.issue(student, digest);
     }
 }

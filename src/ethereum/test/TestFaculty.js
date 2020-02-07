@@ -3,7 +3,7 @@ const { expectEvent, constants, time, expectRevert, ether } = require('@openzepp
 const Faculty = artifacts.require('FacultyMock');
 const Course = artifacts.require('CourseMock');
 
-contract.only('Faculty', accounts => {
+contract('Faculty', accounts => {
     const [dean, adm, teacher, evaluator, student, other] = accounts;
     let faculty, courseStarts, courseEnds = null;
     const semester = web3.utils.keccak256(web3.utils.toHex('spring2020'));
@@ -62,7 +62,7 @@ contract.only('Faculty', accounts => {
                 for (d of [digest1, digest2, digest3]) {
                     await course.issueExam(student, d, { from: teacher });
                     await course.issueExam(student, d, { from: evaluator });
-                    await course.requestProof(d, { from: student });
+                    await course.confirmProof(d, { from: student });
                     await time.increase(time.duration.seconds(1));
                 }
             }
@@ -73,7 +73,7 @@ contract.only('Faculty', accounts => {
                 let course = await Course.at(cAddress);
                 (await course.hasEnded()).should.equal(true);
 
-                await course.issueCourseCertificateFor(student, { from: teacher });
+                await course.issueCourseCertificate(student, { from: teacher });
                 let cert = (await course.courseCertificate(student)).digest
                 expectedCerts.push(cert);
             }

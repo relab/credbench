@@ -42,6 +42,19 @@ contract('Notary', accounts => {
             (await notary.ownersSigned(digest1, issuer1)).should.equal(true);
         });
 
+        it('should emits an event when a credential proof is issued', async () => {
+            notary = await Notary.new([issuer1], 1);
+            let { logs } = await notary.issue(subject1, digest1, { from: issuer1 });
+
+            let block = await time.latestBlock();
+            expectEvent.inLogs(logs, 'CredentialIssued', {
+                digest: digest1,
+                subject: subject1,
+                issuer: issuer1,
+                insertedBlock: block
+            });
+        });
+
         it('should not issue an already issued credential proof', async () => {
             notary = await Notary.new([issuer1], 1);
             await notary.issue(subject1, digest1, { from: issuer1 });
@@ -117,16 +130,16 @@ contract('Notary', accounts => {
         });
     });
 
-    describe('request proof', () => {
+    describe('confirm the proof emission', () => {
         beforeEach(async () => {
             notary = await Notary.new([issuer1, issuer2, issuer3], 2);
         });
 
-        it('should revert when requesting a credential proof without a quorum formed', async () => {
+        it('should revert when attempt to confirm a credential proof without a quorum formed', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
 
             await expectRevert(
-                notary.requestProof(digest1, { from: subject1 }),
+                notary.confirmProof(digest1, { from: subject1 }),
                 'Notary: not sufficient quorum of signatures'
             );
 
@@ -134,25 +147,50 @@ contract('Notary', accounts => {
             (credential.subjectSigned).should.equal(false);
         });
 
-        it('should issue a requested credential proof if it was signed by a quorum', async () => {
+        it('should mark a credential proof as signed when it was signed by a quorum and by the subject', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
             await notary.issue(subject1, digest1, { from: issuer2 });
-            await notary.requestProof(digest1, { from: subject1 });
+            await notary.confirmProof(digest1, { from: subject1 });
 
             const credential = await notary.issuedCredentials(digest1);
             (credential.subjectSigned).should.equal(true);
         });
 
-        it('should emits an event when a requested credential proof is signed by all required parties', async () => {
-            await notary.issue(subject1, digest1, { from: issuer1 });
-            await notary.issue(subject1, digest1, { from: issuer2 });
+        it('should emit an event when a credential proof is signed by all required parties', async () => {
+            const previousBlockNumber = await time.latestBlock();
 
-            const { logs } = await notary.requestProof(digest1, { from: subject1 });
+            let { logs } = await notary.issue(subject1, digest1, { from: issuer1 });
+            let lastBlockNumber = await time.latestBlock();
             expectEvent.inLogs(logs, 'CredentialIssued', {
                 digest: digest1,
                 subject: subject1,
-                issuer: issuer1
+                issuer: issuer1,
+                insertedBlock: lastBlockNumber
             });
+            expectEvent.inLogs(logs, 'CredentialSigned', {
+                signer: issuer1,
+                digest: digest1,
+                signedBlock: lastBlockNumber
+            });
+
+            ({ logs } = await notary.issue(subject1, digest1, { from: issuer2 }));
+            lastBlockNumber = await time.latestBlock();
+            expectEvent.inLogs(logs, 'CredentialSigned', {
+                signer: issuer2,
+                digest: digest1,
+                signedBlock: lastBlockNumber
+            });
+
+            ({ logs } = await notary.confirmProof(digest1, { from: subject1 }));
+            lastBlockNumber = await time.latestBlock();
+            expectEvent.inLogs(logs, 'CredentialSigned', {
+                signer: subject1,
+                digest: digest1,
+                signedBlock: lastBlockNumber
+            });
+
+            const eventList = await notary.getPastEvents("allEvents", { fromBlock: previousBlockNumber, toBlock: lastBlockNumber });
+            (eventList.length).should.equal(4);
         });
 
         it('should only allow credential proof requests from the correct subject', async () => {
@@ -160,7 +198,7 @@ contract('Notary', accounts => {
             await notary.issue(subject1, digest1, { from: issuer2 });
 
             await expectRevert(
-                notary.requestProof(digest1, { from: subject2 }),
+                notary.confirmProof(digest1, { from: subject2 }),
                 'Notary: subject is not related with this credential'
             );
         });
@@ -168,10 +206,10 @@ contract('Notary', accounts => {
         it('should not allow a subject to re-sign a issued credential proof', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
             await notary.issue(subject1, digest1, { from: issuer2 });
-            await notary.requestProof(digest1, { from: subject1 });
+            await notary.confirmProof(digest1, { from: subject1 });
 
             await expectRevert(
-                notary.requestProof(digest1, { from: subject1 }),
+                notary.confirmProof(digest1, { from: subject1 }),
                 'Notary: subject already signed this credential'
             );
         });
@@ -182,7 +220,7 @@ contract('Notary', accounts => {
 
             (await notary.certified(digest1)).should.equal(false);
 
-            await notary.requestProof(digest1, { from: subject1 });
+            await notary.confirmProof(digest1, { from: subject1 });
 
             (await notary.certified(digest1)).should.equal(true);
         });
@@ -235,7 +273,7 @@ contract('Notary', accounts => {
             expectEvent.inLogs(logs, 'CredentialRevoked', {
                 digest: digest1,
                 subject: subject1,
-                issuer: issuer2,
+                revoker: issuer2,
                 revokedBlock: blockNumber,
                 reason: reason
             });
@@ -258,7 +296,7 @@ contract('Notary', accounts => {
             let digests = [digest1, digest2, digest3];
             for (d of digests) {
                 await notary.issue(subject1, d, { from: issuer1 });
-                await notary.requestProof(d, { from: subject1 });
+                await notary.confirmProof(d, { from: subject1 });
                 await time.increase(time.duration.seconds(1));
 
                 (await notary.certified(d)).should.equal(true);
@@ -279,7 +317,7 @@ contract('Notary', accounts => {
 
         it('should return the certificate hash if only one certificate exists', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
-            await notary.requestProof(digest1, { from: subject1 });
+            await notary.confirmProof(digest1, { from: subject1 });
 
             let aggregated = await notary.aggregate(subject1);
             let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1]));
@@ -293,7 +331,7 @@ contract('Notary', accounts => {
             let assertion = await assertFailure(notary.aggregate(subject1));
             expect(assertion.message).to.include('invalid opcode');
 
-            await notary.requestProof(digest1, { from: subject1 });
+            await notary.confirmProof(digest1, { from: subject1 });
             await time.increase(time.duration.seconds(1));
 
             await notary.issue(subject1, digest2, { from: issuer1 });

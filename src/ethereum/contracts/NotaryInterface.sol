@@ -2,7 +2,7 @@ pragma solidity >=0.5.13;
 
 // TODO update the interface fields
 interface NotaryInterface {
-    // Logged when a credential is issued and signed by all parties (owners + subject).
+    // Logged when a credential is issued/created.
     event CredentialIssued(
         bytes32 indexed digest,
         address indexed subject,
@@ -14,15 +14,22 @@ interface NotaryInterface {
     event CredentialRevoked(
         bytes32 indexed digest,
         address indexed subject,
-        address indexed issuer,
+        address indexed revoker,
         uint256 revokedBlock,
         bytes32 reason
+    );
+
+    // Logged when a credential is signed.
+    event CredentialSigned(
+        address indexed signer,
+        bytes32 indexed digest,
+        uint256 signedBlock
     );
 
     function wasRevoked(bytes32 digest) external view returns (bool);
     function issue(address subject, bytes32 digest) external;
     function certified(bytes32 digest) external view returns (bool);
-    function requestProof(bytes32 digest) external;
+    function confirmProof(bytes32 digest) external;
     function revoke(bytes32 digest, bytes32 reason) external;
     function aggregate(address subject) external view returns (bytes32);
 }

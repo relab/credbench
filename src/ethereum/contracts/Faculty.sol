@@ -10,11 +10,8 @@ contract Faculty is Notary {
     // Map courses by semester
     mapping(bytes32 => address[]) public coursesBySemester;
 
-    // Map of all courses
+    // Map of all courses contracts
     mapping(address => bool) public courses;
-
-    // Map diplomas by students
-    mapping(address => bytes32) public diplomas;
 
     event CourseCreated(
         bytes32 indexed semester,
