@@ -328,16 +328,13 @@ contract('Notary', accounts => {
         it('should fail if there are any certificate of a subject that isn\'t signed by all parties', async () => {
             await notary.issue(subject1, digest1, { from: issuer1 });
 
-            let assertion = await assertFailure(notary.aggregate(subject1));
-            expect(assertion.message).to.include('invalid opcode');
+            await expectRevert(
+                notary.aggregate(subject1),
+                'Notary: impossible to aggregate. There are unsigned certificates'
+            );
 
             await notary.confirmProof(digest1, { from: subject1 });
-            await time.increase(time.duration.seconds(1));
-
-            await notary.issue(subject1, digest2, { from: issuer1 });
-
-            assertion = await assertFailure(notary.aggregate(subject1));
-            expect(assertion.message).to.include('invalid opcode');
+            (await notary.certified(digest1)).should.equal(true);
         });
     });
 });

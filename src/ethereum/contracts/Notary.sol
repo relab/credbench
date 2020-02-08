@@ -50,7 +50,7 @@ abstract contract Notary is NotaryInterface, Owners {
     mapping(address => uint256) public nonce;
 
     // Maps credential digests by subjects
-    mapping(address => bytes32[]) public digestsBySubject;
+    mapping(address => bytes32[]) private _digestsBySubject;
 
     // Maps issued credential proof by document digest
     mapping(bytes32 => CredentialProof) public issuedCredentials;
@@ -79,6 +79,10 @@ abstract contract Notary is NotaryInterface, Owners {
         _;
     }
 
+    function digestsBySubject(address subject) public view returns(bytes32[] memory) {
+        return _digestsBySubject[subject];
+    }
+
     /**
      * @dev verify if a credential proof was revoked
      * @return true if a revocation exists, false otherwise.
@@ -88,9 +92,7 @@ abstract contract Notary is NotaryInterface, Owners {
     }
 
     function _issue(address subject, bytes32 digest)
-        internal
-        onlyOwner
-        notRevoked(digest) {
+        internal {
         if (issuedCredentials[digest].insertedBlock == 0) {
             // Creation
             uint256 lastNonce;
@@ -99,8 +101,8 @@ abstract contract Notary is NotaryInterface, Owners {
             } else {
                 assert(nonce[subject] > 0);
                 lastNonce = nonce[subject] - 1;
-                assert(digestsBySubject[subject].length > 0);
-                bytes32 previousDigest = digestsBySubject[subject][lastNonce];
+                assert(_digestsBySubject[subject].length > 0);
+                bytes32 previousDigest = _digestsBySubject[subject][lastNonce];
                 CredentialProof memory c = issuedCredentials[previousDigest];
                 require(
                     c.subjectSigned,
@@ -124,7 +126,7 @@ abstract contract Notary is NotaryInterface, Owners {
                 digest
             );
             ++nonce[subject];
-            digestsBySubject[subject].push(digest); // append subject's credential hash
+            _digestsBySubject[subject].push(digest); // append subject's credential hash
             emit CredentialIssued(
                 digest,
                 subject,
@@ -202,7 +204,7 @@ abstract contract Notary is NotaryInterface, Owners {
             "Notary: no credential proof found"
         );
         address subject = issuedCredentials[digest].subject;
-        assert(digestsBySubject[subject].length > 0);
+        assert(_digestsBySubject[subject].length > 0);
         revokedCredentials[digest] = RevocationProof(
             msg.sender,
             subject,
@@ -223,14 +225,14 @@ abstract contract Notary is NotaryInterface, Owners {
      * @dev aggregate the digests of a given subject
      */
     function aggregate(address subject) public view override virtual returns (bytes32) {
-        bytes32[] memory digests = digestsBySubject[subject];
+        bytes32[] memory digests = _digestsBySubject[subject];
         require(
             digests.length > 0,
             "Notary: there is no certificate for the given subject"
         );
         // TODO: ignore the revoke credentials in the aggregation
         for (uint256 i = 0; i < digests.length; i++) {
-            assert(certified(digests[i])); //&& !wasRevoked(digests[i]));
+            require(certified(digests[i]), "Notary: impossible to aggregate. There are unsigned certificates"); //&& !wasRevoked(digests[i]));
             // all subject's certificates must be signed by all parties and should be valid
         }
         return keccak256(abi.encode(digests));

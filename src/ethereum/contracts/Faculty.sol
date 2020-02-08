@@ -55,9 +55,10 @@ contract Faculty is Notary {
         address[] memory courses_addresses // TODO: add period check
     ) public onlyOwner {
         // TODO: get all courses of a student
-        bytes32[] memory digests = new bytes32[](courses_addresses.length);
+        bytes32[] memory digests = new bytes32[](courses_addresses.length + 1);
         require(courses_addresses.length > 0, "Faculty: No courses were given");
-        for (uint256 i = 0; i < courses_addresses.length; i++) {
+        uint256 i = 0;
+        for (; i < courses_addresses.length; i++) {
             //collect course certificates
             require(
                 courses[address(courses_addresses[i])],
@@ -68,7 +69,8 @@ contract Faculty is Notary {
             // TODO: sort the courses by the startingTime/endingTime
             digests[i] = course.aggregate(subject);
         }
-        bytes32 diploma = keccak256(abi.encode(digests, digest));
+        digests[i] = digest;
+        bytes32 diploma = keccak256(abi.encode(digests));
         assert(diploma == diplomaRoot);
         // TODO: store list of course addresses used to generate the proof
         super.issue(subject, digest); // create a diploma
