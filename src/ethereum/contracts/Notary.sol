@@ -92,7 +92,14 @@ abstract contract Notary is NotaryInterface, Owners {
     }
 
     function _issue(address subject, bytes32 digest)
-        internal {
+        internal 
+        notRevoked(digest)
+    {
+        require(
+            !ownersSigned[digest][msg.sender],
+            "Notary: sender already signed"
+        );
+        require(!isOwner[subject], "Notary: subject cannot be the issuer");
         if (issuedCredentials[digest].insertedBlock == 0) {
             // Creation
             uint256 lastNonce;
@@ -151,13 +158,7 @@ abstract contract Notary is NotaryInterface, Owners {
         public
         override
         onlyOwner
-        notRevoked(digest)
     {
-        require(
-            !ownersSigned[digest][msg.sender],
-            "Notary: sender already signed"
-        );
-        require(!isOwner[subject], "Notary: subject cannot be the issuer");
         _issue(subject, digest);
         emit CredentialSigned(msg.sender, digest, block.number);
     }
@@ -224,7 +225,7 @@ abstract contract Notary is NotaryInterface, Owners {
     /**
      * @dev aggregate the digests of a given subject
      */
-    function aggregate(address subject) public view override virtual returns (bytes32) {
+    function aggregate(address subject) public override virtual returns (bytes32, uint256, uint256) {
         bytes32[] memory digests = _digestsBySubject[subject];
         require(
             digests.length > 0,
@@ -235,7 +236,10 @@ abstract contract Notary is NotaryInterface, Owners {
             require(certified(digests[i]), "Notary: impossible to aggregate. There are unsigned certificates"); //&& !wasRevoked(digests[i]));
             // all subject's certificates must be signed by all parties and should be valid
         }
-        return keccak256(abi.encode(digests));
-        // TODO: after aggregation, the digest can potentially be erased and a root credential can be create as replacement.
+        uint256 firstBlock = issuedCredentials[digests[0]].insertedBlock;
+        uint256 lastBlock = issuedCredentials[digests[nonce[subject]]].insertedBlock;
+        bytes32 digest = keccak256(abi.encode(digests));
+        emit AggregatedCredential(msg.sender, subject, digest, firstBlock, lastBlock);
+        return (digest, firstBlock, lastBlock);
     }
 }

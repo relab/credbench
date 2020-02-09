@@ -1,6 +1,5 @@
 pragma solidity >=0.5.13;
 
-import "./Notary.sol";
 // import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /**
@@ -8,7 +7,7 @@ import "./Notary.sol";
  * @dev Notary that emits certificates only within a time interval.
  * Based on Openzeppelin TimedCrowdsale
  */
-abstract contract TimedNotary is Notary {
+abstract contract TimedNotary {
     // using SafeMath for uint256;
 
     uint256 private _startingTime;
@@ -112,16 +111,5 @@ abstract contract TimedNotary is Notary {
 
         emit NotaryPeriodExtended(_endingTime, newEndingTime);
         _endingTime = newEndingTime;
-    }
-
-    function aggregate(address subject)
-        public
-        view
-        override
-        onlyAfterStart
-        returns (bytes32)
-    {
-        //timed aggregation should only aggregate certificates within the    valid period
-        return super.aggregate(subject);
     }
 }

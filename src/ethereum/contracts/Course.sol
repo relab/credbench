@@ -7,7 +7,7 @@ import "./TimedNotary.sol";
 /**
  * @title Academic Course
  */
-contract Course is TimedNotary {
+contract Course is TimedNotary, Notary {
     // The teacher and the evaluator are owners of the contract
     mapping(address => bool) public enrolledStudents;
 
@@ -89,8 +89,9 @@ contract Course is TimedNotary {
     /**
      * @dev issue a credential proof for enrolled students
      */
-    function issueExam(address student, bytes32 digest)
+    function issue(address student, bytes32 digest)
         public
+        override
         onlyOwner
         whileNotEnded
         registeredStudent(student)
@@ -98,12 +99,15 @@ contract Course is TimedNotary {
         super.issue(student, digest);
     }
 
-    function issueCourseCertificate(address student, bytes32 digest)
+    // TODO: only allow onwer to call the aggregation, then the faculty contract will not be able to call the method, but the teacher will need to call it
+    function aggregate(address student)
         public
-        onlyOwner
+        override
+        onlyAfterStart
         registeredStudent(student)
+        returns (bytes32, uint256, uint256)
     {
         require(hasEnded(), "Course: course not ended yet");
-        super.issue(student, digest);
+        return super.aggregate(student);
     }
 }

@@ -26,10 +26,21 @@ interface NotaryInterface {
         uint256 signedBlock
     );
 
+    // Logged when a credential is aggregated.
+    event AggregatedCredential(
+        address indexed aggregator,
+        address indexed subject,
+        bytes32 indexed digestSum,
+        uint256 firstBlock,
+        uint256 lastBlock
+    );
+
     function wasRevoked(bytes32 digest) external view returns (bool);
     function issue(address subject, bytes32 digest) external;
     function certified(bytes32 digest) external view returns (bool);
     function confirmProof(bytes32 digest) external;
     function revoke(bytes32 digest, bytes32 reason) external;
-    function aggregate(address subject) external view returns (bytes32);
+    function aggregate(address subject)
+        external
+        returns (bytes32, uint256, uint256);
 }
