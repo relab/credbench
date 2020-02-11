@@ -15,7 +15,7 @@ contract Course is TimedNotary, Notary {
     event StudentRemoved(address indexed student, address indexed requester);
 
     modifier registeredStudent(address student) {
-        require(enrolledStudents[student], "Course: student not registered");
+        require(isEnrolled(student), "Course: student not registered");
         _;
     }
 
@@ -58,11 +58,11 @@ contract Course is TimedNotary, Notary {
      * @dev Register a student course removal
      * @param student the address of the student to be removed.
      */
-    function _removeStudent(address student) internal {
-        require(
-            isEnrolled(student),
-            "Course: student does not registered in this course"
-        );
+    function _removeStudent(address student)
+        internal
+        whileNotEnded
+        registeredStudent(student)
+    {
         enrolledStudents[student] = false;
         emit StudentRemoved(student, msg.sender);
     }
@@ -70,19 +70,19 @@ contract Course is TimedNotary, Notary {
     /**
      * @dev Removes a student from the course
      */
-    function removeStudent(address student) public onlyOwner whileNotEnded {
+    function removeStudent(address student) public onlyOwner {
         _removeStudent(student);
     }
 
     /**
      * @dev Gives up the course
      */
-    function renounceCourse() public onlyAfterStart whileNotEnded {
+    function renounceCourse() public {
         _removeStudent(msg.sender);
     }
 
     // TODO: add tests for extenting time
-    function extendTime(uint256 NewEndingTime) public {
+    function extendTime(uint256 NewEndingTime) public onlyOwner {
         _extendTime(NewEndingTime);
     }
 

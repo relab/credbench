@@ -157,6 +157,7 @@ abstract contract Notary is NotaryInterface, Owners {
     function issue(address subject, bytes32 digest)
         public
         override
+        virtual
         onlyOwner
     {
         _issue(subject, digest);
