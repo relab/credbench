@@ -30,9 +30,7 @@ interface NotaryInterface {
     event AggregatedCredential(
         address indexed aggregator,
         address indexed subject,
-        bytes32 indexed digestSum,
-        uint256 firstBlock,
-        uint256 lastBlock
+        bytes32 indexed digestSum
     );
 
     function wasRevoked(bytes32 digest) external view returns (bool);
@@ -40,7 +38,5 @@ interface NotaryInterface {
     function certified(bytes32 digest) external view returns (bool);
     function confirmProof(bytes32 digest) external;
     function revoke(bytes32 digest, bytes32 reason) external;
-    function aggregate(address subject)
-        external
-        returns (bytes32, uint256, uint256);
+    function aggregate(address subject) external returns (bytes32);
 }

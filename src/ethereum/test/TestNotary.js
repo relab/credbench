@@ -5,7 +5,7 @@ const assertFailure = require('./helpers/assertFailure');
 const Notary = artifacts.require('NotaryMock');
 
 contract('Notary', accounts => {
-    const [issuer1, issuer2, issuer3, subject1, subject2] = accounts;
+    const [issuer1, issuer2, issuer3, subject1, subject2, other] = accounts;
     let notary = null;
     const reason = web3.utils.keccak256(web3.utils.toHex('revoked'));
     const digest1 = web3.utils.keccak256(web3.utils.toHex('cert1'));
@@ -288,12 +288,27 @@ contract('Notary', accounts => {
     });
 
     describe('aggregate', () => {
+        const digests = [digest1, digest2, digest3];
+
         beforeEach(async () => {
             notary = await Notary.new([issuer1], 1);
         });
 
         it('should aggregate all certificates of a subject', async () => {
-            let digests = [digest1, digest2, digest3];
+            for (let i = 0; i < digests.length; i++) {
+                await notary.issue(subject1, digests[i], { from: issuer1 });
+                await notary.confirmProof(digests[i], { from: subject1 });
+                await time.increase(time.duration.seconds(1));
+
+                (await notary.certified(digests[i])).should.equal(true);
+            }
+
+            const aggregated = await notary.aggregate.call(subject1);// don't emit event
+            const expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', digests));
+            (aggregated).should.equal(expected);
+        });
+
+        it('should emit an event when aggregate all certificates of a subject', async () => {
             for (d of digests) {
                 await notary.issue(subject1, d, { from: issuer1 });
                 await notary.confirmProof(d, { from: subject1 });
@@ -302,10 +317,13 @@ contract('Notary', accounts => {
                 (await notary.certified(d)).should.equal(true);
             }
 
-            let aggregated = await notary.aggregate(subject1);
-
-            let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', digests));
-            (aggregated).should.equal(expected);
+            const expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', digests));
+            const { logs } = await notary.aggregate(subject1, { from: other });
+            expectEvent.inLogs(logs, 'AggregatedCredential', {
+                aggregator: other,
+                subject: subject1,
+                digestSum: expected
+            });
         });
 
         it('should revert if there is no certificate for a given subject', async () => {
@@ -319,7 +337,7 @@ contract('Notary', accounts => {
             await notary.issue(subject1, digest1, { from: issuer1 });
             await notary.confirmProof(digest1, { from: subject1 });
 
-            let aggregated = await notary.aggregate(subject1);
+            const aggregated = await notary.aggregate.call(subject1);
             let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1]));
 
             (aggregated).should.equal(expected);

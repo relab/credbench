@@ -105,7 +105,7 @@ contract Course is TimedNotary, Notary {
         override
         onlyAfterStart
         registeredStudent(student)
-        returns (bytes32, uint256, uint256)
+        returns (bytes32)
     {
         require(hasEnded(), "Course: course not ended yet");
         return super.aggregate(student);

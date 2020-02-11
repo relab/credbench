@@ -20,11 +20,6 @@ contract Faculty is Notary {
         uint256 quorum
     );
 
-    struct CertificationPeriod {
-        uint256 startBlock;
-        uint256 endBlock;
-    }
-
     constructor(address[] memory owners, uint256 quorum)
         public
         Notary(owners, quorum)
@@ -51,21 +46,6 @@ contract Faculty is Notary {
         emit CourseCreated(semester, address(course), teachers, quorum);
     }
 
-    // FIXME: Find a better way to perform an on-chain check of the order between the certifications
-    function checkOrder(CertificationPeriod[] memory period)
-        internal
-        view
-        returns (bool)
-    {
-        require(period.length > 1); // at least two elements are required to establish an order
-        uint256 i = 1;
-        for (; i < period.length; i++) {
-            assert(period[i - 1].endBlock < period[i].startBlock);
-        }
-        assert(block.number > period[i - 1].endBlock);
-        return true;
-    }
-
     // the diploma should be a hash of all student course certificates, that is a hash of all student exams(even the bad ones - this is why merkle tree would be good, so the student could choose what grade to present as the certificate (i.e. json) and still be a valid diploma hash).
     // Currently the diploma is build by hashing all digests in sequence following the given course contrats order, which can be wrong and produce different hashes. Should respect the timestamp order of certificates
     // TODO: make a generic issue by aggregation
@@ -79,21 +59,14 @@ contract Faculty is Notary {
         bytes32[] memory digests = new bytes32[](courses_addresses.length + 1);
         require(courses_addresses.length > 0, "Faculty: No courses were given");
         uint256 i = 0;
-        CertificationPeriod[] memory period = new CertificationPeriod[](
-            courses_addresses.length + 1
-        );
+        address courseAddr;
         for (; i < courses_addresses.length; i++) {
-            uint256 firstBlock;
-            uint256 lastBlock;
-            address courseAddr = address(courses_addresses[i]);
+            courseAddr = address(courses_addresses[i]);
             //collect course certificates
             require(courses[courseAddr], "Faculty: course doesn't registered");
             Course course = Course(courseAddr);
-            (digests[i], firstBlock, lastBlock) = course.aggregate(subject);
-            assert(firstBlock < lastBlock);
-            period[i] = CertificationPeriod(firstBlock, lastBlock);
+            digests[i] = course.aggregate(subject);
         }
-        assert(checkOrder(period));
         // Add diploma
         digests[i] = digest;
         bytes32 diploma = keccak256(abi.encode(digests));

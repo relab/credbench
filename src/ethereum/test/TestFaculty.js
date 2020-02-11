@@ -42,7 +42,9 @@ contract('Faculty', accounts => {
 
         it('should issue a diploma', async () => {
             let courses = new Map();
-            for (i = 0; i < 3; i++) {
+            let numberOfCourses = 2;
+            let numberOfExams = 2;
+            for (i = 0; i < numberOfCourses; i++) {
                 // Create the course
                 courseStarts = (await time.latest()).add(time.duration.seconds(1 + i));
                 courseEnds = courseStarts.add(await time.duration.hours(1));
@@ -57,37 +59,41 @@ contract('Faculty', accounts => {
                 // Add student
                 await course.addStudent(student, { from: teacher });
                 // Add exam certificates
-                for (j = 0; j < 3 + i; j++) {
+                for (j = 0; j < numberOfExams + i; j++) {
                     let examDigest = web3.utils.keccak256(web3.utils.toHex(`course${i}-exam${j}`));
-                    await course.issueExam(student, examDigest, { from: teacher });
-                    await course.issueExam(student, examDigest, { from: evaluator });
+                    // issue exams certificate
+                    await course.issue(student, examDigest, { from: teacher });
+                    await course.issue(student, examDigest, { from: evaluator });
                     await course.confirmProof(examDigest, { from: student });
                     await time.increase(time.duration.seconds(1));
                 }
             }
-            // Finish courses
-            await time.increase(time.duration.hours(1));
 
             var certs = [];
             for (let [cAddress, cDigest] of courses) {
                 let course = await Course.at(cAddress);
-                (await course.hasEnded()).should.equal(true);
-
-                await course.issueCourseCertificate(student, cDigest, { from: teacher });
-                await course.issueCourseCertificate(student, cDigest, { from: evaluator });
+                // issue course certificate
+                await course.issue(student, cDigest, { from: teacher });
+                await course.issue(student, cDigest, { from: evaluator });
                 await course.confirmProof(cDigest, { from: student });
                 certs.push(await course.digestsBySubject(student));
+                await time.increase(time.duration.seconds(1));
             }
             // Aggregate courses certs
             var expectedCerts = certs.map(c => web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', c)));
 
             // Add diploma digest
             let diplomaDigest = web3.utils.keccak256(web3.utils.toHex('diploma'));
-            // Add new diploma to certs
+            // Add new diploma to expected certs
             expectedCerts.push(diplomaDigest);
+
             // Create new root
             let expectedRoot = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', expectedCerts));
 
+            // Finish courses
+            await time.increase(time.duration.hours(1));
+
+            // issue a diploma
             await faculty.issueDiploma(student, diplomaDigest, expectedRoot, Array.from(courses.keys()), { from: adm });
 
             let diploma = (await faculty.digestsBySubject(student))[0];

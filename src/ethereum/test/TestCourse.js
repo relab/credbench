@@ -79,7 +79,7 @@ contract('Course', accounts => {
         it('should revert if try to remove an unregistered student', async () => {
             await expectRevert(
                 course.removeStudent(student, { from: teacher }),
-                "Course: student does not registered in this course"
+                "Course: student not registered"
             );
         });
 
@@ -109,12 +109,12 @@ contract('Course', accounts => {
 
         it('should issue a credential for a enrolled student', async () => {
             await course.addStudent(student, { from: teacher });
-            await course.issueExam(student, digest1, { from: teacher });
+            await course.issue(student, digest1, { from: teacher });
         });
 
         it('should not issue a credential for a non-enrolled address', async () => {
             await expectRevert(
-                course.issueExam(other, digest1, { from: teacher }),
+                course.issue(other, digest1, { from: teacher }),
                 'Course: student not registered'
             );
         });
@@ -123,23 +123,22 @@ contract('Course', accounts => {
             await course.enrollStudents([student, other]);
 
             for (d of [digest1, digest2, digest3]) {
-                await course.issueExam(student, d, { from: teacher });
-                await course.issueExam(student, d, { from: evaluator });
+                await course.issue(student, d, { from: teacher });
+                await course.issue(student, d, { from: evaluator });
                 await course.confirmProof(d, { from: student });
                 await time.increase(time.duration.seconds(1));
 
                 (await course.certified(d)).should.equal(true);
             }
-            (await course.hasEnded()).should.equal(false);
+
+            await course.issue(student, courseDigest, { from: teacher });
+            await course.issue(student, courseDigest, { from: evaluator });
+            await course.confirmProof(courseDigest, { from: student });
 
             await time.increase(time.duration.hours(1));
             (await course.hasEnded()).should.equal(true);
 
-            await course.issueCourseCertificate(student, courseDigest, { from: teacher });
-            await course.issueCourseCertificate(student, courseDigest, { from: evaluator });
-            await course.confirmProof(courseDigest, { from: student });
-
-            let aggregated = await course.aggregate(student);
+            const aggregated = await course.aggregate.call(student);
             let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1, digest2, digest3, courseDigest]));
             (aggregated).should.equal(expected);
         });
