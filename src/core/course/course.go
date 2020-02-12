@@ -1,6 +1,8 @@
 package course
 
-//go:generate abigen --sol ../../ethereum/contracts/Course.sol --exc ../../ethereum/contracts/Notary.sol:Notary,../../ethereum/contracts/Owners.sol:Owners --pkg contract --out ../go-bindings/course/course.go
+//go:generate abigen --sol ../../ethereum/contracts/Course.sol --exc ../../ethereum/contracts/Issuer.sol:Issuer,../../ethereum/contracts/Owners.sol:Owners --pkg contract --out ../go-bindings/course/course.go
+
+//abigen --combined-json ../../ethereum/build/combined.json --pkg contract --out ../go-bindings/course/course.go
 
 import (
 	"crypto/ecdsa"
@@ -10,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/r0qs/dvcp/src/core/go-bindings/course"
-	"github.com/r0qs/dvcp/src/core/notary"
+	"github.com/r0qs/dvcp/src/core/issuer"
 )
 
 type Params struct {
@@ -101,7 +103,7 @@ func (c *Course) Owners() ([]common.Address, error) {
 	return owners, err
 }
 
-// Notary functions
+// Issuer functions
 func (c *Course) Issue(student common.Address, digest [32]byte) (*types.Transaction, error) {
 	transactOpts := bind.NewKeyedTransactor(c.prvKey)
 	return c.session.Contract.Issue(transactOpts, student, digest)
@@ -112,14 +114,14 @@ func (c *Course) Revoke(digest [32]byte) (*types.Transaction, error) {
 	return c.session.Contract.Revoke(transactOpts, digest)
 }
 
-func (c *Course) Issued(digest [32]byte) *notary.CredentialProof {
+func (c *Course) Issued(digest [32]byte) *issuer.CredentialProof {
 	proof, _ := c.session.Issued(digest)
-	var cp notary.CredentialProof = proof
+	var cp issuer.CredentialProof = proof
 	return &cp
 }
 
-func (c *Course) Revoked(digest [32]byte) *notary.RevokeProof {
+func (c *Course) Revoked(digest [32]byte) *issuer.RevokeProof {
 	proof, _ := c.session.Revoked(digest)
-	var rp notary.RevokeProof = proof
+	var rp issuer.RevokeProof = proof
 	return &rp
 }

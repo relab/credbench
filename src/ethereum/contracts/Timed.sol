@@ -3,11 +3,11 @@ pragma solidity >=0.5.13;
 // import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /**
- * @title TimedNotary
- * @dev Notary that emits certificates only within a time interval.
+ * @title Timed
+ * @dev Issuer that emits certificates only within a time interval.
  * Based on Openzeppelin TimedCrowdsale
  */
-abstract contract TimedNotary {
+abstract contract Timed {
     // using SafeMath for uint256;
 
     uint256 private _startingTime;
@@ -17,15 +17,15 @@ abstract contract TimedNotary {
      * @param newEndingTime new ending time
      * @param prevEndingTime old ending time
      */
-    event NotaryPeriodExtended(uint256 prevEndingTime, uint256 newEndingTime);
+    event IssuerPeriodExtended(uint256 prevEndingTime, uint256 newEndingTime);
 
     /**
-     * @dev Reverts if not in notary time range.
+     * @dev Reverts if not in Issuer time range.
      */
     modifier onlyAfterStart {
         require(
             isStarted(),
-            "TimedNotary: the notarization period didn't start yet"
+            "Timed: the notarization period didn't start yet"
         );
         _;
     }
@@ -33,26 +33,26 @@ abstract contract TimedNotary {
     modifier whileNotEnded {
         require(
             stillRunning(),
-            "TimedNotary: the notarization period has already ended"
+            "Timed: the notarization period has already ended"
         );
         _;
     }
 
     /**
-     * @dev Constructor, takes notary starting and ending times.
-     * @param startingTime notary starting time
-     * @param endingTime notary ending time
+     * @dev Constructor, takes Issuer starting and ending times.
+     * @param startingTime Issuer starting time
+     * @param endingTime Issuer ending time
      */
     constructor(uint256 startingTime, uint256 endingTime) public {
         // solhint-disable-next-line not-rely-on-time
         require(
             startingTime >= block.timestamp,
-            "TimedNotary: starting time cannot be in the past"
+            "Timed: starting time cannot be in the past"
         );
         // solhint-disable-next-line max-line-length
         require(
             endingTime > startingTime,
-            "TimedNotary: ending time cannot be smaller than starting time"
+            "Timed: ending time cannot be smaller than starting time"
         );
 
         _startingTime = startingTime;
@@ -60,21 +60,21 @@ abstract contract TimedNotary {
     }
 
     /**
-     * @return the notary starting time.
+     * @return the Issuer starting time.
      */
     function startingTime() public view returns (uint256) {
         return _startingTime;
     }
 
     /**
-     * @return the notary ending time.
+     * @return the Issuer ending time.
      */
     function endingTime() public view returns (uint256) {
         return _endingTime;
     }
 
     /**
-     * @return true if the notary is started, false otherwise.
+     * @return true if the Issuer is started, false otherwise.
      */
     function isStarted() public view returns (bool) {
         // solhint-disable-next-line not-rely-on-time
@@ -83,7 +83,7 @@ abstract contract TimedNotary {
 
     /**
      * @dev Checks whether the notarization period has already elapsed.
-     * @return Whether notary period has elapsed
+     * @return Whether Issuer period has elapsed
      */
     function hasEnded() public view returns (bool) {
         // solhint-disable-next-line not-rely-on-time
@@ -100,16 +100,16 @@ abstract contract TimedNotary {
 
     /**
      * @dev Extend the notarization time.
-     * @param newEndingTime the new notary ending time
+     * @param newEndingTime the new Issuer ending time
      */
     function _extendTime(uint256 newEndingTime) internal whileNotEnded {
         // solhint-disable-next-line max-line-length
         require(
             newEndingTime > _endingTime,
-            "TimedNotary: new ending time is before current ending time"
+            "Timed: new ending time is before current ending time"
         );
 
-        emit NotaryPeriodExtended(_endingTime, newEndingTime);
+        emit IssuerPeriodExtended(_endingTime, newEndingTime);
         _endingTime = newEndingTime;
     }
 }

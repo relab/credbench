@@ -1,7 +1,7 @@
 pragma solidity >=0.5.13;
 
 // TODO update the interface fields
-interface NotaryInterface {
+interface IssuerInterface {
     // Logged when a credential is issued/created.
     event CredentialIssued(
         bytes32 indexed digest,

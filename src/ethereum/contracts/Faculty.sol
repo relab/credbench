@@ -2,11 +2,11 @@ pragma solidity >=0.5.13;
 pragma experimental ABIEncoderV2;
 
 // import "./CertificateSum.sol";
-import "./Notary.sol";
+import "./Issuer.sol";
 import "./Course.sol";
 
 // TODO: contract to manage employees (addresses) - enhancement
-contract Faculty is Notary {
+contract Faculty is Issuer {
     // Map courses by semester
     mapping(bytes32 => address[]) public coursesBySemester;
 
@@ -22,11 +22,12 @@ contract Faculty is Notary {
 
     constructor(address[] memory owners, uint256 quorum)
         public
-        Notary(owners, quorum)
+        Issuer(owners, quorum)
     {
         // solhint-disable-previous-line no-empty-blocks
     }
 
+    //method from issuer
     function createCourse(
         bytes32 semester,
         address[] memory teachers,

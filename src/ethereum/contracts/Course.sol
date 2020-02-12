@@ -1,13 +1,13 @@
 pragma solidity >=0.5.13;
 pragma experimental ABIEncoderV2;
 
-import "./Notary.sol";
-import "./TimedNotary.sol";
+import "./Issuer.sol";
+import "./Timed.sol";
 
 /**
  * @title Academic Course
  */
-contract Course is TimedNotary, Notary {
+contract Course is Timed, Issuer {
     // The teacher and the evaluator are owners of the contract
     mapping(address => bool) public enrolledStudents;
 
@@ -20,14 +20,14 @@ contract Course is TimedNotary, Notary {
     }
 
     /**
-    * @dev Constructor creates a Notary contract
+    * @dev Constructor creates a Issuer contract
     */
     constructor(
         address[] memory owners,
         uint256 quorum,
         uint256 startingTime,
         uint256 endingTime
-    ) public Notary(owners, quorum) TimedNotary(startingTime, endingTime) {
+    ) public Issuer(owners, quorum) Timed(startingTime, endingTime) {
         // solhint-disable-previous-line no-empty-blocks
     }
 

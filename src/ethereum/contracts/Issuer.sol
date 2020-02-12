@@ -1,18 +1,18 @@
 pragma solidity >=0.5.13;
 pragma experimental ABIEncoderV2;
 
-import "./NotaryInterface.sol";
+import "./IssuerInterface.sol";
 import "./Owners.sol";
 // import "@openzeppelin/contracts/math/SafeMath.sol";
 
 // TODO: how to manage key changes? e.g. a student that lost his previous key. Reissue the certificates may not work, since the time ordering, thus a possible solution is the contract to store a key update information for the subject, or something like that.
 
 /**
- * @title Notary's contract ensures that verifiable credentials are correctly
+ * @title Issuer's contract ensures that verifiable credentials are correctly
   * issued by untrusted issuers, discouraging fraudulent processes by
   * establishing a casual order between the certificates.
 */
-abstract contract Notary is NotaryInterface, Owners {
+abstract contract Issuer is IssuerInterface, Owners {
     // using SafeMath for uint256;
 
     /**
@@ -74,7 +74,7 @@ abstract contract Notary is NotaryInterface, Owners {
     modifier notRevoked(bytes32 digest) {
         require(
             !wasRevoked(digest),
-            "Notary: this credential was already revoked"
+            "Issuer: this credential was already revoked"
         );
         _;
     }
@@ -97,9 +97,9 @@ abstract contract Notary is NotaryInterface, Owners {
     {
         require(
             !ownersSigned[digest][msg.sender],
-            "Notary: sender already signed"
+            "Issuer: sender already signed"
         );
-        require(!isOwner[subject], "Notary: subject cannot be the issuer");
+        require(!isOwner[subject], "Issuer: subject cannot be the issuer");
         if (issuedCredentials[digest].insertedBlock == 0) {
             // Creation
             uint256 lastNonce;
@@ -113,7 +113,7 @@ abstract contract Notary is NotaryInterface, Owners {
                 CredentialProof memory c = issuedCredentials[previousDigest];
                 require(
                     c.subjectSigned,
-                    "Notary: previous credential must be signed before issue a new one"
+                    "Issuer: previous credential must be signed before issue a new one"
                 );
                 // Assert time constraints
                 // Ensure that a previous certificate happens before the new one.
@@ -143,7 +143,7 @@ abstract contract Notary is NotaryInterface, Owners {
         } else {
             require(
                 issuedCredentials[digest].subject == subject,
-                "Notary: credential already issued for other subject"
+                "Issuer: credential already issued for other subject"
             );
             // Register sign action
             ++issuedCredentials[digest].signed;
@@ -178,15 +178,15 @@ abstract contract Notary is NotaryInterface, Owners {
         CredentialProof storage proof = issuedCredentials[digest];
         require(
             proof.subject == msg.sender,
-            "Notary: subject is not related with this credential"
+            "Issuer: subject is not related with this credential"
         );
         require(
             !proof.subjectSigned,
-            "Notary: subject already signed this credential"
+            "Issuer: subject already signed this credential"
         );
         require(
             proof.signed >= quorum,
-            "Notary: not sufficient quorum of signatures"
+            "Issuer: not sufficient quorum of signatures"
         );
         proof.subjectSigned = true; // All parties signed
         emit CredentialSigned(msg.sender, digest, block.number);
@@ -203,7 +203,7 @@ abstract contract Notary is NotaryInterface, Owners {
     {
         require(
             issuedCredentials[digest].insertedBlock != 0,
-            "Notary: no credential proof found"
+            "Issuer: no credential proof found"
         );
         address subject = issuedCredentials[digest].subject;
         assert(_digestsBySubject[subject].length > 0);
@@ -230,11 +230,11 @@ abstract contract Notary is NotaryInterface, Owners {
         bytes32[] memory digests = _digestsBySubject[subject];
         require(
             digests.length > 0,
-            "Notary: there is no certificate for the given subject"
+            "Issuer: there is no certificate for the given subject"
         );
         // TODO: ignore the revoke credentials in the aggregation
         for (uint256 i = 0; i < digests.length; i++) {
-            require(certified(digests[i]), "Notary: impossible to aggregate. There are unsigned certificates"); //&& !wasRevoked(digests[i]));
+            require(certified(digests[i]), "Issuer: impossible to aggregate. There are unsigned certificates"); //&& !wasRevoked(digests[i]));
             // all subject's certificates must be signed by all parties and should be valid
         }
         bytes32 digest = keccak256(abi.encode(digests));
