@@ -109,12 +109,12 @@ contract('Course', accounts => {
 
         it('should issue a credential for a enrolled student', async () => {
             await course.addStudent(student, { from: teacher });
-            await course.issue(student, digest1, { from: teacher });
+            await course.registerCredential(student, digest1, { from: teacher });
         });
 
         it('should not issue a credential for a non-enrolled address', async () => {
             await expectRevert(
-                course.issue(other, digest1, { from: teacher }),
+                course.registerCredential(other, digest1, { from: teacher }),
                 'Course: student not registered'
             );
         });
@@ -123,22 +123,22 @@ contract('Course', accounts => {
             await course.enrollStudents([student, other]);
 
             for (d of [digest1, digest2, digest3]) {
-                await course.issue(student, d, { from: teacher });
-                await course.issue(student, d, { from: evaluator });
-                await course.confirmProof(d, { from: student });
+                await course.registerCredential(student, d, { from: teacher });
+                await course.registerCredential(student, d, { from: evaluator });
+                await course.confirmCredential(d, { from: student });
                 await time.increase(time.duration.seconds(1));
 
                 (await course.certified(d)).should.equal(true);
             }
 
-            await course.issue(student, courseDigest, { from: teacher });
-            await course.issue(student, courseDigest, { from: evaluator });
-            await course.confirmProof(courseDigest, { from: student });
+            await course.registerCredential(student, courseDigest, { from: teacher });
+            await course.registerCredential(student, courseDigest, { from: evaluator });
+            await course.confirmCredential(courseDigest, { from: student });
 
             await time.increase(time.duration.hours(1));
             (await course.hasEnded()).should.equal(true);
 
-            const aggregated = await course.aggregate.call(student);
+            const aggregated = await course.verifyCredential.call(student);
             let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1, digest2, digest3, courseDigest]));
             (aggregated).should.equal(expected);
         });

@@ -27,16 +27,58 @@ interface IssuerInterface {
     );
 
     // Logged when a credential is aggregated.
-    event AggregatedCredential(
+    event VerifiedCredential(
         address indexed aggregator,
         address indexed subject,
         bytes32 indexed digestSum
     );
 
-    function wasRevoked(bytes32 digest) external view returns (bool);
-    function issue(address subject, bytes32 digest) external;
+    // function isValid(bytes32 digest, uint256 period) external view returns (bool);
+
+    /**
+     * @dev isRevoked checks if the credential was revoked based on it's digest.
+     */
+    function isRevoked(bytes32 digest) external view returns (bool); //
+
+    /**
+     * @dev certified checks if a credential was signed by all parties.
+     */
     function certified(bytes32 digest) external view returns (bool);
-    function confirmProof(bytes32 digest) external;
-    function revoke(bytes32 digest, bytes32 reason) external;
-    function aggregate(address subject) external returns (bytes32);
+
+    /**
+     * @dev certified registers the creation of a credential for
+     * a particular subject
+     */
+    function registerCredential(address subject, bytes32 digest) external;
+
+    /**
+     * @dev confirmCredential confirms the agreement about the 
+     * credential between the subject and the issuer.
+     */
+    function confirmCredential(bytes32 digest) external;
+
+    /**
+     * @dev revokeCredential revokes a credential for a given reason 
+     * based on it's digest.
+     */
+    function revokeCredential(bytes32 digest, bytes32 reason) external;
+
+    /**
+     * @dev verifyCredential verifies if a given credential 
+     * (i.e. represented by it's digest) corresponds to the aggregation 
+     * of all stored credentials of a particular subject.
+     */
+    // TODO: add digest parameter
+    function verifyCredential(address subject) external returns (bytes32);
+
+    /**
+     * @dev verifyCredential iteractivally verifies if a given credential
+     * (i.e. represented by it's digest) corresponds to the aggregation 
+     * of all stored credentials of a particular subject in all given contracts.
+     */
+    function verifyCredential(
+        address subject,
+        bytes32 digest,
+        address[] calldata contracts
+    ) external returns (bytes32);
 }

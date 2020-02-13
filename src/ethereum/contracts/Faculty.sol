@@ -66,13 +66,13 @@ contract Faculty is Issuer {
             //collect course certificates
             require(courses[courseAddr], "Faculty: course doesn't registered");
             Course course = Course(courseAddr);
-            digests[i] = course.aggregate(subject);
+            digests[i] = course.verifyCredential(subject);
         }
         // Add diploma
         digests[i] = digest;
         bytes32 diploma = keccak256(abi.encode(digests));
         assert(diploma == diplomaRoot);
         // TODO: store list of course addresses used to generate the proof
-        super.issue(subject, digest); // create a diploma
+        super.registerCredential(subject, digest); // create a diploma
     }
 }

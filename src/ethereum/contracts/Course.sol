@@ -89,18 +89,18 @@ contract Course is Timed, Issuer {
     /**
      * @dev issue a credential proof for enrolled students
      */
-    function issue(address student, bytes32 digest)
+    function registerCredential(address student, bytes32 digest)
         public
         override
         onlyOwner
         whileNotEnded
         registeredStudent(student)
     {
-        super.issue(student, digest);
+        super.registerCredential(student, digest);
     }
 
     // TODO: only allow onwer to call the aggregation, then the faculty contract will not be able to call the method, but the teacher will need to call it
-    function aggregate(address student)
+    function verifyCredential(address student)
         public
         override
         onlyAfterStart
@@ -108,6 +108,6 @@ contract Course is Timed, Issuer {
         returns (bytes32)
     {
         require(hasEnded(), "Course: course not ended yet");
-        return super.aggregate(student);
+        return super.verifyCredential(student);
     }
 }

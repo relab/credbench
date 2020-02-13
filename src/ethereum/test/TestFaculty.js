@@ -62,9 +62,9 @@ contract('Faculty', accounts => {
                 for (j = 0; j < numberOfExams + i; j++) {
                     let examDigest = web3.utils.keccak256(web3.utils.toHex(`course${i}-exam${j}`));
                     // issue exams certificate
-                    await course.issue(student, examDigest, { from: teacher });
-                    await course.issue(student, examDigest, { from: evaluator });
-                    await course.confirmProof(examDigest, { from: student });
+                    await course.registerCredential(student, examDigest, { from: teacher });
+                    await course.registerCredential(student, examDigest, { from: evaluator });
+                    await course.confirmCredential(examDigest, { from: student });
                     await time.increase(time.duration.seconds(1));
                 }
             }
@@ -73,9 +73,9 @@ contract('Faculty', accounts => {
             for (let [cAddress, cDigest] of courses) {
                 let course = await Course.at(cAddress);
                 // issue course certificate
-                await course.issue(student, cDigest, { from: teacher });
-                await course.issue(student, cDigest, { from: evaluator });
-                await course.confirmProof(cDigest, { from: student });
+                await course.registerCredential(student, cDigest, { from: teacher });
+                await course.registerCredential(student, cDigest, { from: evaluator });
+                await course.confirmCredential(cDigest, { from: student });
                 certs.push(await course.digestsBySubject(student));
                 await time.increase(time.duration.seconds(1));
             }

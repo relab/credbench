@@ -73,7 +73,7 @@ abstract contract Issuer is IssuerInterface, Owners {
 
     modifier notRevoked(bytes32 digest) {
         require(
-            !wasRevoked(digest),
+            !isRevoked(digest),
             "Issuer: this credential was already revoked"
         );
         _;
@@ -87,7 +87,7 @@ abstract contract Issuer is IssuerInterface, Owners {
      * @dev verify if a credential proof was revoked
      * @return true if a revocation exists, false otherwise.
      */
-    function wasRevoked(bytes32 digest) public view override returns (bool) {
+    function isRevoked(bytes32 digest) public view override returns (bool) {
         return revokedCredentials[digest].revokedBlock != 0;
     }
 
@@ -154,7 +154,7 @@ abstract contract Issuer is IssuerInterface, Owners {
     /**
      * @dev issue a credential proof ensuring an append-only property
      */
-    function issue(address subject, bytes32 digest)
+    function registerCredential(address subject, bytes32 digest)
         public
         override
         virtual
@@ -174,7 +174,7 @@ abstract contract Issuer is IssuerInterface, Owners {
     /**
      * @dev request the emission of a quorum signed credential proof
      */
-    function confirmProof(bytes32 digest) public override notRevoked(digest) {
+    function confirmCredential(bytes32 digest) public override notRevoked(digest) {
         CredentialProof storage proof = issuedCredentials[digest];
         require(
             proof.subject == msg.sender,
@@ -195,7 +195,7 @@ abstract contract Issuer is IssuerInterface, Owners {
     /**
      * @dev revoke a credential proof
      */
-    function revoke(bytes32 digest, bytes32 reason)
+    function revokeCredential(bytes32 digest, bytes32 reason)
         public
         override
         onlyOwner
@@ -226,7 +226,7 @@ abstract contract Issuer is IssuerInterface, Owners {
     /**
      * @dev aggregate the digests of a given subject
      */
-    function aggregate(address subject) public override virtual returns (bytes32) {
+    function verifyCredential(address subject) public override virtual returns (bytes32) {
         bytes32[] memory digests = _digestsBySubject[subject];
         require(
             digests.length > 0,
@@ -234,11 +234,12 @@ abstract contract Issuer is IssuerInterface, Owners {
         );
         // TODO: ignore the revoke credentials in the aggregation
         for (uint256 i = 0; i < digests.length; i++) {
-            require(certified(digests[i]), "Issuer: impossible to aggregate. There are unsigned certificates"); //&& !wasRevoked(digests[i]));
+            require(certified(digests[i]), "Issuer: impossible to verifyCredential There are unsigned certificates"); //&& !isRevoked(digests[i]));
             // all subject's certificates must be signed by all parties and should be valid
         }
         bytes32 digest = keccak256(abi.encode(digests));
-        emit AggregatedCredential(msg.sender, subject, digest);
+        // assert(proof == digest);
+        emit VerifiedCredential(msg.sender, subject, digest);
         return digest;
     }
 }
