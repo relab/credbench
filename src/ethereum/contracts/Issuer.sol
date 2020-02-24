@@ -52,6 +52,9 @@ abstract contract Issuer is IssuerInterface, Owners {
     // Maps credential digests by subjects
     mapping(address => bytes32[]) private _digestsBySubject;
 
+    // Result of an aggregation of all digests of one subject
+    mapping(address => bytes32) public aggregatedProofs;
+
     // Maps issued credential proof by document digest
     mapping(bytes32 => CredentialProof) public issuedCredentials;
 
@@ -95,6 +98,8 @@ abstract contract Issuer is IssuerInterface, Owners {
         internal 
         notRevoked(digest)
     {
+        // TODO: this is really the case? Or will still possible to issue credentials after aggregation?
+        require(aggregatedProofs[subject] == bytes32(0), "Issuer: credentials already aggregated, not possible to issue new credentials");
         require(
             !ownersSigned[digest][msg.sender],
             "Issuer: sender already signed"
@@ -115,7 +120,6 @@ abstract contract Issuer is IssuerInterface, Owners {
                     c.subjectSigned,
                     "Issuer: previous credential must be signed before issue a new one"
                 );
-                // Assert time constraints
                 // Ensure that a previous certificate happens before the new one.
                 // solhint-disable-next-line expression-indent
                 assert(c.insertedBlock < block.number);
@@ -224,9 +228,13 @@ abstract contract Issuer is IssuerInterface, Owners {
     }
 
     /**
-     * @dev aggregate the digests of a given subject
+     * @dev aggregateCredentials aggregates the digests of a given subject on the credential level.
      */
-    function verifyCredential(address subject) public override virtual returns (bytes32) {
+    function aggregateCredentials(address subject) public override virtual onlyOwner returns (bytes32) {
+        if(aggregatedProofs[subject] != bytes32(0)) {
+            // Aggregation already performed
+            return aggregatedProofs[subject];
+        }
         bytes32[] memory digests = _digestsBySubject[subject];
         require(
             digests.length > 0,
@@ -238,8 +246,18 @@ abstract contract Issuer is IssuerInterface, Owners {
             // all subject's certificates must be signed by all parties and should be valid
         }
         bytes32 digest = keccak256(abi.encode(digests));
-        // assert(proof == digest);
-        emit VerifiedCredential(msg.sender, subject, digest);
+        aggregatedProofs[subject] = digest;
+        emit AggregatedProof(msg.sender, subject, digest, block.number);
+        // TODO: delete the credentials proofs and digests
         return digest;
+    }
+
+    /**
+     * @dev verifyCredential verifies the credential of a given subject
+     */
+    function verifyCredential(address subject, bytes32 digest) public view override {
+        require(aggregatedProofs[subject] != bytes32(0), "Issuer: there is no aggregated proof to verify");
+        bytes32 proof = aggregatedProofs[subject];
+        assert(proof == digest);
     }
 }

@@ -27,10 +27,11 @@ interface IssuerInterface {
     );
 
     // Logged when a credential is aggregated.
-    event VerifiedCredential(
+    event AggregatedProof(
         address indexed aggregator,
         address indexed subject,
-        bytes32 indexed digestSum
+        bytes32 indexed proof,
+        uint256 aggregatedBlock
     );
 
     // function isValid(bytes32 digest, uint256 period) external view returns (bool);
@@ -64,21 +65,16 @@ interface IssuerInterface {
     function revokeCredential(bytes32 digest, bytes32 reason) external;
 
     /**
+     * @dev aggregateCredentials perform an aggregation of all credentials
+     * of a subject in the contract level. 
+     */
+    function aggregateCredentials(address subject) external returns (bytes32);
+
+    /**
      * @dev verifyCredential verifies if a given credential 
      * (i.e. represented by it's digest) corresponds to the aggregation 
      * of all stored credentials of a particular subject.
      */
     // TODO: add digest parameter
-    function verifyCredential(address subject) external returns (bytes32);
-
-    /**
-     * @dev verifyCredential iteractivally verifies if a given credential
-     * (i.e. represented by it's digest) corresponds to the aggregation 
-     * of all stored credentials of a particular subject in all given contracts.
-     */
-    function verifyCredential(
-        address subject,
-        bytes32 digest,
-        address[] calldata contracts
-    ) external returns (bytes32);
+    function verifyCredential(address subject, bytes32 digest) external view;
 }
