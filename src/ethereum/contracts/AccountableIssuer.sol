@@ -45,7 +45,7 @@ abstract contract AccountableIssuer is Issuer {
             address issuerAddress = address(issuersAddresses[i]);
             require(isIssuer[issuerAddress], "AccountableIssuer: issuer's address doesn't found"); //FIXME: Use assert
             Issuer issuer = Issuer(issuerAddress);
-            bytes32 proof = issuer.aggregatedProofs(subject);
+            bytes32 proof = issuer.getProof(subject);
             require(proof != bytes32(0), "AccountableIssuer: aggregation on sub-contract not found"); //TODO: use assert
             digests[i] = proof;
         }
@@ -66,13 +66,12 @@ abstract contract AccountableIssuer is Issuer {
         _issue(subject, digest);
         emit CredentialSigned(msg.sender, digest, block.number);
     }
-    
+
     /**
      * @dev verifyCredential iteractivally verifies if a given credential
      * (i.e. represented by it's digest) corresponds to the aggregation 
      * of all stored credentials of a particular subject in all given contracts.
      */
-
     function verifyCredential(address subject, bytes32[] memory digest, address[] memory issuersAddresses) public view {
         require(issuersAddresses.length > 0, "Issuer: require at least one issuer");
         for (uint256 i = 0; i < issuersAddresses.length; i++) {

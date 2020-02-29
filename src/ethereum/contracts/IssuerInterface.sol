@@ -1,6 +1,5 @@
 pragma solidity >=0.5.13;
 
-// TODO update the interface fields
 interface IssuerInterface {
     // Logged when a credential is issued/created.
     event CredentialIssued(
@@ -25,16 +24,6 @@ interface IssuerInterface {
         bytes32 indexed digest,
         uint256 signedBlock
     );
-
-    // Logged when a credential is aggregated.
-    event AggregatedProof(
-        address indexed aggregator,
-        address indexed subject,
-        bytes32 indexed proof,
-        uint256 aggregatedBlock
-    );
-
-    // function isValid(bytes32 digest, uint256 period) external view returns (bool);
 
     /**
      * @dev isRevoked checks if the credential was revoked based on it's digest.
@@ -75,6 +64,5 @@ interface IssuerInterface {
      * (i.e. represented by it's digest) corresponds to the aggregation 
      * of all stored credentials of a particular subject.
      */
-    // TODO: add digest parameter
     function verifyCredential(address subject, bytes32 digest) external view;
 }

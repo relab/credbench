@@ -3,6 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import "./IssuerInterface.sol";
 import "./Owners.sol";
+import "./CredentialSum.sol";
+
 // import "@openzeppelin/contracts/math/SafeMath.sol";
 
 // TODO: how to manage key changes? e.g. a student that lost his previous key. Reissue the certificates may not work, since the time ordering, thus a possible solution is the contract to store a key update information for the subject, or something like that.
@@ -14,6 +16,10 @@ import "./Owners.sol";
 */
 abstract contract Issuer is IssuerInterface, Owners {
     // using SafeMath for uint256;
+
+    // Result of an aggregation of all digests of one subject
+    using CredentialSum for Proof;
+    Proof aggregatedProofs;
 
     /**
      * @dev CredentialProof represents an on-chain proof that a
@@ -52,9 +58,6 @@ abstract contract Issuer is IssuerInterface, Owners {
     // Maps credential digests by subjects
     mapping(address => bytes32[]) private _digestsBySubject;
 
-    // Result of an aggregation of all digests of one subject
-    mapping(address => bytes32) public aggregatedProofs;
-
     // Maps issued credential proof by document digest
     mapping(bytes32 => CredentialProof) public issuedCredentials;
 
@@ -86,6 +89,10 @@ abstract contract Issuer is IssuerInterface, Owners {
         return _digestsBySubject[subject];
     }
 
+    function getProof(address subject) public view returns (bytes32) {
+        return aggregatedProofs.proofs(subject);
+    }
+
     /**
      * @dev verify if a credential proof was revoked
      * @return true if a revocation exists, false otherwise.
@@ -99,7 +106,7 @@ abstract contract Issuer is IssuerInterface, Owners {
         notRevoked(digest)
     {
         // TODO: this is really the case? Or will still possible to issue credentials after aggregation?
-        require(aggregatedProofs[subject] == bytes32(0), "Issuer: credentials already aggregated, not possible to issue new credentials");
+        require(aggregatedProofs.proofs(subject) == bytes32(0), "Issuer: credentials already aggregated, not possible to issue new credentials");
         require(
             !ownersSigned[digest][msg.sender],
             "Issuer: sender already signed"
@@ -227,37 +234,41 @@ abstract contract Issuer is IssuerInterface, Owners {
         );
     }
 
-    /**
-     * @dev aggregateCredentials aggregates the digests of a given subject on the credential level.
-     */
-    function aggregateCredentials(address subject) public override virtual onlyOwner returns (bytes32) {
-        if(aggregatedProofs[subject] != bytes32(0)) {
-            // Aggregation already performed
-            return aggregatedProofs[subject];
-        }
-        bytes32[] memory digests = _digestsBySubject[subject];
+    function checkCredentials(bytes32[] memory digests) public view returns (bool) {
         require(
             digests.length > 0,
-            "Issuer: there is no certificate for the given subject"
+            "Issuer: there is no credential for the given subject"
         );
         // TODO: ignore the revoke credentials in the aggregation
         for (uint256 i = 0; i < digests.length; i++) {
-            require(certified(digests[i]), "Issuer: impossible to verifyCredential There are unsigned certificates"); //&& !isRevoked(digests[i]));
+            require(certified(digests[i]), "Issuer: there are unsigned credentials"); //&& !isRevoked(digests[i]));
             // all subject's certificates must be signed by all parties and should be valid
         }
-        bytes32 digest = keccak256(abi.encode(digests));
-        aggregatedProofs[subject] = digest;
-        emit AggregatedProof(msg.sender, subject, digest, block.number);
+        return true;
+    }
+
+    /**
+     * @dev aggregateCredentials aggregates the digests of a given subject on the credential level.
+     */
+     // TODO: only owner should be able to aggregate? In theory anyone should be able to call it, since it only operate over already valid data. But it writes the aggregated value on the contract state.
+    function aggregateCredentials(address subject) public override virtual onlyOwner returns (bytes32) {
+        if(aggregatedProofs.proofs(subject) != bytes32(0)) {
+            // Aggregation already performed
+            return aggregatedProofs.proofs(subject);
+        }
+        bytes32[] memory digests = _digestsBySubject[subject];
+        assert(checkCredentials(digests));
         // TODO: delete the credentials proofs and digests
-        return digest;
+        return aggregatedProofs.generateProof(subject, digests);
     }
 
     /**
      * @dev verifyCredential verifies the credential of a given subject
      */
-    function verifyCredential(address subject, bytes32 digest) public view override {
-        require(aggregatedProofs[subject] != bytes32(0), "Issuer: there is no aggregated proof to verify");
-        bytes32 proof = aggregatedProofs[subject];
+    function verifyCredential(address subject, bytes32 digest) public view override virtual {
+        require(aggregatedProofs.proofs(subject) != bytes32(0), "Issuer: there is no aggregated proof to verify");
+        bytes32 proof = aggregatedProofs.proofs(subject);
         assert(proof == digest);
+        assert(aggregatedProofs.verifyProof(subject, _digestsBySubject[subject]));
     }
 }
