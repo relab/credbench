@@ -224,6 +224,25 @@ contract.only('Issuer', accounts => {
 
             (await issuer.certified(digest1)).should.equal(true);
         });
+
+        it('should check if a list of credentials was signed by all parties', async () => {
+            const digests = [digest1, digest2, digest3];
+
+            for (let i = 0; i < digests.length; i++) {
+                await issuer.registerCredential(subject1, digests[i], { from: issuer1 });
+                await issuer.registerCredential(subject1, digests[i], { from: issuer2 });
+                if (i < digests.length - 1) {
+                    await issuer.confirmCredential(digests[i], { from: subject1 });
+                }
+                await time.increase(time.duration.seconds(1));
+            }
+            let result = await issuer.checkCredentials(digests);
+            (result).should.equal(false);
+
+            await issuer.confirmCredential(digest3, { from: subject1 });
+            result = await issuer.checkCredentials(digests);
+            (result).should.equal(true);
+        });
     });
 
     describe('revoke', () => {
@@ -361,5 +380,9 @@ contract.only('Issuer', accounts => {
                 'Issuer: there is no credential for the given subject'
             );
         });
+    });
+
+    describe('verify', () => {
+        // TODO
     });
 });

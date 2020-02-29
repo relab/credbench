@@ -241,7 +241,9 @@ abstract contract Issuer is IssuerInterface, Owners {
         );
         // TODO: ignore the revoke credentials in the aggregation
         for (uint256 i = 0; i < digests.length; i++) {
-            require(certified(digests[i]), "Issuer: there are unsigned credentials"); //&& !isRevoked(digests[i]));
+            if(!certified(digests[i])) {
+                return false;
+            } //&& !isRevoked(digests[i]));
             // all subject's certificates must be signed by all parties and should be valid
         }
         return true;
@@ -253,11 +255,10 @@ abstract contract Issuer is IssuerInterface, Owners {
      // TODO: only owner should be able to aggregate? In theory anyone should be able to call it, since it only operate over already valid data. But it writes the aggregated value on the contract state.
     function aggregateCredentials(address subject) public override virtual onlyOwner returns (bytes32) {
         if(aggregatedProofs.proofs(subject) != bytes32(0)) {
-            // Aggregation already performed
             return aggregatedProofs.proofs(subject);
         }
         bytes32[] memory digests = _digestsBySubject[subject];
-        assert(checkCredentials(digests));
+        require(checkCredentials(digests), "Issuer: there are unsigned credentials");
         // TODO: delete the credentials proofs and digests
         return aggregatedProofs.generateProof(subject, digests);
     }
