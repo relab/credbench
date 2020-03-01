@@ -264,12 +264,13 @@ abstract contract Issuer is IssuerInterface, Owners {
     }
 
     /**
-     * @dev verifyCredential verifies the credential of a given subject
+     * @dev verifyCredential verifies if the credential of a given subject
+     * was correctly generated
      */
     function verifyCredential(address subject, bytes32 digest) public view override virtual {
         require(aggregatedProofs.proofs(subject) != bytes32(0), "Issuer: there is no aggregated proof to verify");
         bytes32 proof = aggregatedProofs.proofs(subject);
-        assert(proof == digest);
-        assert(aggregatedProofs.verifyProof(subject, _digestsBySubject[subject]));
+        require(proof == digest, "Issuer: given credential doesn't match with stored proof");
+        require(aggregatedProofs.verifyProof(subject, _digestsBySubject[subject]), "Issuer: proof doesn't match the aggregation of stored digests");
     }
 }

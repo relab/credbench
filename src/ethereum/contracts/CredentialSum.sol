@@ -29,6 +29,10 @@ library CredentialSum {
         return proof;
     }
 
+    /**
+     * @dev verifyProof checks if the stored proof was generated using
+     * the given list of certificates
+     */
     function verifyProof(Proof storage self, address subject, bytes32[] memory certificates)
         public
         view

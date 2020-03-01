@@ -383,6 +383,37 @@ contract.only('Issuer', accounts => {
     });
 
     describe('verify', () => {
-        // TODO
+        const digests = [digest1, digest2, digest3];
+        const expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', digests));
+
+        beforeEach(async () => {
+            issuer = await Issuer.new([issuer1], 1);
+            for (d of digests) {
+                await issuer.registerCredential(subject1, d, { from: issuer1 });
+                await issuer.confirmCredential(d, { from: subject1 });
+                await time.increase(time.duration.seconds(1));
+            }
+            issuer.aggregateCredentials(subject1);
+        });
+
+        it('should successfully verify the given credential', async () => {
+            issuer.verifyCredential(subject1, expected);
+            const storedProof = await issuer.getProof(subject1);
+            (expected).should.equal(storedProof);
+        });
+
+        it('should revert if the given credential doesn\'t match the stored proof', async () => {
+            await expectRevert(
+                issuer.verifyCredential(subject1, digest1),
+                'Issuer: given credential doesn\'t match with stored proof'
+            );
+        });
+
+        it('should revert if there is no credential to be verified for a given subject', async () => {
+            await expectRevert(
+                issuer.verifyCredential(subject2, expected),
+                'Issuer: there is no aggregated proof to verify'
+            );
+        });
     });
 });
