@@ -4,7 +4,7 @@ const assertFailure = require('./helpers/assertFailure');
 
 const Issuer = artifacts.require('IssuerMock');
 
-contract.only('Issuer', accounts => {
+contract('Issuer', accounts => {
     const [issuer1, issuer2, issuer3, subject1, subject2, other] = accounts;
     let issuer = null;
     const reason = web3.utils.keccak256(web3.utils.toHex('revoked'));
@@ -398,8 +398,8 @@ contract.only('Issuer', accounts => {
 
         it('should successfully verify the given credential', async () => {
             issuer.verifyCredential(subject1, expected);
-            const storedProof = await issuer.getProof(subject1);
-            (expected).should.equal(storedProof);
+            const proof = await issuer.getProof(subject1);
+            (proof).should.equal(expected);
         });
 
         it('should revert if the given credential doesn\'t match the stored proof', async () => {

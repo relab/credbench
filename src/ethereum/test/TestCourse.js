@@ -119,8 +119,8 @@ contract('Course', accounts => {
             );
         });
 
-        it('should create a course certificate based on all valid exams of a subject', async () => {
-            await course.enrollStudents([student, other]);
+        it('should aggregate the course certificates of a subject', async () => {
+            await course.enrollStudents([student]);
 
             for (d of [digest1, digest2, digest3]) {
                 await course.registerCredential(student, d, { from: teacher });
@@ -138,9 +138,57 @@ contract('Course', accounts => {
             await time.increase(time.duration.hours(1));
             (await course.hasEnded()).should.equal(true);
 
-            const aggregated = await course.verifyCredential.call(student);
+            const aggregated = await course.aggregateCredentials.call(student);
             let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1, digest2, digest3, courseDigest]));
             (aggregated).should.equal(expected);
+        });
+    });
+
+    describe('Aggregation', () => {
+        const digests = [digest1, digest2, digest3, courseDigest];
+        const expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', digests));
+
+        beforeEach(async () => {
+            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
+            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
+            course = await Course.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
+            await course.enrollStudents([student]);
+            await time.increase(time.duration.seconds(1));
+
+            for (d of digests) {
+                await course.registerCredential(student, d, { from: teacher });
+                await course.registerCredential(student, d, { from: evaluator });
+                await course.confirmCredential(d, { from: student });
+                await time.increase(time.duration.seconds(1));
+            }
+        });
+
+        it('should revert when trying aggregate in an unfinished course', async () => {
+            (await course.hasEnded()).should.equal(false);
+
+            await expectRevert(
+                course.aggregateCredentials(student, { from: teacher }),
+                'Course: course not ended yet'
+            );
+        });
+
+        it('should only perform the aggregation after the course ends', async () => {
+            await time.increase(time.duration.hours(1));
+            (await course.hasEnded()).should.equal(true);
+
+            let proof = await course.aggregateCredentials.call(student, { from: teacher });
+
+            (proof).should.equal(expected);
+        });
+
+        it('should not perform aggregation for unregistered students', async () => {
+            await time.increase(time.duration.hours(1));
+            (await course.hasEnded()).should.equal(true);
+
+            await expectRevert(
+                course.aggregateCredentials(other, { from: teacher }),
+                'Course: student not registered'
+            );
         });
     });
 });

@@ -252,8 +252,8 @@ abstract contract Issuer is IssuerInterface, Owners {
     /**
      * @dev aggregateCredentials aggregates the digests of a given subject on the credential level.
      */
-     // TODO: only owner should be able to aggregate? In theory anyone should be able to call it, since it only operate over already valid data. But it writes the aggregated value on the contract state.
-    function aggregateCredentials(address subject) public override virtual onlyOwner returns (bytes32) {
+     // TODO: only owner should be able to aggregate? In theory anyone should be able to call it, since it only operate over already valid data to add the aggregated value, I guess the method is safe to be performed by anyone, even though it writes in the contract state, but of course, this will change the msg.sender.
+    function aggregateCredentials(address subject) public override virtual returns (bytes32) {
         if(aggregatedProofs.proofs(subject) != bytes32(0)) {
             return aggregatedProofs.proofs(subject);
         }

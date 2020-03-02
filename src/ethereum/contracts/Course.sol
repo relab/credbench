@@ -99,22 +99,14 @@ contract Course is Timed, Issuer {
         super.registerCredential(student, digest);
     }
 
-    // TODO: only allow onwer to call the aggregation, then the faculty contract will not be able to call the method, but the teacher will need to call it
+    // TODO: only allow onwer to call the aggregation? If so, the faculty contract will not be able to call the method, and the teacher will need to call it
     function aggregateCredentials(address student)
         public
         override
-        onlyAfterStart
         registeredStudent(student)
         returns (bytes32)
     {
         require(hasEnded(), "Course: course not ended yet");
         return super.aggregateCredentials(student);
     }
-
-    // TODO: implement it
-    function verifyCredential(address subject, bytes32 digest)
-        public
-        view
-        override
-    {}
 }
