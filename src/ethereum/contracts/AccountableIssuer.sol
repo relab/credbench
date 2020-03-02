@@ -67,6 +67,7 @@ abstract contract AccountableIssuer is Issuer {
         bytes32 digestRoot,
         address[] memory issuersAddresses
     ) public onlyOwner {
+        require(aggregatedProofs.proofs(subject) == bytes32(0), "Issuer: credentials already aggregated, not possible to issue new credentials");
         bytes32[] memory d = collectCredentials(subject, issuersAddresses);
         bytes32[] memory digests = new bytes32[](d.length + 1);
         uint256 i = 0;
