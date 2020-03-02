@@ -1,4 +1,4 @@
-pragma solidity >=0.5.13;
+pragma solidity >=0.5.13 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "./IssuerInterface.sol";
@@ -267,7 +267,7 @@ abstract contract Issuer is IssuerInterface, Owners {
      * @dev verifyCredential verifies if the credential of a given subject
      * was correctly generated
      */
-    function verifyCredential(address subject, bytes32 digest) public view override virtual {
+    function verifyCredential(address subject, bytes32 digest) public view override {
         require(aggregatedProofs.proofs(subject) != bytes32(0), "Issuer: there is no aggregated proof to verify");
         bytes32 proof = aggregatedProofs.proofs(subject);
         require(proof == digest, "Issuer: given credential doesn't match with stored proof");

@@ -1,4 +1,4 @@
-pragma solidity >=0.5.13;
+pragma solidity >=0.5.13 <0.7.0;
 
 import "./Issuer.sol";
 // import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -6,8 +6,8 @@ import "./Issuer.sol";
 
 /**
  * @title AccountableIssuer's contract
- * This contract consider on-chain signatures verification.
- * TODO: Implement using EIP712:
+ * This contract consider implicit signatures verification.
+ * TODO Implement using EIP712:
  * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md
  */
 abstract contract AccountableIssuer is Issuer {
@@ -16,11 +16,20 @@ abstract contract AccountableIssuer is Issuer {
     // Map of all issuers sub-contracts
     mapping(address => bool) public isIssuer;
 
-    // Logged when a credential is issued/created.
+    // Logged when an issuer added.
     event IssuerAdded(
         address indexed issuerAddress,
         address indexed addedBy
     );
+
+    //TODO: blacklist issuers?
+
+    constructor(address[] memory owners, uint256 quorum)
+        public
+        Issuer(owners, quorum)
+    {
+        // solhint-disable-previous-line no-empty-blocks
+    }
 
     function addIssuer(address issuer) public {
         require(!isIssuer[issuer], "AccountableIssuer: issuer already added");
@@ -43,25 +52,30 @@ abstract contract AccountableIssuer is Issuer {
         bytes32[] memory digests = new bytes32[](issuersAddresses.length);
         for (uint256 i = 0; i < issuersAddresses.length; i++) {
             address issuerAddress = address(issuersAddresses[i]);
-            require(isIssuer[issuerAddress], "AccountableIssuer: issuer's address doesn't found"); //FIXME: Use assert
+            require(isIssuer[issuerAddress], "AccountableIssuer: issuer's address doesn't found");
             Issuer issuer = Issuer(issuerAddress);
             bytes32 proof = issuer.getProof(subject);
-            require(proof != bytes32(0), "AccountableIssuer: aggregation on sub-contract not found"); //TODO: use assert
+            require(proof != bytes32(0), "AccountableIssuer: aggregation on sub-contract not found");
             digests[i] = proof;
         }
         return digests;
     }
 
-    // Register a credential with on-chain verification
     function registerCredential(
         address subject,
         bytes32 digest,
         bytes32 digestRoot,
         address[] memory issuersAddresses
     ) public onlyOwner {
-        bytes32[] memory digests = collectCredentials(subject, issuersAddresses);
-        // TODO: call aggregation library (implementing sum/tree methods)
-        bytes32 aggregatedDigest = keccak256(abi.encode(digests, digest));
+        bytes32[] memory d = collectCredentials(subject, issuersAddresses);
+        bytes32[] memory digests = new bytes32[](d.length + 1);
+        uint256 i = 0;
+        for (; i < d.length; i++) {
+            digests[i] = d[i];
+        }
+        // Add current credential
+        digests[i] = digest;
+        bytes32 aggregatedDigest =  aggregatedProofs.generateProof(subject, digests);
         require(aggregatedDigest == digestRoot, "AccountableIssuer: root is not equal");
         _issue(subject, digest);
         emit CredentialSigned(msg.sender, digest, block.number);
@@ -76,7 +90,7 @@ abstract contract AccountableIssuer is Issuer {
         require(issuersAddresses.length > 0, "Issuer: require at least one issuer");
         for (uint256 i = 0; i < issuersAddresses.length; i++) {
             address issuerAddress = address(issuersAddresses[i]); 
-            require(isIssuer[issuerAddress], "AccountableIssuer: address doesn't registered"); //FIXME: Use assert
+            require(isIssuer[issuerAddress], "AccountableIssuer: address not registered");
             Issuer issuer = Issuer(issuerAddress);
             issuer.verifyCredential(subject, digest[i]);
             //TODO: CATCH if assert fail

@@ -1,4 +1,4 @@
-const { expectEvent, constants, time, expectRevert, ether } = require('@openzeppelin/test-helpers');
+const { expectEvent, BN, time, expectRevert, ether } = require('@openzeppelin/test-helpers');
 
 const Faculty = artifacts.require('FacultyMock');
 const Course = artifacts.require('CourseMock');
@@ -23,14 +23,38 @@ contract('Faculty', accounts => {
             faculty.setBalance({ value: ether('1') });
             courseStarts = (await time.latest()).add(time.duration.seconds(1));
             courseEnds = courseStarts.add(await time.duration.hours(1));
-            await time.increase(time.duration.seconds(1));
+        });
+
+        it('should not create a course from a unauthorized address', async () => {
+            await expectRevert(
+                faculty.createCourse(semester, [teacher, evaluator], 2, courseStarts, courseEnds, { from: other }),
+                'Owners: sender is not an owner'
+            );
+        });
+
+        it('should retrieve a course by semester', async () => {
+            let course = await Course.new([teacher, evaluator], 2, courseStarts, courseEnds, { from: adm });
+            await faculty.addCourse(course.address, semester);
+
+            (await faculty.coursesBySemester(semester, 0)).should.equal(course.address);
         });
 
         it('should create a course', async () => {
-            const { logs } = await faculty.createCourse(semester, [teacher, evaluator], 2, courseStarts, courseEnds);
+            const { logs } = await faculty.createCourse(semester, [teacher, evaluator], 2, courseStarts, courseEnds, { from: adm });
 
-            expectEvent.inLogs(logs, 'CourseCreated');
-            await time.increase(time.duration.seconds(1));
+            expectEvent.inLogs(logs, 'CourseCreated', {
+                createdBy: adm,
+                semester: semester,
+                courseAddress: await faculty.coursesBySemester(semester, 0),
+                quorum: new BN(2)
+            });
+        });
+
+        it('course should be an issuer instance', async () => {
+            await faculty.createCourse(semester, [teacher, evaluator], 2, courseStarts, courseEnds, { from: adm });
+
+            let courseAddress = await faculty.coursesBySemester(semester, 0);
+            (await faculty.isIssuer(courseAddress)).should.equal(true);
         });
     });
 
@@ -94,10 +118,13 @@ contract('Faculty', accounts => {
             await time.increase(time.duration.hours(1));
 
             // issue a diploma
-            await faculty.issueDiploma(student, diplomaDigest, expectedRoot, Array.from(courses.keys()), { from: adm });
+            await faculty.registerCredential(student, diplomaDigest, expectedRoot, Array.from(courses.keys()), { from: adm });
+            // FIXME: possible bug when passing from address as parameter
 
             let diploma = (await faculty.digestsBySubject(student))[0];
             (diploma).should.equal(diplomaDigest);
         });
     });
+
+    describe('verifying diploma', () => { });
 });

@@ -1,15 +1,20 @@
-pragma solidity >=0.5.13;
+pragma solidity >=0.5.13 <0.7.0;
 // pragma experimental ABIEncoderV2;
 
 import "./AccountableIssuer.sol";
 import "./Course.sol";
 
 // TODO: contract to manage employees (addresses) - enhancement
+/**
+ * @title Academic Faculty
+ * This contract manage courses contracts.
+ */
 contract Faculty is AccountableIssuer {
     // Map courses by semester
     mapping(bytes32 => address[]) public coursesBySemester;
 
     event CourseCreated(
+        address indexed createdBy,
         bytes32 indexed semester,
         address indexed courseAddress,
         address[] teachers,
@@ -18,20 +23,18 @@ contract Faculty is AccountableIssuer {
 
     constructor(address[] memory owners, uint256 quorum)
         public
-        Issuer(owners, quorum)
+        AccountableIssuer(owners, quorum)
     {
         // solhint-disable-previous-line no-empty-blocks
     }
 
-    //method from issuer
     function createCourse(
         bytes32 semester,
         address[] memory teachers,
         uint256 quorum,
         uint256 beginTimestamp,
         uint256 endTimestamp
-    ) public {
-        // TODO: reause course contract instead of create a new one
+    ) public onlyOwner returns (address) {
         Course course = new Course(
             teachers,
             quorum,
@@ -40,10 +43,13 @@ contract Faculty is AccountableIssuer {
         );
         coursesBySemester[semester].push(address(course));
         addIssuer(address(course));
-        emit CourseCreated(semester, address(course), teachers, quorum);
+        emit CourseCreated(
+            msg.sender,
+            semester,
+            address(course),
+            teachers,
+            quorum
+        );
+        return address(course);
     }
-
-    // the diploma should be a hash of all student course certificates, that is a hash of all student exams(even the bad ones - this is why merkle tree would be good, so the student could choose what grade to present as the certificate (i.e. json) and still be a valid diploma hash).
-    // Currently the diploma is build by hashing all digests in sequence following the given course contrats order, which can be wrong and produce different hashes. Should respect the timestamp order of certificates
-
 }

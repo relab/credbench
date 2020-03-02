@@ -1,4 +1,4 @@
-pragma solidity >=0.5.13;
+pragma solidity >=0.5.13 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "../Faculty.sol";
@@ -9,6 +9,11 @@ contract FacultyMock is Faculty {
         Faculty(owners, quorum)
     {
         // solhint-disable-previous-line no-empty-blocks
+    }
+
+    function addCourse(address course, bytes32 semester) public {
+        coursesBySemester[semester].push(course);
+        addIssuer(course);
     }
 
     function setBalance() public payable {
