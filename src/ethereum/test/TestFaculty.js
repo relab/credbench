@@ -122,8 +122,9 @@ contract('Faculty', accounts => {
             await time.increase(time.duration.hours(1));
 
             // issue a diploma
-            await faculty.registerCredential(student, diplomaDigest, expectedRoot, coursesAddress);//, { from: adm });
-            // FIXME: possible bug when passing from address as parameter
+            // FIXME: As reported in the bug: https://github.com/trufflesuite/truffle/issues/2868
+            // The following is the workaround for the hidden overloaded method:
+            await faculty.methods["registerCredential(address,bytes32,bytes32,address[])"](student, diplomaDigest, expectedRoot, coursesAddress, { from: adm });
 
             let diploma = (await faculty.digestsBySubject(student))[0];
             (diploma).should.equal(diplomaDigest);
