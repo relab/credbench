@@ -31,7 +31,7 @@ abstract contract AccountableIssuer is Issuer {
         // solhint-disable-previous-line no-empty-blocks
     }
 
-    function addIssuer(address issuer) public {
+    function addIssuer(address issuer) onlyOwner public {
         require(!isIssuer[issuer], "AccountableIssuer: issuer already added");
         isIssuer[issuer] =  true;
         issuers.push(issuer);
