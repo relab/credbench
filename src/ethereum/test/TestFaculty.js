@@ -3,6 +3,67 @@ const { expectEvent, BN, time, expectRevert, ether } = require('@openzeppelin/te
 const Faculty = artifacts.require('FacultyMock');
 const Course = artifacts.require('CourseMock');
 
+async function createFinishedCourses(sender, faculty, semester, numberOfCourses, numberOfExams, teachers, student) {
+    let coursesAddress = [];
+    var certs = [];
+    for (i = 0; i < numberOfCourses; i++) {
+        // Create the course
+        let courseStarts = (await time.latest()).add(time.duration.seconds(1 + i));
+        let courseEnds = courseStarts.add(await time.duration.hours(1));
+        await faculty.createCourse(semester, teachers, 2, courseStarts, courseEnds, { from: sender });
+        // Start the course
+        await time.increase(time.duration.seconds(1 + i));
+        // Get the course instance
+        let course = await Course.at(await faculty.coursesBySemester(semester, i));
+        coursesAddress.push(course.address);
+
+        // Add student
+        await course.addStudent(student, { from: teachers[0] });
+        // Add exam certificates
+        for (j = 0; j < numberOfExams; j++) {
+            let examDigest = web3.utils.keccak256(web3.utils.toHex(`course${i}-exam${j}`));
+            // issue exams certificate
+            for (let teacher of teachers) {
+                await course.registerCredential(student, examDigest, { from: teacher });
+            }
+            await course.confirmCredential(examDigest, { from: student });
+            await time.increase(time.duration.seconds(1));
+        }
+
+        // Add course certificate
+        let courseDigest = web3.utils.keccak256(web3.utils.toHex(`course${i}`));
+        for (let teacher of teachers) {
+            await course.registerCredential(student, courseDigest, { from: teacher });
+        }
+        await course.confirmCredential(courseDigest, { from: student });
+        await time.increase(time.duration.seconds(1));
+
+        certs.push(await course.digestsBySubject(student));
+    }
+    await time.increase(time.duration.hours(1));
+
+    for (let cAddress of coursesAddress) {
+        let course = await Course.at(cAddress);
+        await course.aggregateCredentials(student, { from: teachers[0] });
+    }
+
+    return { coursesAddress, certs }
+}
+
+function createDiploma(certs) {
+    // Aggregate course certs
+    var aggregatedCerts = certs.map(c => web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', c)));
+
+    // Add diploma digest
+    let diploma = web3.utils.keccak256(web3.utils.toHex('diploma'));
+    aggregatedCerts.push(diploma)
+
+    // Create new root
+    let root = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', aggregatedCerts));
+
+    return { proofs: aggregatedCerts, root }
+}
+
 contract('Faculty', accounts => {
     const [dean, adm, teacher, evaluator, student, other] = accounts;
     let faculty, courseStarts, courseEnds = null;
@@ -65,48 +126,8 @@ contract('Faculty', accounts => {
         });
 
         it('should issue a diploma', async () => {
-            let coursesAddress = [];
-            var certs = [];
-            let numberOfCourses = 2;
-            let numberOfExams = 2;
-            for (i = 0; i < numberOfCourses; i++) {
-                // Create the course
-                courseStarts = (await time.latest()).add(time.duration.seconds(1 + i));
-                courseEnds = courseStarts.add(await time.duration.hours(1));
-                await faculty.createCourse(semester, [teacher, evaluator], 2, courseStarts, courseEnds, { from: adm });
-                // Start the course
-                await time.increase(time.duration.seconds(1 + i));
-                // Get the course instance
-                let course = await Course.at(await faculty.coursesBySemester(semester, i));
-                coursesAddress.push(course.address);
+            let { coursesAddress, certs } = await createFinishedCourses(adm, faculty, semester, 2, 2, [teacher, evaluator], student);
 
-                // Add student
-                await course.addStudent(student, { from: teacher });
-                // Add exam certificates
-                for (j = 0; j < numberOfExams; j++) {
-                    let examDigest = web3.utils.keccak256(web3.utils.toHex(`course${i}-exam${j}`));
-                    // issue exams certificate
-                    await course.registerCredential(student, examDigest, { from: teacher });
-                    await course.registerCredential(student, examDigest, { from: evaluator });
-                    await course.confirmCredential(examDigest, { from: student });
-                    await time.increase(time.duration.seconds(1));
-                }
-
-                // Add course certificate
-                let courseDigest = web3.utils.keccak256(web3.utils.toHex(`course${i}`));
-                await course.registerCredential(student, courseDigest, { from: teacher });
-                await course.registerCredential(student, courseDigest, { from: evaluator });
-                await course.confirmCredential(courseDigest, { from: student });
-                await time.increase(time.duration.seconds(1));
-
-                certs.push(await course.digestsBySubject(student));
-            }
-            await time.increase(time.duration.hours(1));
-
-            for (let cAddress of coursesAddress) {
-                let course = await Course.at(cAddress);
-                await course.aggregateCredentials(student, { from: teacher });
-            }
             // Aggregate courses certs
             var expectedCerts = certs.map(c => web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', c)));
 
@@ -131,5 +152,18 @@ contract('Faculty', accounts => {
         });
     });
 
-    describe('verifying diploma', () => { });
+    describe('verifying diploma', () => {
+        let coursesAddress, certs, proofs = [];
+        let root = null;
+        beforeEach(async () => {
+            faculty = await Faculty.new([dean, adm], 2);
+            faculty.setBalance({ value: ether('1') });
+            ({ coursesAddress, certs } = await createFinishedCourses(adm, faculty, semester, 2, 2, [teacher, evaluator], student));
+            ({ proofs, root } = createDiploma(certs));
+        });
+
+        it('should verify a diploma', async () => {
+            (await faculty.verifyCredential(student, proofs, coursesAddress)).should.equal(true);
+        });
+    });
 });

@@ -64,5 +64,8 @@ interface IssuerInterface {
      * (i.e. represented by it's digest) corresponds to the aggregation 
      * of all stored credentials of a particular subject.
      */
-    function verifyCredential(address subject, bytes32 digest) external view;
+    function verifyCredential(address subject, bytes32 digest)
+        external
+        view
+        returns (bool);
 }

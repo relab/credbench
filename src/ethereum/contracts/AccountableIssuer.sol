@@ -87,14 +87,15 @@ abstract contract AccountableIssuer is Issuer {
      * (i.e. represented by it's digest) corresponds to the aggregation 
      * of all stored credentials of a particular subject in all given contracts.
      */
-    function verifyCredential(address subject, bytes32[] memory digest, address[] memory issuersAddresses) public view {
+    function verifyCredential(address subject, bytes32[] memory proofs, address[] memory issuersAddresses) public view returns(bool) {
         require(issuersAddresses.length > 0, "Issuer: require at least one issuer");
         for (uint256 i = 0; i < issuersAddresses.length; i++) {
             address issuerAddress = address(issuersAddresses[i]); 
             require(isIssuer[issuerAddress], "AccountableIssuer: address not registered");
             Issuer issuer = Issuer(issuerAddress);
-            issuer.verifyCredential(subject, digest[i]);
+            issuer.verifyCredential(subject, proofs[i]);
             //TODO: CATCH if assert fail
         }
+        return true;
     }
 }
