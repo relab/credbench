@@ -402,10 +402,10 @@ contract('Issuer', accounts => {
             (proof).should.equal(expected);
         });
 
-        it('should revert if the given credential doesn\'t match the stored proof', async () => {
+        it('should revert if given credentials don\'t match the stored proofs', async () => {
             await expectRevert(
                 issuer.verifyCredential(subject1, digest1),
-                'Issuer: given credential doesn\'t match with stored proof'
+                'Issuer: given credentials don\'t match with stored proofs'
             );
         });
 

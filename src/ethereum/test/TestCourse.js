@@ -12,9 +12,9 @@ contract('Course', accounts => {
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
-            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
+            let beginTimestamp = (await time.latest()).add(time.duration.seconds(3));
             let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
-            course = await Course.new([teacher, evaluator], 2, beginTimestamp.toString(), endTimestamp.toString());
+            course = await Course.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
             (await course.isOwner(teacher)).should.equal(true);
             (await course.isOwner(evaluator)).should.equal(true);
             assert(course.quorum(), 2);

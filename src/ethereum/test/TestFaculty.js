@@ -168,6 +168,13 @@ contract('Faculty', accounts => {
             (await faculty.verifyCredential(student, proofs, coursesAddress)).should.equal(true);
         });
 
+        it('should revert if the proof doesn\'t exists', async () => {
+            await expectRevert(
+                faculty.verifyCredential(student, proofs, coursesAddress),
+                'CredentialSum: proof not exists'
+            );
+        });
+
         it('should revert if there is no sufficient number of issuers', async () => {
             await expectRevert(
                 faculty.verifyCredential(student, proofs, []),
@@ -185,7 +192,7 @@ contract('Faculty', accounts => {
         it('should revert if given issuer isn\'t authorized', async () => {
             start = (await time.latest()).add(time.duration.seconds(1));
             end = start.add(await time.duration.hours(1));
-            let course = await Course.new([other], 1, start.toString(), end.toString());
+            let course = await Course.new([other], 1, start, end);
             await expectRevert(
                 faculty.verifyCredential(student, proofs, [course.address]),
                 'AccountableIssuer: address not registered'
@@ -209,6 +216,31 @@ contract('Faculty', accounts => {
                 faculty.verifyCredential(student, proofs, [course.address]),
                 'Issuer: there is no aggregated proof to verify'
             );
+        });
+
+        it('should revert if the proofs don\'t match', async () => {
+            await faculty.methods["registerCredential(address,bytes32,bytes32,address[])"](student, diplomaDigest, root, coursesAddress, { from: adm });
+
+            let fakeCerts = []
+            for (let i = 0; i < 3; i++) {
+                fakeCerts[i] = web3.utils.keccak256(web3.utils.toHex(`someValue-${i}`));
+            }
+
+            await expectRevert(
+                faculty.verifyCredential(student, fakeCerts, coursesAddress),
+                'Issuer: given credentials don\'t match with stored proofs'
+            );
+        });
+
+        it('should return false if given proof doesn\'t match', async () => {
+            await faculty.methods["registerCredential(address,bytes32,bytes32,address[])"](student, diplomaDigest, root, coursesAddress, { from: adm });
+
+            const wrongDiploma = web3.utils.keccak256(web3.utils.toHex('wrongDiploma'));
+
+            // Build a wrong diploma using existent certs
+            let { proofs: p } = createDiploma(certs, wrongDiploma);
+
+            (await faculty.verifyCredential(student, p, coursesAddress)).should.equal(false);
         });
     });
 });
