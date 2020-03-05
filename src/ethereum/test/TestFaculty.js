@@ -1,7 +1,8 @@
-const { expectEvent, BN, time, expectRevert, ether } = require('@openzeppelin/test-helpers');
+const { expectEvent, BN, time, expectRevert, ether, balance } = require('@openzeppelin/test-helpers');
 
 const Faculty = artifacts.require('FacultyMock');
 const Course = artifacts.require('CourseMock');
+const Owners = artifacts.require('Owners');
 
 async function createFinishedCourses(sender, faculty, semester, numberOfCourses, numberOfExams, teachers, student) {
     let coursesAddress = [];
@@ -50,24 +51,26 @@ async function createFinishedCourses(sender, faculty, semester, numberOfCourses,
     return { coursesAddress, certs }
 }
 
-function createDiploma(certs) {
-    // Aggregate course certs
+function createDiploma(certs, diploma) {
+    // Aggregate courses certs
     var aggregatedCerts = certs.map(c => web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', c)));
 
-    // Add diploma digest
-    let diploma = web3.utils.keccak256(web3.utils.toHex('diploma'));
-    aggregatedCerts.push(diploma)
-
     // Create new root
+    aggregatedCerts.push(diploma) //(course aggregations + diploma)
     let root = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', aggregatedCerts));
 
     return { proofs: aggregatedCerts, root }
+}
+
+async function showBalance(account, address) {
+    console.log("ETH Balance of ", account, " : ", (await balance.current(address, 'wei')).toString());
 }
 
 contract('Faculty', accounts => {
     const [dean, adm, teacher, evaluator, student, other] = accounts;
     let faculty, courseStarts, courseEnds = null;
     const semester = web3.utils.keccak256(web3.utils.toHex('spring2020'));
+    const diplomaDigest = web3.utils.keccak256(web3.utils.toHex('diploma'));
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
@@ -131,8 +134,6 @@ contract('Faculty', accounts => {
             // Aggregate courses certs
             var expectedCerts = certs.map(c => web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', c)));
 
-            // Add diploma digest
-            let diplomaDigest = web3.utils.keccak256(web3.utils.toHex('diploma'));
             // Add new diploma to expected certs
             expectedCerts.push(diplomaDigest);
 
@@ -157,13 +158,57 @@ contract('Faculty', accounts => {
         let root = null;
         beforeEach(async () => {
             faculty = await Faculty.new([dean, adm], 2);
-            faculty.setBalance({ value: ether('1') });
             ({ coursesAddress, certs } = await createFinishedCourses(adm, faculty, semester, 2, 2, [teacher, evaluator], student));
-            ({ proofs, root } = createDiploma(certs));
+            ({ proofs, root } = createDiploma(certs, diplomaDigest));
         });
 
-        it('should verify a diploma', async () => {
+        it('should successfully verify a valid diploma', async () => {
+            await faculty.methods["registerCredential(address,bytes32,bytes32,address[])"](student, diplomaDigest, root, coursesAddress, { from: adm });
+
             (await faculty.verifyCredential(student, proofs, coursesAddress)).should.equal(true);
+        });
+
+        it('should revert if there is no sufficient number of issuers', async () => {
+            await expectRevert(
+                faculty.verifyCredential(student, proofs, []),
+                'AccountableIssuer: require at least one issuer'
+            );
+        });
+
+        it('should revert if given issuer isn\'t a valid address', async () => {
+            await expectRevert(
+                faculty.verifyCredential(student, proofs, ["0x0000NOT0A0ADDRESS000000"]),
+                'invalid address'
+            );
+        });
+
+        it('should revert if given issuer isn\'t authorized', async () => {
+            start = (await time.latest()).add(time.duration.seconds(1));
+            end = start.add(await time.duration.hours(1));
+            let course = await Course.new([other], 1, start.toString(), end.toString());
+            await expectRevert(
+                faculty.verifyCredential(student, proofs, [course.address]),
+                'AccountableIssuer: address not registered'
+            );
+        });
+
+        it('should revert if given contract isn\'t an issuer instance', async () => {
+            let something = await Owners.new([other], 1);
+            await faculty.addIssuer(something.address); // force addition of wrong contract
+            await expectRevert.unspecified(
+                faculty.verifyCredential(student, proofs, [something.address])
+            );
+        });
+
+        it('should revert if there is no proof on sub-contracts', async () => {
+            start = (await time.latest()).add(time.duration.seconds(1));
+            end = start.add(await time.duration.hours(1));
+            let course = await Course.new([teacher], 1, start, end);
+            await faculty.addIssuer(course.address);
+            await expectRevert(
+                faculty.verifyCredential(student, proofs, [course.address]),
+                'Issuer: there is no aggregated proof to verify'
+            );
         });
     });
 });
