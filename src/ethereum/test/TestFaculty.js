@@ -72,6 +72,15 @@ contract('Faculty', accounts => {
     const semester = web3.utils.keccak256(web3.utils.toHex('spring2020'));
     const diplomaDigest = web3.utils.keccak256(web3.utils.toHex('diploma'));
 
+    async function showAllBalances() {
+        await showBalance("Faculty Contract", faculty.address);
+        await showBalance("Dean", dean);
+        await showBalance("Adm", adm);
+        await showBalance("Teacher", teacher);
+        await showBalance("Evaluator", evaluator);
+        await showBalance("Student", student);
+    }
+
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
             faculty = await Faculty.new([dean, adm], 2);

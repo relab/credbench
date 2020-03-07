@@ -1,8 +1,8 @@
 pragma solidity >=0.5.13 <0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "./Issuer.sol";
-import "./Timed.sol";
+import "bbchain-contracts/contracts/Issuer.sol";
+import "bbchain-contracts/contracts/Timed.sol";
 
 /**
  * @title Academic Course

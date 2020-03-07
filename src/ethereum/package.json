@@ -1,7 +1,7 @@
 {
-  "name": "dvcp",
+  "name": "bbchain-dapp",
   "version": "0.0.1",
-  "description": "dvcp Contracts",
+  "description": "BBChain Etheruem DApp",
   "directories": {
     "test": "test"
   },
@@ -21,7 +21,9 @@
   },
   "author": "Rodrigo Q. Saramago",
   "license": "GPLv3",
-  "dependencies": {},
+  "dependencies": {
+    "bbchain-contracts": "git+ssh://git@github.com:relab/bbchain-contracts.git"
+  },
   "devDependencies": {
     "@openzeppelin/contracts": "^2.5.0",
     "@openzeppelin/test-helpers": "^0.5.4",

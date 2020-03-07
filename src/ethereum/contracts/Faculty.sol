@@ -1,7 +1,7 @@
 pragma solidity >=0.5.13 <0.7.0;
 // pragma experimental ABIEncoderV2;
 
-import "./AccountableIssuer.sol";
+import "bbchain-contracts/contracts/AccountableIssuer.sol";
 import "./Course.sol";
 
 // TODO: contract to manage employees (addresses) - enhancement
