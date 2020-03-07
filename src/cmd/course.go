@@ -3,14 +3,18 @@ package cmd
 import (
 	"fmt"
 	"math/big"
+	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/r0qs/bbchain-dapp/src/core/course"
+	contract "github.com/r0qs/bbchain-dapp/src/core/go-bindings/course"
 	"github.com/spf13/cobra"
 )
 
 var (
-	courseAddress string
+	courseContract *contract.Course
+	courseAddress  string
 )
 
 var courseCmd = &cobra.Command{
@@ -36,11 +40,17 @@ func deployCourseCmd() *cobra.Command {
 			backend, err := clientConn.Backend()
 			senderTxOpts, err := wallet.GetTxOpts(backend)
 
-			cAddr, err := course.DeployCourse(senderTxOpts, backend, ownersList, big.NewInt(quorum))
+			now := time.Now()
+			startingTime := now.Unix()
+			endingTime := now.Add(time.Hour).Unix()
+
+			var cAddr common.Address
+			cAddr, _, courseContract, err = contract.DeployCourse(senderTxOpts, backend, ownersList, big.NewInt(quorum), big.NewInt(startingTime), big.NewInt(endingTime))
 			if err != nil {
 				fmt.Printf("Failed on contract deployment: %v\n", err)
 			}
-			fmt.Println(cAddr.Hex())
+			courseAddress = cAddr.Hex()
+			fmt.Printf("Contract %v successfully deployed\n", cAddr.Hex())
 		},
 	}
 
@@ -63,15 +73,14 @@ var addStudentCmd = &cobra.Command{
 		backend, err := clientConn.Backend()
 		senderTxOpts, err := wallet.GetTxOpts(backend)
 
-		course, err := course.NewCourse(senderTxOpts, backend, cAddr, wallet.PrivateKey())
+		course, err := course.NewCourse(cAddr, backend)
 		if err != nil {
 			return fmt.Errorf("Failed to get course: %v", err)
 		}
 
-		course.AddStudent(studentAddress)
+		course.AddStudent(senderTxOpts, studentAddress)
 
-		ok, _ := course.IsEnrolled(studentAddress)
-		if ok {
+		if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); ok {
 			fmt.Printf("student %s successfully enrolled!", studentAddress.Hex())
 		}
 		return nil
@@ -81,7 +90,7 @@ var addStudentCmd = &cobra.Command{
 func init() {
 	courseCmd.PersistentFlags().StringVar(&courseAddress, "courseAddress", "", "Use specified course address")
 
-	rootCmd.AddCommand(courseCmd)
 	courseCmd.AddCommand(deployCourseCmd())
 	courseCmd.AddCommand(addStudentCmd)
+	rootCmd.AddCommand(courseCmd)
 }

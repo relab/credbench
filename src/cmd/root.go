@@ -31,8 +31,8 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is $PWD/dev-config.json)")
 	rootCmd.PersistentFlags().StringVar(&accountAddress, "accountAddress", "", "Ethereum account address")
-	rootCmd.Flags().StringVar(&backendURL, "backendURL", "http://127.0.0.1:8545", "Blockchain backend host:port")
-	rootCmd.Flags().StringVar(&keystoreDir, "keystore", defaultKeyStore(), "Keystore root directory")
+	rootCmd.PersistentFlags().StringVar(&backendURL, "backendURL", "http://127.0.0.1:8545", "Blockchain backend host:port")
+	rootCmd.PersistentFlags().StringVar(&keystoreDir, "keystore", defaultKeyStore(), "Keystore root directory")
 }
 
 func defaultKeyStore() string {

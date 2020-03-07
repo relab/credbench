@@ -1,18 +1,15 @@
 package accounts
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"io/ioutil"
-	"math/big"
-
 	ethAccounts "github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/crypto"
+	"io/ioutil"
 )
 
 type BBChainWallet interface {
@@ -74,7 +71,7 @@ func ImportKey(hexkey string, keyStore *keystore.KeyStore) (BBChainWallet, error
 	password, _ := getPassword(true)
 	account, err := keyStore.ImportECDSA(key, password)
 
-	fmt.Printf("Account address %v successfully imported", account.Address)
+	fmt.Printf("Account address %v successfully imported\n", account.Address.Hex())
 	return &wallet{
 		account:    account,
 		privateKey: key,
@@ -97,22 +94,7 @@ func NewAccount(keystoreDir string) error {
 }
 
 func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error) {
-	nonce, err := backend.PendingNonceAt(context.Background(), w.account.Address)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get next nonce: %v", err)
-	}
-
-	gasPrice, err := backend.SuggestGasPrice(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("Failed to estimate the gas price: %v", err)
-	}
-
-	// FIXME: remove this
 	transactOpts := bind.NewKeyedTransactor(w.privateKey)
-	transactOpts.Nonce = big.NewInt(int64(nonce))
-	transactOpts.Value = big.NewInt(0)
-	transactOpts.GasLimit = uint64(6721975)
-	transactOpts.GasPrice = gasPrice
 	return transactOpts, nil
 }
 
