@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/r0qs/dvcp/src/core/accounts"
+	"github.com/r0qs/bbchain-dapp/src/core/accounts"
 	"github.com/spf13/cobra"
 )
 

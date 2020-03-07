@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/r0qs/dvcp/src/core/course"
+	"github.com/r0qs/bbchain-dapp/src/core/course"
 	"github.com/spf13/cobra"
 )
 

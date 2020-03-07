@@ -16,8 +16,8 @@ A list of things to do, or maybe not...
  - Perform ownership operations
  - transferOwnership
 
-### notary
- - Make the Notary contract as a Library
+### Issuer
+ - Make the Issuer contract as a Library
  - Allow multiple subjects
  - Add expiration date information?
  - Is RegistryEntry/Claim/VerifiableClaim a more appropriate name?
@@ -26,11 +26,12 @@ A list of things to do, or maybe not...
  - Define a common interface like the token interface for certificates?
 
 ### course
+ - Rename to leaf Issuer / leaf authority / subordinate CA or registration authority (like in PKI)
  - Is necessary to have a list of enrolled students? store a array of student addresses in the contract solves the problem but has an inefficient removal operation, other option is let to the client to keep track of the enrolled students and just use the chain to check.
- - Bind a contract instance instead of inheritance in course, this will facilitate the decouple of the client implementation and allow multiple courses to share the same notary registry contract
+ - Bind a contract instance instead of inheritance in course, this will facilitate the decouple of the client implementation and allow multiple courses to share the same Issuer registry contract
 
 ### faculty
- - Rename to Certificate Authority
+ - Rename to intermediary Issuer / certificate authority
  - Deploy Course contracts
  - Implement admission process
  - Implement enrollment process
@@ -77,3 +78,35 @@ Meeting 05/12/2019
 - Build the base line first (consider unlimited resources)
 - Don't care about external courses for now, but think about it. How incorporate external certificates, e.g. student make a course in one institution and move to other place and continue his studies.
 - Consider two hashes one for validation and another for the verifiable credential metadata
+
+## TODO code
+
+1. Finish the timed Issuer contract
+2. Append the new certificate hash with the previous, creating a chain of certificates
+3. Create a verifiable credential as a Issuer certificate
+4. Verify the validity and authenticity of the certificates (implement tests)
+5. Add commands in the client to perform the notarization process example
+6. Allow contracts to verify on-chain and off-chain signatures (keep different versions for cost analyses):
+on chain sign and verification, off chain sign and on chain verification, off chain sign and verification.
+The current implementation made on chain sign and off chain verification
+(https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/cryptography)
+7. Estimate the cost of deployment of the contracts
+
+## TODO tests
+
+1. Setup the cluster
+2. Setup private ethereum/swarm nodes
+3. Deploy contracts
+4. Create scripts to generate load
+5. Collect metrics (cost, number of txs, tx/s) 
+
+## TODO paper
+
+1. Update the information about the diploma construction using the append-only approach
+2. Collect information about the current costs of issuing diplomas
+3. Send an email to the admission department asking about the current costs and statistics
+
+
+HARD DEADLINE: 12 May 2020
+
+When aggregate the previous can delete the information from the contract state
