@@ -1,6 +1,6 @@
 package course
 
-//go:generate abigen --combined-json ../../ethereum/build/combined.json --pkg contract --out ../go-bindings/course/course.go
+//go:generate abigen --combined-json ../../ethereum/build/combined.json --pkg contract --out ./contract/course.go
 
 import (
 	"math/big"
@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/r0qs/bbchain-dapp/src/core/go-bindings/course"
+	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
 )
 
 type CredentialProof struct {

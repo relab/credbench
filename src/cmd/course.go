@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/r0qs/bbchain-dapp/src/core/course"
-	contract "github.com/r0qs/bbchain-dapp/src/core/go-bindings/course"
+	contract "github.com/r0qs/bbchain-dapp/src/core/course/contract"
 	"github.com/spf13/cobra"
 )
 

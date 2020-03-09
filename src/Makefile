@@ -11,12 +11,15 @@ GOCLEAN = $(GOCMD) clean
 GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get
 GOBIN_DIR = $(PKG)/bin
-GO_BINDINGS_DIR =  $(PKG)/core/go-bindings
+GO_BINDINGS_DIR = {$(PKG)/core/course/contract,$(PKG)/core/notary/contracts}
 CONTRACTS_SRC = ./ethereum/contracts
 SOLC_BUILD_DIR = ./ethereum/build
-CONTRACTS_DEPS = ../../node_modules/bbchain-contracts/contracts,#../../node_modules/@openzeppelin/contracts/,
-SOLC_ARGS = bbchain-contracts/contracts=../../node_modules/bbchain-contracts/contracts# @openzeppelin/contracts=../../node_modules/@openzeppelin/contracts
-
+EXTERNAL_CONTRACTS_SRC = ./ethereum/node_modules/bbchain-contracts/contracts,
+#../../node_modules/@openzeppelin/contracts/,
+CONTRACTS_DEPS = bbchain-contracts/contracts=./ethereum/node_modules/bbchain-contracts/contracts
+# @openzeppelin/contracts=../../node_modules/@openzeppelin/contracts
+BBCHAIN_LIBS = ./ethereum/node_modules/bbchain-contracts/contracts/CertificateSum.sol,
+SOLC_ARGS = --optimize --gas --optimize-runs 200 --overwrite --combined-json abi,asm,ast,bin,bin-runtime,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc $(CONTRACTS_DEPS)
 BINARY_FILE = $(GOBIN_DIR)/bbchain
 
 all: generate build
@@ -36,7 +39,7 @@ run: build
 clean:
 	@echo "+ cleaning"
 	$(GOCLEAN) -i $(PKG)/...
-	rm -rf $(BINARY_FILE) $(GO_BINDINGS_DIR) $(SOLC_BUILD_DIR)
+	rm -rf $(BINARY_FILE) $(GO_BINDINGS_DIR)
 
 deps:
 	@echo "+ installing dependencies"
@@ -48,11 +51,11 @@ deps:
 #TODO: use generate to create the directory structure too
 generate:
 	@echo "+ go generate"
-	mkdir -p $(GO_BINDINGS_DIR)/course
+	mkdir -p $(GO_BINDINGS_DIR)
 	$(GOCMD) generate $(PKG)/...
 
 solc:
-	solc $(SOLC_ARGS) --allow-paths $(CONTRACTS_DEPS) --optimize --gas --optimize-runs 10000 --overwrite --combined-json abi,asm,ast,bin,bin-runtime,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc $(CONTRACTS_SRC)/*.sol -o $(SOLC_BUILD_DIR)
+	solc $(SOLC_ARGS) --allow-paths $(BBCHAIN_LIBS) $(CONTRACTS_SRC)/Course.sol -o $(SOLC_BUILD_DIR)
 
 codecheck: fmt lint vet
 
