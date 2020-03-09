@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	ethAccounts "github.com/ethereum/go-ethereum/accounts"
@@ -94,7 +95,13 @@ func NewAccount(keystoreDir string) error {
 }
 
 func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error) {
+	gasPrice, err := backend.SuggestGasPrice(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to estimate the gas price: %v", err)
+	}
 	transactOpts := bind.NewKeyedTransactor(w.privateKey)
+	transactOpts.GasLimit = uint64(6721975)
+	transactOpts.GasPrice = gasPrice
 	return transactOpts, nil
 }
 
