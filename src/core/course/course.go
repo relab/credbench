@@ -3,31 +3,13 @@ package course
 //go:generate abigen --combined-json ../../ethereum/build/combined.json --pkg contract --out ./contract/course.go
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
+	"github.com/r0qs/bbchain-dapp/src/core/notary"
+	"math/big"
 )
-
-type CredentialProof struct {
-	Signed         *big.Int
-	SubjectSigned  bool
-	InsertedBlock  *big.Int
-	BlockTimestamp *big.Int
-	Nonce          *big.Int
-	Issuer         common.Address
-	Subject        common.Address
-	Digest         [32]byte
-}
-
-type RevocationProof struct {
-	Issuer       common.Address
-	Subject      common.Address
-	RevokedBlock *big.Int
-	Reason       [32]byte
-}
 
 type Params struct {
 	ContractCode, ContractAbi string
@@ -56,31 +38,37 @@ func (c *Course) Address() common.Address {
 	return c.address
 }
 
+// AddStudent
 func (c *Course) AddStudent(opts *bind.TransactOpts, student common.Address) (*types.Transaction, error) {
 	return c.contract.AddStudent(opts, student)
 }
 
+// RemoveStudent
 func (c *Course) RemoveStudent(opts *bind.TransactOpts, student common.Address) (*types.Transaction, error) {
 	return c.contract.RemoveStudent(opts, student)
 }
 
+// RenounceCourse
 func (c *Course) RenounceCourse(opts *bind.TransactOpts) (*types.Transaction, error) {
 	return c.contract.RenounceCourse(opts)
 }
 
+// EnrolledStudents
 func (c *Course) EnrolledStudents(opts *bind.CallOpts, student common.Address) (bool, error) {
 	return c.contract.EnrolledStudents(opts, student)
 }
 
+// IsEnrolled
 func (c *Course) IsEnrolled(opts *bind.CallOpts, student common.Address) (bool, error) {
 	return c.contract.IsEnrolled(opts, student)
 }
 
-// Owners functions
+// IsOwner
 func (c *Course) IsOwner(opts *bind.CallOpts, address common.Address) (bool, error) {
 	return c.contract.IsOwner(opts, address)
 }
 
+// Owners
 func (c *Course) Owners(opts *bind.CallOpts) ([]common.Address, error) {
 	length, err := c.contract.OwnersLength(opts)
 	var owners []common.Address
@@ -93,24 +81,26 @@ func (c *Course) Owners(opts *bind.CallOpts) ([]common.Address, error) {
 	return owners, err
 }
 
-// Issuer functions
+// RegisterCredential
 func (c *Course) RegisterCredential(opts *bind.TransactOpts, student common.Address, digest [32]byte) (*types.Transaction, error) {
 	return c.contract.RegisterCredential(opts, student, digest)
 }
 
+// Revoke
 func (c *Course) Revoke(opts *bind.TransactOpts, digest [32]byte, reason [32]byte) (*types.Transaction, error) {
 	return c.contract.RevokeCredential(opts, digest, reason)
 }
 
-func (c *Course) IssuedCredentials(opts *bind.CallOpts, digest [32]byte) *CredentialProof {
+// IssuedCredentials
+func (c *Course) IssuedCredentials(opts *bind.CallOpts, digest [32]byte) *notary.CredentialProof {
 	proof, _ := c.contract.IssuedCredentials(opts, digest)
-	var cp CredentialProof = proof
+	var cp notary.CredentialProof = proof
 	return &cp
 }
 
 // RevokedCredentials
-func (c *Course) RevokedCredentials(opts *bind.CallOpts, digest [32]byte) *RevocationProof {
+func (c *Course) RevokedCredentials(opts *bind.CallOpts, digest [32]byte) *notary.RevocationProof {
 	proof, _ := c.contract.RevokedCredentials(opts, digest)
-	var rp RevocationProof = proof
+	var rp notary.RevocationProof = proof
 	return &rp
 }
