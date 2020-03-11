@@ -1,6 +1,6 @@
 PKG := .
 
-.PHONY: all build test run clean deps generate solc
+.PHONY: all build test run clean deps generate solc proto
 .PHONY: fmt lint vet codecheck
 .PHONY: build-linux build-osx build-windows
 
@@ -9,8 +9,9 @@ GOCMD = go
 GOBUILD = $(GOCMD) build
 GOCLEAN = $(GOCMD) clean
 GOTEST = $(GOCMD) test
-GOGET = $(GOCMD) get
+GOGET = $(GOCMD) get -u
 GOBIN_DIR = $(PKG)/bin
+SCHEMES_DIR = $(PKG)/schemes
 GO_BINDINGS_DIR = {$(PKG)/core/course/contract,$(PKG)/core/notary/contracts}
 CONTRACTS_SRC = ./ethereum/contracts
 SOLC_BUILD_DIR = ./ethereum/build
@@ -22,7 +23,11 @@ BBCHAIN_LIBS = ./ethereum/node_modules/bbchain-contracts/contracts/CertificateSu
 SOLC_ARGS = --optimize --gas --optimize-runs 200 --overwrite --combined-json abi,asm,ast,bin,bin-runtime,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc $(CONTRACTS_DEPS)
 BINARY_FILE = $(GOBIN_DIR)/bbchain
 
-all: generate build
+# TODO: install contract dependencies: bbchain-contracts + openzeppelin contracts
+# TODO: use generate to create the directory structure too
+# TODO: generate abi/bin files in contracts directories (maybe calling the npm)
+
+all: proto generate build
 
 build:
 	@echo "+ building source"
@@ -46,9 +51,12 @@ deps:
 	$(GOGET) github.com/ethereum/go-ethereum
 	$(GOGET) github.com/spf13/cobra/cobra
 	$(GOGET) golang.org/x/lint/golint
-	# TODO: install contract dependencies: bbchain-contracts + openzeppelin contracts
+	$(GOGET) github.com/golang/protobuf/protoc-gen-go
 
-#TODO: use generate to create the directory structure too
+proto:
+	@echo Compiling proto files
+	@protoc -I=$(SCHEMES_DIR) --go_out=$(SCHEMES_DIR) $(SCHEMES_DIR)/*.proto
+
 generate:
 	@echo "+ go generate"
 	mkdir -p $(GO_BINDINGS_DIR)

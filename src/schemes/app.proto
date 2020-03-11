@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package schemes;
+
+message Student {
+    string id = 1;
+    string name = 2;
+    repeated string enrolledCourses = 3; // courses ids (i.e. did/eth addresses)
+}
+
+message Evaluators {
+    string id = 1;
+    string name = 2;
+    string role = 3;
+    repeated string assignedCourses = 4;
+}
+
+message Assignment {
+    string id = 1;
+    string name = 2;
+    string code = 3;
+    string category = 4;
+    repeated string type = 5;
+    string language = 6;
+    string description = 7;
+    repeated Evaluators evaluators = 8;
+    Student student = 9;
+    int64 grade = 10;
+    string subjectPresence = 11;
+}
+
+message Course {
+    string id = 1;
+    string name = 2;
+    string code = 3;
+    string category = 4;
+    repeated string type = 5;
+    string language = 6;
+    string semester = 7;
+    string description = 8;
+    repeated Evaluators teachers = 9;
+    repeated Evaluators evaluators = 10;
+    repeated Student students = 11;
+    map<string, int64> grades = 12; // course final grades per studend id
+    string subjectPresence = 13; //e.g. physical, digital/online
+    map<string,Assignments> assignments = 14; // map of list of assignments per student
+}
+
+message Assignments {
+    repeated Assignment assignments = 1;
+}
