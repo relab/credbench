@@ -1,0 +1,56 @@
+{
+    "id": "did:eth-uis:0000faculty_contract_address0000",
+    "name": "Distributed Systems I",
+    "category": "degree",
+    "code": "CS0001",
+    "language": "en",
+    "createdBy": "did:eth-uis:0000adm_address0000",
+    "offeredBy": {
+        "id": "did:eth-uis:0000university_contract_address0000",
+        "name": "University of Stavanger"
+    },
+    "createdAt": "2019-09-10T13:57:24Z",
+    "description": "Computer Science bachelor degree",
+    "supervisor": [
+        {
+            "id": "did:eth-uis:0000teacher_address0000",
+            "name": "Hein",
+            "role": "supervisor"
+        }
+    ],
+    "evaluators": [
+        {
+            "id": "did:eth-uis:0000teacher_address0000",
+            "name": "Hein",
+            "role": "supervisor"
+        },
+        {
+            "id": "did:eth-uis:0000evaluator_address0000",
+            "name": "Leander",
+            "role": "externalEvaluator"
+        }
+    ],
+    "student": {
+        "id": "did:eth-uis:000student_address0000",
+        "name": "John Doe"
+    },
+    "startedAt": "2016-09-10T00:57:24Z", // computed based on courses
+    "endedAt": "2019-09-10T13:57:24Z", //same as createdAt
+    "gpa": 3,
+    "credits": 180,
+    "supplement": "0x0000diploma_supplement_document_hash0000",
+    "evidenceDocument": "0x0000diploma_final_document_hash0000",
+    "subjectPresence": "Physical",
+    "documentPresence": "Physical",
+    "certificates": [
+        {
+            "id": "did:eth-uis:0x000course_1_grade_proof_hash0000000"
+        },
+        {
+            "id": "did:eth-uis:0x000course_2_grade_proof_hash0000002"
+        },
+        {
+            "id": "did:eth-uis:0x000lab_exam_1_grade_proof_hash0000002"
+        }
+    ]
+}

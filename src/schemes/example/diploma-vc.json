@@ -1,0 +1,71 @@
+{
+    "@context": [
+        "https://www.w3.org/2018/credentials/v1"
+    ],
+    "id": "did:eth-uis:0000faculty_contract_address0000",
+    "parent": "did:eth-uis:0000university_contract_address0000",
+    "type": [
+        "VerifiableCredential",
+        "UniversityDegreeCredential"
+    ],
+    "issuer": {
+        "id": "did:eth-uis:0000faculty_contract_address0000",
+        "name": "Faculty of Computer Science",
+        "signers": [
+            {
+                "id": "did:eth-uis:0000dean_address0000",
+                "role": "Dean"
+            },
+            {
+                "id": "did:eth-uis:0000adm_address0000",
+                "role": "AdministrativeStaff"
+            }
+        ]
+    },
+    "issuanceDate": "2019-01-01T19:73:24Z",
+    "credentialSubject": {
+        "id": "did:eth-uis:000student_address0000",
+        "degree": {
+            "type": "BachelorDegree",
+            "name": "Bachelor of Computer Science"
+        },
+        "degreeType": "Diploma"
+    },
+    "holder": {
+        "id": "did:eth-uis:000student_address0000",
+        "type": "owner"
+    },
+    "validFrom": "2018-09-10T13:57:24Z",
+    "evidence": [ // collection of aggregated course proofs
+        {
+            "id": "did:eth-uis:0x000course_1_grade_proof_hash0000000", //inned proof
+            "type": [
+                "MandatoryCourse"
+            ],
+            "verifier": "0x0000course_1_contract_address0000",
+            "evidenceDocument": "0x0000course_1_final_exam_document_hash0000",
+            "subjectPresence": "Physical",
+            "documentPresence": "Physical"
+        },
+        {
+            "id": "did:eth-uis:0x000course_2_grade_proof_hash0000002",
+            "type": [
+                "ComplementaryCourse"
+            ],
+            "verifier": "0x0000course_2_contract_address0000",
+            "evidenceDocument": "0x0000course_2_final_exam_document_hash0000",
+            "subjectPresence": "Digital",
+            "documentPresence": "Digital"
+        }
+    ],
+    "proof": {
+        "id": "did:eth-uis:0x000bachelor_degree_proof_hash0000000", // resulted proof, final diploma
+        "type": "EcdsaSecp256r1Signature2019", // ???
+        "created": "2020-03-10T13:19:10Z",
+        "proofPurpose": "assertionMethod",
+        "verificationMethod": "0x0000course_contract_address0000",
+        "jws": "jws-generated-proof-token", // not sure if will support this proofs initially..
+        "challenge": "c0ae1c8e-c7e7-469f-b252-86e6a0e7387e",
+        "provider": "https://swarm-uis-storage-url" // optional?
+    }
+}

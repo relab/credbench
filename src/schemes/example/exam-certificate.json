@@ -1,0 +1,37 @@
+{ //id?
+    "name": "Exam 1",
+    "code": "DAT520_1-EX01",
+    "category": "internalActivity",
+    "type": [
+        "MandatoryActivity"
+    ],
+    "language": "en",
+    "createdBy": "did:eth-uis:0000teacher_address0000",
+    "createdAt": "2018-09-10T13:57:24Z",
+    "offeredBy": {
+        "id": "did:eth-uis:0x0000course_1_contract_address0000",
+        "name": "Distributed Systems Course"
+    },
+    "description": "The exam consists of a written test",
+    "evaluators": [
+        {
+            "id": "did:eth-uis:0000teacher_address0000",
+            "name": "Hein",
+            "role": "teacher"
+        },
+        {
+            "id": "did:eth-uis:0000evaluator_address0000",
+            "name": "Leander",
+            "role": "internalEvaluator"
+        }
+    ],
+    "student": {
+        "id": "did:eth-uis:000student_address0000",
+        "name": "John Doe"
+    },
+    "grade": 5,
+    "evidenceDocument": "0x0000exam_1_document_hash0000",
+    "subjectPresence": "Physical",
+    "documentPresence": "Physical",
+    "additionalInformation": {}
+}

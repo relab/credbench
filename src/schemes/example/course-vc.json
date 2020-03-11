@@ -1,0 +1,91 @@
+{
+    "@context": [
+        "https://www.w3.org/2018/credentials/v1"
+    ],
+    "id": "did:eth-uis:0x0000course_1_contract_address0000",
+    "parent": "did:eth-uis:0000faculty_contract_address0000",
+    "type": [
+        "VerifiableCredential",
+        "CourseDegreeCredential"
+    ],
+    "issuer": {
+        "id": "did:eth-uis:0000course_1_contract_address0000",
+        "name": "Distributed Systems I",
+        "signers": [
+            {
+                "id": "did:eth-uis:0000teacher_address0000",
+                "role": "teacher"
+            },
+            {
+                "id": "did:eth-uis:0000evaluator_address0000",
+                "role": "internalEvaluator"
+            }
+        ]
+    },
+    "issuanceDate": "2018-09-10T13:56:24Z",
+    "credentialSubject": {
+        "id": "did:eth-uis:000student_address0000",
+        "degree": {
+            "type": "CourseGrade",
+            "name": "Distributed Systems I"
+        },
+        "degreeType": "Course"
+    },
+    "holder": {
+        "id": "did:eth-uis:000student_address0000",
+        "type": "owner"
+    },
+    "validFrom": "2018-09-10T13:57:24Z",
+    "evidence": [ // complementary information to the current proof
+        {
+            "id": "did:eth-uis:0x000credential_hash0000000",
+            "type": [
+                "DocumentVerification"
+            ],
+            "verifier": "https://uis.no.eth",
+            "evidenceDocument": "did:eth-uis:0x0000enrollment_document_hash0000", // Driverslicense, student ID Card, etc
+            "subjectPresence": "Physical",
+            "documentPresence": "Physical"
+        },
+        {
+            "id": "did:eth-uis:0x000exam_1_grade_proof_hash0000000", // inner proof
+            "type": [
+                "MandatoryActivity"
+            ],
+            "verifier": "0x0000course_1_contract_address0000",
+            "evidenceDocument": "0x0000exam_1_document_hash0000",
+            "subjectPresence": "Physical",
+            "documentPresence": "Physical"
+        },
+        {
+            "id": "did:eth-uis:0x000exam_2_grade_proof_hash0000000",
+            "type": [
+                "MandatoryActivity"
+            ],
+            "verifier": "0x0000course_1_contract_address0000",
+            "evidenceDocument": "0x0000exam_2_document_hash0000",
+            "subjectPresence": "Digital",
+            "documentPresence": "Digital"
+        },
+        {
+            "id": "did:eth-uis:0x000lab_exam_1_grade_proof_hash0000000",
+            "type": [
+                "SupportingActivity"
+            ],
+            "verifier": "0x0000course_external_contract_address0000",
+            "evidenceDocument": "0x0000lab_1_test_document_hash0000",
+            "subjectPresence": "Digital",
+            "documentPresence": "Digital"
+        }
+    ],
+    "proof": { //use zk proofs
+        "id": "did:eth-uis:0x000course_1_grade_proof_hash0000000",
+        "type": "EcdsaSecp256r1Signature2019", // ???
+        "created": "2020-03-10T13:19:10Z",
+        "proofPurpose": "assertionMethod", // or authentication, etc
+        "verificationMethod": "0x0000course_1_contract_address0000",
+        "jws": "jws-generated-proof-token", // not sure if will support this proofs initially..
+        "challenge": "c0ae1c8e-c7e7-469f-b252-86e6a0e7387e",
+        "provider": "https://swarm-uis-storage-url" // optional?
+    }
+}
