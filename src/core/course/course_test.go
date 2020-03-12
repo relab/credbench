@@ -3,6 +3,9 @@ package course
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/sha256"
+	"fmt"
+	proto "github.com/golang/protobuf/proto"
 	"math/big"
 	"testing"
 	"time"
@@ -11,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/r0qs/bbchain-dapp/src/core/backends"
 	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
+	pb "github.com/r0qs/bbchain-dapp/src/schemes"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -152,4 +156,90 @@ func TestRenounceCourse(t *testing.T) {
 	if ok, err := course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
 		t.Fatalf("IsEnrolled expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
 	}
+}
+
+func hashString(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
+}
+
+func createTestAssignment(c int) *pb.Assignment {
+	return &pb.Assignment{
+		Id:          hashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
+		Name:        fmt.Sprintf("%s%d", "Exam ", c),
+		Code:        fmt.Sprintf("%s%d", "EX-", c),
+		Category:    "InternalActivity",
+		Type:        []string{"MandatoryActivity"},
+		Language:    "en",
+		Description: "This is an exam description",
+		Evaluators: []*pb.Evaluator{
+			&pb.Evaluator{
+				Id:   teacherAddress.Hex(),
+				Name: "Teacher Name",
+				Role: "teacher",
+			},
+		},
+		Student: &pb.Student{
+			Id:   studentAddress.Hex(),
+			Name: "Student Name",
+		},
+		Grade:           42,
+		SubjectPresence: "Physical",
+	}
+}
+
+func TestIssuerRegisterCredential(t *testing.T) {
+	backend := backends.NewTestBackend()
+	defer backend.Close()
+	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress}, big.NewInt(1))
+	if err != nil {
+		t.Fatalf("deploy contract: expected no error, got %v", err)
+	}
+	course, _ := NewCourse(courseAddr, backend)
+
+	opts, _ := backend.GetTxOpts(teacherKey)
+	course.AddStudent(opts, studentAddress)
+	backend.Commit()
+
+	data, _ := proto.Marshal(createTestAssignment(0))
+	examDigest := sha256.Sum256(data)
+
+	course.RegisterCredential(opts, studentAddress, examDigest)
+	backend.Commit()
+
+	proof := course.IssuedCredentials(nil, examDigest)
+
+	assert.Equal(t, studentAddress, proof.Subject, "Subject address should be equal")
+	assert.Equal(t, teacherAddress, proof.Issuer, "Subject address should be equal")
+	assert.Equal(t, examDigest, proof.Digest, "Assignment digest should be equal")
+	assert.False(t, proof.SubjectSigned)
+}
+
+func TestStudentSignCredential(t *testing.T) {
+	backend := backends.NewTestBackend()
+	defer backend.Close()
+	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress}, big.NewInt(1))
+	if err != nil {
+		t.Fatalf("deploy contract: expected no error, got %v", err)
+	}
+	course, _ := NewCourse(courseAddr, backend)
+
+	opts, _ := backend.GetTxOpts(teacherKey)
+	course.AddStudent(opts, studentAddress)
+	backend.Commit()
+
+	data, _ := proto.Marshal(createTestAssignment(0))
+	examDigest := sha256.Sum256(data)
+
+	course.RegisterCredential(opts, studentAddress, examDigest)
+	backend.Commit()
+
+	proof := course.IssuedCredentials(nil, examDigest)
+	assert.False(t, proof.SubjectSigned)
+
+	opts, _ = backend.GetTxOpts(studentKey)
+	course.ConfirmCredential(opts, examDigest)
+	backend.Commit()
+
+	proof = course.IssuedCredentials(nil, examDigest)
+	assert.True(t, proof.SubjectSigned)
 }

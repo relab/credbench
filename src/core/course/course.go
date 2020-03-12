@@ -86,6 +86,11 @@ func (c *Course) RegisterCredential(opts *bind.TransactOpts, student common.Addr
 	return c.contract.RegisterCredential(opts, student, digest)
 }
 
+// ConfirmCredential
+func (c *Course) ConfirmCredential(opts *bind.TransactOpts, digest [32]byte) (*types.Transaction, error) {
+	return c.contract.ConfirmCredential(opts, digest)
+}
+
 // Revoke
 func (c *Course) Revoke(opts *bind.TransactOpts, digest [32]byte, reason [32]byte) (*types.Transaction, error) {
 	return c.contract.RevokeCredential(opts, digest, reason)
