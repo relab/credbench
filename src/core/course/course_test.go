@@ -7,6 +7,7 @@ import (
 	"fmt"
 	proto "github.com/golang/protobuf/proto"
 	"math/big"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -18,16 +19,75 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	teacherKey, teacherAddress     = backends.TestAccounts[0].Key, backends.TestAccounts[0].Address
-	evaluatorKey, evaluatorAddress = backends.TestAccounts[1].Key, backends.TestAccounts[1].Address
-	studentKey, studentAddress     = backends.TestAccounts[2].Key, backends.TestAccounts[2].Address
-)
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+type TestCourse struct {
+	Backend  *backends.TestBackend
+	Owners   []backends.Account
+	Students []backends.Account
+	Course   *Course
+}
+
+func NewTestCourse(t *testing.T, owners backends.Accounts, quorum *big.Int) *TestCourse {
+	backend := backends.NewTestBackend()
+
+	courseAddr, _, err := deploy(backend, owners[0].Key, owners.Addresses(), big.NewInt(int64(len(owners))))
+	if err != nil {
+		t.Fatalf("deploy contract: expected no error, got %v", err)
+	}
+	course, err := NewCourse(courseAddr, backend)
+	if err != nil {
+		t.Fatalf("create contract: expected no error, got %v", err)
+	}
+
+	return &TestCourse{
+		Backend: backend,
+		Owners:  owners,
+		Course:  course,
+	}
+}
+
+func (tc *TestCourse) AddStudents(t *testing.T, students backends.Accounts) {
+	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	for _, addr := range students.Addresses() {
+		_, err := tc.Course.AddStudent(opts, addr)
+		if err != nil {
+			t.Fatalf("AddStudent expected no error, got: %v", err)
+		}
+		tc.Backend.Commit()
+	}
+	tc.Students = students
+}
+
+func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [32]byte {
+	digest := createTestDigest(tc.Owners[0].Address, to)
+	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	_, err := tc.Course.RegisterCredential(opts, to, digest)
+	if err != nil {
+		t.Fatalf("RegisterCredential expected no error, got: %v", err)
+	}
+	tc.Backend.Commit()
+	proof := tc.Course.IssuedCredentials(nil, digest)
+	assert.Equal(t, digest, proof.Digest)
+
+	return digest
+}
+
+func (tc *TestCourse) ConfirmTestCredential(t *testing.T, from *ecdsa.PrivateKey, digest [32]byte) {
+	opts, _ := tc.Backend.GetTxOpts(from)
+	_, err := tc.Course.ConfirmCredential(opts, digest)
+	if err != nil {
+		t.Fatalf("ConfirmCredential expected no error, got: %v", err)
+	}
+	tc.Backend.Commit()
+}
 
 func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, owners []common.Address, quorum *big.Int) (common.Address, *contract.Course, error) {
-	transactOpts := bind.NewKeyedTransactor(prvKey)
+	opts := bind.NewKeyedTransactor(prvKey)
 	startingTime, endingTime := backend.GetPeriod(uint64(100))
-	courseAddr, _, course, err := contract.DeployCourse(transactOpts, backend, owners, quorum, startingTime, endingTime)
+	courseAddr, _, course, err := contract.DeployCourse(opts, backend, owners, quorum, startingTime, endingTime)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
@@ -35,135 +95,9 @@ func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, owners []co
 	return courseAddr, course, nil
 }
 
-func TestCourse(t *testing.T) {
-	backend := backends.NewTestBackend()
-	defer backend.Close()
-	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress, evaluatorAddress}, big.NewInt(2))
-	if err != nil {
-		t.Fatalf("deploy contract: expected no error, got %v", err)
-	}
-
-	course, err := NewCourse(courseAddr, backend)
-	if err != nil {
-		t.Fatalf("create contract: expected no error, got %v", err)
-	}
-
-	assert.Equal(t, course.Address(), courseAddr)
-	if ok, err := course.IsOwner(&bind.CallOpts{Pending: true}, teacherAddress); !ok {
-		t.Fatalf("IsOwner expected to be true but return: %t, %v", ok, err)
-	}
-}
-
-func TestAddStudent(t *testing.T) {
-	backend := backends.NewTestBackend()
-	defer backend.Close()
-	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress, evaluatorAddress}, big.NewInt(2))
-	if err != nil {
-		t.Fatalf("deploy contract: expected no error, got %v", err)
-	}
-	course, err := NewCourse(courseAddr, backend)
-	if err != nil {
-		t.Fatalf("new contract: expected no error, got %v", err)
-	}
-
-	header, err := backend.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if ok, err := course.contract.IsStarted(nil); err != nil || !ok {
-		t.Fatalf("Course should not be started yet in block: %v, but IsStarted returned: %t with error: %v", header.Number, ok, err)
-	}
-
-	// Increases block timestamp by 10 seconds
-	err = backend.AdjustTime(10 * time.Second)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// Add a student
-	opts, _ := backend.GetTxOpts(teacherKey)
-	if _, err := course.AddStudent(opts, studentAddress); err != nil {
-		t.Fatalf("AddStudent expected to add a student but return: %v", err)
-	}
-	backend.Commit()
-
-	// Verify if a student was added
-	if ok, err := course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || !ok {
-		t.Fatalf("EnrolledStudents expected student %v to be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-
-	if ok, err := course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || !ok {
-		t.Fatalf("IsEnrolled expected student %v to be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-}
-
-func TestRemoveStudent(t *testing.T) {
-	backend := backends.NewTestBackend()
-	defer backend.Close()
-	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress, evaluatorAddress}, big.NewInt(2))
-	if err != nil {
-		t.Fatalf("deploy contract: expected no error, got %v", err)
-	}
-	course, _ := NewCourse(courseAddr, backend)
-
-	// Add a student
-	opts, _ := backend.GetTxOpts(teacherKey)
-	course.AddStudent(opts, studentAddress)
-	backend.Commit()
-
-	// Remove a student
-	if _, err := course.RemoveStudent(opts, studentAddress); err != nil {
-		t.Fatalf("RemoveStudent expected to remove a student but return: %v", err)
-	}
-	backend.Commit()
-
-	// Verify if a student was removed
-	if ok, err := course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
-		t.Fatalf("EnrolledStudents expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-
-	if ok, err := course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
-		t.Fatalf("IsEnrolled expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-}
-
-func TestRenounceCourse(t *testing.T) {
-	backend := backends.NewTestBackend()
-	defer backend.Close()
-	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress, evaluatorAddress}, big.NewInt(2))
-	if err != nil {
-		t.Fatalf("deploy contract: expected no error, got %v", err)
-	}
-	course, _ := NewCourse(courseAddr, backend)
-
-	// Add a student
-	opts, _ := backend.GetTxOpts(teacherKey)
-	course.AddStudent(opts, studentAddress)
-	backend.Commit()
-
-	opts, _ = backend.GetTxOpts(studentKey)
-	if _, err := course.RenounceCourse(opts); err != nil {
-		t.Fatalf("RenounceCourse expected to remove the sender (student) but return: %v", err)
-	}
-	backend.Commit()
-
-	// Verify if a student was removed
-	if ok, err := course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
-		t.Fatalf("EnrolledStudents expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-
-	if ok, err := course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
-		t.Fatalf("IsEnrolled expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-}
-
-func hashString(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
-}
-
-func createTestAssignment(c int) *pb.Assignment {
-	return &pb.Assignment{
+func createTestDigest(teacherAddress, studentAddress common.Address) [32]byte {
+	c := rand.Intn(100)
+	assignment := &pb.Assignment{
 		Id:          hashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
 		Name:        fmt.Sprintf("%s%d", "Exam ", c),
 		Code:        fmt.Sprintf("%s%d", "EX-", c),
@@ -173,73 +107,158 @@ func createTestAssignment(c int) *pb.Assignment {
 		Description: "This is an exam description",
 		Evaluators: []*pb.Evaluator{
 			&pb.Evaluator{
-				Id:   teacherAddress.Hex(),
+				Id:   fmt.Sprintf("%x", teacherAddress),
 				Name: "Teacher Name",
 				Role: "teacher",
 			},
 		},
 		Student: &pb.Student{
-			Id:   studentAddress.Hex(),
+			Id:   fmt.Sprintf("%x", studentAddress),
 			Name: "Student Name",
 		},
 		Grade:           42,
 		SubjectPresence: "Physical",
 	}
+	data, _ := proto.Marshal(assignment)
+	return sha256.Sum256(data)
+}
+
+func hashString(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
+}
+
+// Start tests
+
+func TestNewCourse(t *testing.T) {
+	tc := NewTestCourse(t, backends.TestAccounts[:2], big.NewInt(2))
+	defer tc.Backend.Close()
+
+	if ok, err := tc.Course.IsOwner(&bind.CallOpts{Pending: true}, tc.Owners[0].Address); !ok {
+		t.Fatalf("IsOwner expected to be true but return: %t, %v", ok, err)
+	}
+}
+
+func TestAddStudent(t *testing.T) {
+	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
+	defer tc.Backend.Close()
+
+	header, err := tc.Backend.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ok, err := tc.Course.contract.IsStarted(nil); err != nil || !ok {
+		t.Fatalf("Course should not be started yet in block: %v, but IsStarted returned: %t with error: %v", header.Number, ok, err)
+	}
+
+	// Increases block timestamp by 10 seconds
+	err = tc.Backend.AdjustTime(10 * time.Second)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Add a student
+	studentAddress := backends.TestAccounts[2].Address
+	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	if _, err := tc.Course.AddStudent(opts, studentAddress); err != nil {
+		t.Fatalf("AddStudent expected to add a student but return: %v", err)
+	}
+	tc.Backend.Commit()
+
+	// Verify if a student was added
+	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || !ok {
+		t.Fatalf("EnrolledStudents expected student %v to be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
+	}
+
+	if ok, err := tc.Course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || !ok {
+		t.Fatalf("IsEnrolled expected student %v to be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
+	}
+}
+
+func TestRemoveStudent(t *testing.T) {
+	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
+	defer tc.Backend.Close()
+
+	student := backends.TestAccounts[2]
+	studentAddress := student.Address
+	tc.AddStudents(t, backends.Accounts{student})
+
+	// Remove a student
+	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	if _, err := tc.Course.RemoveStudent(opts, studentAddress); err != nil {
+		t.Fatalf("RemoveStudent expected to remove a student but return: %v", err)
+	}
+	tc.Backend.Commit()
+
+	// Verify if a student was removed
+	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
+		t.Fatalf("EnrolledStudents expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
+	}
+
+	if ok, err := tc.Course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
+		t.Fatalf("IsEnrolled expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
+	}
+}
+
+func TestRenounceCourse(t *testing.T) {
+	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
+	defer tc.Backend.Close()
+
+	student := backends.TestAccounts[2]
+	studentKey := student.Key
+	studentAddress := student.Address
+	tc.AddStudents(t, backends.Accounts{student})
+
+	opts, _ := tc.Backend.GetTxOpts(studentKey)
+	if _, err := tc.Course.RenounceCourse(opts); err != nil {
+		t.Fatalf("RenounceCourse expected to remove the sender (student) but return: %v", err)
+	}
+	tc.Backend.Commit()
+
+	// Verify if a student was removed
+	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
+		t.Fatalf("EnrolledStudents expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
+	}
+
+	if ok, err := tc.Course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
+		t.Fatalf("IsEnrolled expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
+	}
 }
 
 func TestIssuerRegisterCredential(t *testing.T) {
-	backend := backends.NewTestBackend()
-	defer backend.Close()
-	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress}, big.NewInt(1))
-	if err != nil {
-		t.Fatalf("deploy contract: expected no error, got %v", err)
-	}
-	course, _ := NewCourse(courseAddr, backend)
+	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
+	defer tc.Backend.Close()
 
-	opts, _ := backend.GetTxOpts(teacherKey)
-	course.AddStudent(opts, studentAddress)
-	backend.Commit()
+	student := backends.TestAccounts[2]
+	studentAddress := student.Address
+	tc.AddStudents(t, backends.Accounts{student})
 
-	data, _ := proto.Marshal(createTestAssignment(0))
-	examDigest := sha256.Sum256(data)
+	digest := tc.RegisterTestCredential(t, studentAddress)
 
-	course.RegisterCredential(opts, studentAddress, examDigest)
-	backend.Commit()
-
-	proof := course.IssuedCredentials(nil, examDigest)
+	proof := tc.Course.IssuedCredentials(nil, digest)
 
 	assert.Equal(t, studentAddress, proof.Subject, "Subject address should be equal")
-	assert.Equal(t, teacherAddress, proof.Issuer, "Subject address should be equal")
-	assert.Equal(t, examDigest, proof.Digest, "Assignment digest should be equal")
+	assert.Equal(t, tc.Owners[0].Address, proof.Issuer, "Subject address should be equal")
+	assert.Equal(t, digest, proof.Digest, "Assignment digest should be equal")
 	assert.False(t, proof.SubjectSigned)
 }
 
 func TestStudentSignCredential(t *testing.T) {
-	backend := backends.NewTestBackend()
-	defer backend.Close()
-	courseAddr, _, err := deploy(backend, teacherKey, []common.Address{teacherAddress}, big.NewInt(1))
-	if err != nil {
-		t.Fatalf("deploy contract: expected no error, got %v", err)
-	}
-	course, _ := NewCourse(courseAddr, backend)
+	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
+	defer tc.Backend.Close()
 
-	opts, _ := backend.GetTxOpts(teacherKey)
-	course.AddStudent(opts, studentAddress)
-	backend.Commit()
+	student := backends.TestAccounts[2]
+	studentKey := student.Key
+	studentAddress := student.Address
+	tc.AddStudents(t, backends.Accounts{student})
 
-	data, _ := proto.Marshal(createTestAssignment(0))
-	examDigest := sha256.Sum256(data)
+	digest := tc.RegisterTestCredential(t, studentAddress)
 
-	course.RegisterCredential(opts, studentAddress, examDigest)
-	backend.Commit()
-
-	proof := course.IssuedCredentials(nil, examDigest)
+	proof := tc.Course.IssuedCredentials(nil, digest)
 	assert.False(t, proof.SubjectSigned)
 
-	opts, _ = backend.GetTxOpts(studentKey)
-	course.ConfirmCredential(opts, examDigest)
-	backend.Commit()
+	tc.ConfirmTestCredential(t, studentKey, digest)
 
-	proof = course.IssuedCredentials(nil, examDigest)
+	proof = tc.Course.IssuedCredentials(nil, digest)
 	assert.True(t, proof.SubjectSigned)
 }

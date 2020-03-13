@@ -96,6 +96,10 @@ func (c *Course) Revoke(opts *bind.TransactOpts, digest [32]byte, reason [32]byt
 	return c.contract.RevokeCredential(opts, digest, reason)
 }
 
+func (c *Course) DigestsBySubject(opts *bind.CallOpts, subject common.Address) ([][32]byte, error) {
+	return c.contract.DigestsBySubject(opts, subject)
+}
+
 // IssuedCredentials
 func (c *Course) IssuedCredentials(opts *bind.CallOpts, digest [32]byte) *notary.CredentialProof {
 	proof, _ := c.contract.IssuedCredentials(opts, digest)

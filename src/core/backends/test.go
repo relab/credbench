@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -20,7 +21,17 @@ type Account struct {
 	Address common.Address
 }
 
-var TestAccounts []Account
+type Accounts []Account
+
+func (accs Accounts) Addresses() []common.Address {
+	accounts := make([]common.Address, 0)
+	for _, acc := range accs {
+		accounts = append(accounts, acc.Address)
+	}
+	return accounts
+}
+
+var TestAccounts Accounts
 
 // Ganache private hex string keys
 var defaultHexkeys = []string{
@@ -77,6 +88,15 @@ func (b *TestBackend) GetPeriod(duration uint64) (*big.Int, *big.Int) {
 	startingTime := header.Time + 10
 	endingTime := startingTime + duration
 	return new(big.Int).SetUint64(startingTime), new(big.Int).SetUint64(endingTime)
+}
+
+func (b *TestBackend) IncreaseTime(duration time.Duration) error {
+	err := b.AdjustTime(duration)
+	if err != nil {
+		return err
+	}
+	b.Commit()
+	return nil
 }
 
 func (b *TestBackend) GetTxOpts(key *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
