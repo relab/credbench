@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
@@ -108,4 +109,21 @@ func (b *TestBackend) GetTxOpts(key *ecdsa.PrivateKey) (*bind.TransactOpts, erro
 	opts.GasLimit = uint64(6721975)
 	opts.GasPrice = gasPrice
 	return opts, nil
+}
+
+func EncodeByteArray(byteArray [][32]byte) ([32]byte, error) {
+	var hash [32]byte
+
+	bytes32ArrayType, err := abi.NewType("bytes32[]", "", nil)
+	if err != nil {
+		return hash, err
+	}
+	arguments := abi.Arguments{{Type: bytes32ArrayType}}
+	bytes, err := arguments.Pack(byteArray)
+	if err != nil {
+		return hash, err
+	}
+
+	hash = crypto.Keccak256Hash(bytes)
+	return hash, nil
 }

@@ -262,3 +262,51 @@ func TestStudentSignCredential(t *testing.T) {
 	proof = tc.Course.IssuedCredentials(nil, digest)
 	assert.True(t, proof.SubjectSigned)
 }
+
+func TestIssuerAggregateCredential(t *testing.T) {
+	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
+	defer tc.Backend.Close()
+
+	student := backends.TestAccounts[2]
+	studentKey := student.Key
+	studentAddress := student.Address
+	tc.AddStudents(t, backends.Accounts{student})
+
+	var digests [][32]byte
+	for i := 0; i < 2; i++ {
+		d := tc.RegisterTestCredential(t, studentAddress)
+		digests = append(digests, d)
+		tc.ConfirmTestCredential(t, studentKey, d)
+	}
+
+	// Force end of the course
+	endingTime, _ := tc.Course.contract.EndingTime(nil)
+	err := tc.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
+	if err != nil {
+		t.Error(err)
+	}
+
+	ended, err := tc.Course.contract.HasEnded(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.True(t, ended)
+
+	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	_, err = tc.Course.contract.AggregateCredentials(opts, studentAddress)
+	if err != nil {
+		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
+	}
+	tc.Backend.Commit()
+
+	aggregatedDigest, err := tc.Course.contract.GetProof(nil, studentAddress)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expectedDigests, err := backends.EncodeByteArray(digests)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, expectedDigests, aggregatedDigest)
+}
