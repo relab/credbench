@@ -12,22 +12,22 @@ GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get -u
 GOBIN_DIR = $(PKG)/bin
 SCHEMES_DIR = $(PKG)/schemes
-GO_BINDINGS_DIR = {$(PKG)/core/course/contract,$(PKG)/core/notary/contracts}
+GO_BINDINGS_DIR = {$(PKG)/core/course/contract,$(PKG)/core/faculty/contract,$(PKG)/core/notary/contracts,$(PKG)/core/notary/owners/contract}
 CONTRACTS_SRC = ./ethereum/contracts
 SOLC_BUILD_DIR = ./ethereum/build
 EXTERNAL_CONTRACTS_SRC = ./ethereum/node_modules/bbchain-contracts/contracts,
 #../../node_modules/@openzeppelin/contracts/,
 CONTRACTS_DEPS = bbchain-contracts/contracts=./ethereum/node_modules/bbchain-contracts/contracts
 # @openzeppelin/contracts=../../node_modules/@openzeppelin/contracts
-BBCHAIN_LIBS = ./ethereum/node_modules/bbchain-contracts/contracts/CertificateSum.sol,
-SOLC_ARGS = --optimize --gas --optimize-runs 200 --overwrite --combined-json abi,asm,ast,bin,bin-runtime,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc $(CONTRACTS_DEPS)
+BBCHAIN_LIBS = ./ethereum/node_modules/bbchain-contracts/contracts/CredentialSum.sol
+SOLC_ARGS = --optimize --optimize-runs 200 --overwrite --combined-json abi,asm,ast,bin,bin-runtime,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc $(CONTRACTS_DEPS)
 BINARY_FILE = $(GOBIN_DIR)/bbchain
 
 # TODO: install contract dependencies: bbchain-contracts + openzeppelin contracts
 # TODO: use generate to create the directory structure too
 # TODO: generate abi/bin files in contracts directories (maybe calling the npm)
 
-all: proto generate build
+all: proto solc generate build
 
 build:
 	@echo "+ building source"
@@ -44,7 +44,7 @@ run: build
 clean:
 	@echo "+ cleaning"
 	$(GOCLEAN) -i $(PKG)/...
-	rm -rf $(BINARY_FILE) $(GO_BINDINGS_DIR)
+	rm -rf $(BINARY_FILE) $(GO_BINDINGS_DIR) $(SOLC_BUILD_DIR)/course $(SOLC_BUILD_DIR)/faculty
 
 deps:
 	@echo "+ installing dependencies"
@@ -63,7 +63,8 @@ generate:
 	$(GOCMD) generate $(PKG)/...
 
 solc:
-	solc $(SOLC_ARGS) --allow-paths $(BBCHAIN_LIBS) $(CONTRACTS_SRC)/Course.sol -o $(SOLC_BUILD_DIR)
+	solc $(SOLC_ARGS) --allow-paths --libraries $(BBCHAIN_LIBS) $(CONTRACTS_SRC)/Course.sol -o $(SOLC_BUILD_DIR)/course
+	solc $(SOLC_ARGS) --allow-paths --libraries $(BBCHAIN_LIBS) $(CONTRACTS_SRC)/Faculty.sol -o $(SOLC_BUILD_DIR)/faculty
 
 codecheck: fmt lint vet
 

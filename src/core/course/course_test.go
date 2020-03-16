@@ -24,16 +24,16 @@ func init() {
 }
 
 type TestCourse struct {
-	Backend  *backends.TestBackend
-	Owners   []backends.Account
-	Students []backends.Account
-	Course   *Course
+	Backend    *backends.TestBackend
+	Evaluators []backends.Account
+	Students   []backends.Account
+	Course     *Course
 }
 
-func NewTestCourse(t *testing.T, owners backends.Accounts, quorum *big.Int) *TestCourse {
+func NewTestCourse(t *testing.T, evaluators backends.Accounts, quorum *big.Int) *TestCourse {
 	backend := backends.NewTestBackend()
 
-	courseAddr, _, err := deploy(backend, owners[0].Key, owners.Addresses(), big.NewInt(int64(len(owners))))
+	courseAddr, _, err := deploy(backend, evaluators[0].Key, evaluators.Addresses(), big.NewInt(int64(len(evaluators))))
 	if err != nil {
 		t.Fatalf("deploy contract: expected no error, got %v", err)
 	}
@@ -43,14 +43,14 @@ func NewTestCourse(t *testing.T, owners backends.Accounts, quorum *big.Int) *Tes
 	}
 
 	return &TestCourse{
-		Backend: backend,
-		Owners:  owners,
-		Course:  course,
+		Backend:    backend,
+		Evaluators: evaluators,
+		Course:     course,
 	}
 }
 
 func (tc *TestCourse) AddStudents(t *testing.T, students backends.Accounts) {
-	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	for _, addr := range students.Addresses() {
 		_, err := tc.Course.AddStudent(opts, addr)
 		if err != nil {
@@ -62,8 +62,8 @@ func (tc *TestCourse) AddStudents(t *testing.T, students backends.Accounts) {
 }
 
 func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [32]byte {
-	digest := createTestDigest(tc.Owners[0].Address, to)
-	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	digest := createTestDigest(tc.Evaluators[0].Address, to)
+	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	_, err := tc.Course.RegisterCredential(opts, to, digest)
 	if err != nil {
 		t.Fatalf("RegisterCredential expected no error, got: %v", err)
@@ -84,10 +84,10 @@ func (tc *TestCourse) ConfirmTestCredential(t *testing.T, from *ecdsa.PrivateKey
 	tc.Backend.Commit()
 }
 
-func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, owners []common.Address, quorum *big.Int) (common.Address, *contract.Course, error) {
+func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, evaluators []common.Address, quorum *big.Int) (common.Address, *contract.Course, error) {
 	opts := bind.NewKeyedTransactor(prvKey)
 	startingTime, endingTime := backend.GetPeriod(uint64(100))
-	courseAddr, _, course, err := contract.DeployCourse(opts, backend, owners, quorum, startingTime, endingTime)
+	courseAddr, _, course, err := contract.DeployCourse(opts, backend, evaluators, quorum, startingTime, endingTime)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
@@ -130,12 +130,20 @@ func hashString(s string) string {
 // Start tests
 
 func TestNewCourse(t *testing.T) {
-	tc := NewTestCourse(t, backends.TestAccounts[:2], big.NewInt(2))
+	evaluatorsAccount := backends.TestAccounts[:2]
+	tc := NewTestCourse(t, evaluatorsAccount, big.NewInt(2))
 	defer tc.Backend.Close()
 
-	if ok, err := tc.Course.IsOwner(&bind.CallOpts{Pending: true}, tc.Owners[0].Address); !ok {
+	// Calling Owners contract methods
+	if ok, err := tc.Course.IsOwner(&bind.CallOpts{Pending: true}, tc.Evaluators[0].Address); !ok {
 		t.Fatalf("IsOwner expected to be true but return: %t, %v", ok, err)
 	}
+
+	owners, err := tc.Course.OwnersList(&bind.CallOpts{Pending: true})
+	if err != nil {
+		t.Fatalf("OwnersList expected no errors but got: %v", err)
+	}
+	assert.ElementsMatch(t, evaluatorsAccount.Addresses(), owners)
 }
 
 func TestAddStudent(t *testing.T) {
@@ -159,7 +167,7 @@ func TestAddStudent(t *testing.T) {
 
 	// Add a student
 	studentAddress := backends.TestAccounts[2].Address
-	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	if _, err := tc.Course.AddStudent(opts, studentAddress); err != nil {
 		t.Fatalf("AddStudent expected to add a student but return: %v", err)
 	}
@@ -184,7 +192,7 @@ func TestRemoveStudent(t *testing.T) {
 	tc.AddStudents(t, backends.Accounts{student})
 
 	// Remove a student
-	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	if _, err := tc.Course.RemoveStudent(opts, studentAddress); err != nil {
 		t.Fatalf("RemoveStudent expected to remove a student but return: %v", err)
 	}
@@ -238,7 +246,7 @@ func TestIssuerRegisterCredential(t *testing.T) {
 	proof := tc.Course.IssuedCredentials(nil, digest)
 
 	assert.Equal(t, studentAddress, proof.Subject, "Subject address should be equal")
-	assert.Equal(t, tc.Owners[0].Address, proof.Issuer, "Subject address should be equal")
+	assert.Equal(t, tc.Evaluators[0].Address, proof.Issuer, "Subject address should be equal")
 	assert.Equal(t, digest, proof.Digest, "Assignment digest should be equal")
 	assert.False(t, proof.SubjectSigned)
 }
@@ -292,7 +300,7 @@ func TestIssuerAggregateCredential(t *testing.T) {
 	}
 	assert.True(t, ended)
 
-	opts, _ := tc.Backend.GetTxOpts(tc.Owners[0].Key)
+	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	_, err = tc.Course.contract.AggregateCredentials(opts, studentAddress)
 	if err != nil {
 		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
@@ -304,9 +312,57 @@ func TestIssuerAggregateCredential(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedDigests, err := backends.EncodeByteArray(digests)
+	expectedDigest, err := backends.EncodeByteArray(digests)
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, expectedDigests, aggregatedDigest)
+	assert.Equal(t, expectedDigest, aggregatedDigest)
+}
+
+func TestVerifyCredential(t *testing.T) {
+	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
+	defer tc.Backend.Close()
+
+	student := backends.TestAccounts[2]
+	studentKey := student.Key
+	studentAddress := student.Address
+	tc.AddStudents(t, backends.Accounts{student})
+
+	var digests [][32]byte
+	for i := 0; i < 2; i++ {
+		d := tc.RegisterTestCredential(t, studentAddress)
+		digests = append(digests, d)
+		tc.ConfirmTestCredential(t, studentKey, d)
+	}
+
+	endingTime, _ := tc.Course.contract.EndingTime(nil)
+	err := tc.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
+	if err != nil {
+		t.Error(err)
+	}
+
+	ended, err := tc.Course.contract.HasEnded(nil)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.True(t, ended)
+
+	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
+	_, err = tc.Course.contract.AggregateCredentials(opts, studentAddress)
+	if err != nil {
+		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
+	}
+	tc.Backend.Commit()
+
+	expectedDigest, err := backends.EncodeByteArray(digests)
+	if err != nil {
+		t.Error(err)
+	}
+
+	b, err := tc.Course.contract.VerifyCredential(nil, studentAddress, expectedDigest)
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.True(t, b)
 }
