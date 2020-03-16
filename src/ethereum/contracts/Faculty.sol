@@ -12,6 +12,7 @@ import "./Course.sol";
 contract Faculty is AccountableIssuer {
     // Map courses by semester
     mapping(bytes32 => address[]) public coursesBySemester;
+    mapping(address => Course) public courses;
 
     event CourseCreated(
         address indexed createdBy,
@@ -42,6 +43,7 @@ contract Faculty is AccountableIssuer {
             endTimestamp
         );
         coursesBySemester[semester].push(address(course));
+        courses[address(course)] = course;
         addIssuer(address(course));
         emit CourseCreated(
             msg.sender,

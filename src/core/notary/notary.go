@@ -2,17 +2,15 @@ package notary
 
 //TODO: Use abi and bin files for binding and make manual deployement and link in the application, using truffle or using go directly, in both cases will be required to parse the json artifacts created during contract's compilation/deployement and retrieve the linking/address information.
 
-//go:generate abigen --abi ../../ethereum/build/abi/Issuer.abi --bin ../../ethereum/build/bin/Issuer.bin --pkg notary --type Issuer --out ./contracts/issuer.go
+//go:generate abigen --abi ../../ethereum/build/abi/Issuer.abi --bin ../../ethereum/build/bin/Issuer.bin --pkg contract --type Issuer --out ./contracts/issuer.go
 
-//go:generate abigen --abi ../../ethereum/build/abi/AccountableIssuer.abi --bin ../../ethereum/build/bin/AccountableIssuer.bin --pkg notary --type AccountableIssuer --out ./contracts/accountable_issuer.go
+//go:generate abigen --abi ../../ethereum/build/abi/AccountableIssuer.abi --bin ../../ethereum/build/bin/AccountableIssuer.bin --pkg contract --type AccountableIssuer --out ./contracts/accountable_issuer.go
 
-//go:generate abigen --abi ../../ethereum/build/abi/CredentialSum.abi --bin ../../ethereum/build/bin/CredentialSum.bin --pkg notary --type CredentialSum --out ./contracts/credential_sum.go
+//go:generate abigen --abi ../../ethereum/build/abi/CredentialSum.abi --bin ../../ethereum/build/bin/CredentialSum.bin --pkg contract --type CredentialSum --out ./contracts/credential_sum.go
 
-//go:generate abigen --abi ../../ethereum/build/abi/Timed.abi --bin ../../ethereum/build/bin/Timed.bin --pkg notary --type Timed --out ./contracts/timed.go
+//go:generate abigen --abi ../../ethereum/build/abi/Timed.abi --bin ../../ethereum/build/bin/Timed.bin --pkg contract --type Timed --out ./contracts/timed.go
 
-//go:generate abigen --abi ../../ethereum/build/abi/Owners.abi --bin ../../ethereum/build/bin/Owners.bin --pkg notary --type Owners --out ./contracts/owners.go
-
-//go:generate abigen --abi ../../ethereum/build/abi/IssuerInterface.abi --bin ../../ethereum/build/bin/IssuerInterface.bin --pkg notary --type IssuerInterface --out ./contracts/issuer_interface.go
+//go:generate abigen --abi ../../ethereum/build/abi/IssuerInterface.abi --bin ../../ethereum/build/bin/IssuerInterface.bin --pkg contract --type IssuerInterface --out ./contracts/issuer_interface.go
 
 import (
 	"fmt"
