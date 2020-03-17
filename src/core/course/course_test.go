@@ -107,13 +107,13 @@ func createTestDigest(teacherAddress, studentAddress common.Address) [32]byte {
 		Description: "This is an exam description",
 		Evaluators: []*pb.Evaluator{
 			&pb.Evaluator{
-				Id:   fmt.Sprintf("%x", teacherAddress),
+				Id:   teacherAddress.Hex(),
 				Name: "Teacher Name",
 				Role: "teacher",
 			},
 		},
 		Student: &pb.Student{
-			Id:   fmt.Sprintf("%x", studentAddress),
+			Id:   studentAddress.Hex(),
 			Name: "Student Name",
 		},
 		Grade:           42,
