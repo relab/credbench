@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package schemes;
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/any.proto";
+
 message Student {
     string id = 1;
     string name = 2;
@@ -15,7 +18,7 @@ message Evaluator {
     repeated string assignedCourses = 4;
 }
 
-message Assignment {
+message AssignmentGrade {
     string id = 1;
     string name = 2;
     string code = 3;
@@ -26,11 +29,15 @@ message Assignment {
     repeated Evaluator evaluators = 8;
     Student student = 9;
     int64 grade = 10;
-    string subjectPresence = 11;
+    string studentPresence = 11;
 }
 
-message Course {
-    string id = 1;
+message Assignments {
+    repeated AssignmentGrade assignments = 1;
+}
+
+message CourseGrade {
+    string id = 17;
     string name = 2;
     string code = 3;
     string category = 4;
@@ -38,14 +45,39 @@ message Course {
     string language = 6;
     string semester = 7;
     string description = 8;
-    repeated Evaluator teachers = 9;
-    repeated Evaluator evaluators = 10;
-    repeated Student students = 11;
-    map<string, int64> grades = 12; // course final grades per studend id
-    string subjectPresence = 13; //e.g. physical, digital/online
-    map<string,Assignments> assignments = 14; // map of list of assignments per student
+    google.protobuf.Duration duration = 9;
+    repeated Evaluator teachers = 10;
+    repeated Evaluator evaluators = 11;
+    Student student = 12;
+    string gradingSystem = 13; // e.g. ECTS, U.S, UK, 13-scale
+    int64 totalCredits = 14;
+    int64 finalGrade = 15; // course final grade (percentage if using ECTS grading)
+    string studentPresence = 16; //e.g. physical, digital/online
+    Assignments assignments = 1; // list of assignments of student
+    
 }
 
-message Assignments {
-    repeated Assignment assignments = 1;
+message Courses {
+    repeated CourseGrade courses = 1;
+}
+
+message Diploma {
+    string id = 18;
+    string name = 2;
+    string code = 3;
+    string category = 4;
+    repeated string type = 5;
+    string language = 6;
+    string semester = 7;
+    string description = 8;
+    repeated Evaluator supervisors = 9;
+    repeated Evaluator evaluators = 10;
+    Student students = 11;
+    google.protobuf.Duration duration = 12; // e.g. 3 years
+    string gradingSystem = 13; // e.g. ECTS, U.S, UK, 13-scale
+    string modeOfStudy = 14; // e.g. Full-time, part-time
+    map<string, int64> grades = 15; // final diploma grades (e.g. gpa)
+    string studentPresence = 16;
+    Courses transcripts = 1; // list of courses grades of student
+    google.protobuf.Any supplement = 17;
 }
