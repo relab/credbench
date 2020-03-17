@@ -3,11 +3,7 @@ package course
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/sha256"
-	"fmt"
-	proto "github.com/golang/protobuf/proto"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -15,13 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/r0qs/bbchain-dapp/src/core/backends"
 	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
-	pb "github.com/r0qs/bbchain-dapp/src/schemes"
 	"github.com/stretchr/testify/assert"
-)
 
-func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
-}
+	pb "github.com/r0qs/bbchain-dapp/src/schemes"
+)
 
 type TestCourse struct {
 	Backend    *backends.TestBackend
@@ -62,7 +55,13 @@ func (tc *TestCourse) AddStudents(t *testing.T, students backends.Accounts) {
 }
 
 func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [32]byte {
-	digest := createTestDigest(tc.Evaluators[0].Address, to)
+	evaluatorAddr := tc.Evaluators[0].Address.Hex()
+	courseEntity := &pb.Entity{
+		Id:   tc.Course.Address().Hex(),
+		Name: "Course Test Contract",
+	}
+	ag := pb.NewFakeAssignmentGrade(evaluatorAddr, to.Hex())
+	digest := pb.NewFakeAssignmentGradeCredential(evaluatorAddr, courseEntity, ag).Hash()
 	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	_, err := tc.Course.RegisterCredential(opts, to, digest)
 	if err != nil {
@@ -93,38 +92,6 @@ func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, evaluators 
 	}
 	backend.Commit()
 	return courseAddr, course, nil
-}
-
-func createTestDigest(teacherAddress, studentAddress common.Address) [32]byte {
-	c := rand.Intn(100)
-	assignment := &pb.Assignment{
-		Id:          hashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
-		Name:        fmt.Sprintf("%s%d", "Exam ", c),
-		Code:        fmt.Sprintf("%s%d", "EX-", c),
-		Category:    "InternalActivity",
-		Type:        []string{"MandatoryActivity"},
-		Language:    "en",
-		Description: "This is an exam description",
-		Evaluators: []*pb.Evaluator{
-			&pb.Evaluator{
-				Id:   teacherAddress.Hex(),
-				Name: "Teacher Name",
-				Role: "teacher",
-			},
-		},
-		Student: &pb.Student{
-			Id:   studentAddress.Hex(),
-			Name: "Student Name",
-		},
-		Grade:           42,
-		SubjectPresence: "Physical",
-	}
-	data, _ := proto.Marshal(assignment)
-	return sha256.Sum256(data)
-}
-
-func hashString(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }
 
 // Start tests

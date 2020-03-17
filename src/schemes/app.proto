@@ -5,17 +5,10 @@ package schemes;
 import "google/protobuf/duration.proto";
 import "google/protobuf/any.proto";
 
-message Student {
-    string id = 1;
-    string name = 2;
-    repeated string enrolledCourses = 3; // courses ids (i.e. did/eth addresses)
-}
-
-message Evaluator {
+message Entity {
     string id = 1;
     string name = 2;
     string role = 3;
-    repeated string assignedCourses = 4;
 }
 
 message AssignmentGrade {
@@ -26,8 +19,8 @@ message AssignmentGrade {
     repeated string type = 5;
     string language = 6;
     string description = 7;
-    repeated Evaluator evaluators = 8;
-    Student student = 9;
+    repeated Entity evaluators = 8;
+    Entity student = 9;
     int64 grade = 10;
     string studentPresence = 11;
 }
@@ -46,9 +39,9 @@ message CourseGrade {
     string semester = 7;
     string description = 8;
     google.protobuf.Duration duration = 9;
-    repeated Evaluator teachers = 10;
-    repeated Evaluator evaluators = 11;
-    Student student = 12;
+    repeated Entity teachers = 10;
+    repeated Entity evaluators = 11;
+    Entity student = 12;
     string gradingSystem = 13; // e.g. ECTS, U.S, UK, 13-scale
     int64 totalCredits = 14;
     int64 finalGrade = 15; // course final grade (percentage if using ECTS grading)
@@ -70,9 +63,9 @@ message Diploma {
     string language = 6;
     string semester = 7;
     string description = 8;
-    repeated Evaluator supervisors = 9;
-    repeated Evaluator evaluators = 10;
-    Student students = 11;
+    repeated Entity supervisors = 9;
+    repeated Entity evaluators = 10;
+    Entity student = 11;
     google.protobuf.Duration duration = 12; // e.g. 3 years
     string gradingSystem = 13; // e.g. ECTS, U.S, UK, 13-scale
     string modeOfStudy = 14; // e.g. Full-time, part-time
