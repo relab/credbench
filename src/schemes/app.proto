@@ -69,7 +69,7 @@ message CourseGradeCredential {
 }
 
 message Diploma {
-    string id = 18;
+    string id = 19;
     string name = 2;
     string code = 3;
     string category = 4;
@@ -83,10 +83,11 @@ message Diploma {
     google.protobuf.Duration duration = 12; // e.g. 3 years
     string gradingSystem = 13; // e.g. ECTS, U.S, UK, 13-scale
     string modeOfStudy = 14; // e.g. Full-time, part-time
-    map<string, int64> grades = 15; // final diploma grades (e.g. gpa)
-    string studentPresence = 16;
+    int64 totalCredits = 15;
+    map<string, int64> grades = 16; // final diploma grades (e.g. gpa)
+    string studentPresence = 17;
     repeated CourseGradeCredential transcripts = 1; // list of courses grades of student
-    google.protobuf.Any supplement = 17;
+    google.protobuf.Any supplement = 18;
 }
 
 message DiplomaCredential {

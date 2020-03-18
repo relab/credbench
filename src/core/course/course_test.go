@@ -61,7 +61,8 @@ func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [3
 		Name: "Course Test Contract",
 	}
 	ag := pb.NewFakeAssignmentGrade(evaluatorAddr, to.Hex())
-	digest := pb.NewFakeAssignmentGradeCredential(evaluatorAddr, courseEntity, ag).Hash()
+	credential := pb.NewFakeAssignmentGradeCredential(evaluatorAddr, courseEntity, ag)
+	digest := pb.Hash(credential)
 	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	_, err := tc.Course.RegisterCredential(opts, to, digest)
 	if err != nil {

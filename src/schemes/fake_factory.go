@@ -1,12 +1,10 @@
 package schemes
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"math/rand"
 	"time"
 
-	proto "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/r0qs/bbchain-dapp/src/core/backends"
@@ -26,14 +24,10 @@ func init() {
 	studentsAccounts = backends.TestAccounts[4:]
 }
 
-func hashString(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
-}
-
 func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
 	c := rand.Intn(100)
 	return &AssignmentGrade{
-		Id:          hashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
+		Id:          HashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
 		Name:        fmt.Sprintf("%s%d", "Exam ", c),
 		Code:        fmt.Sprintf("%s%d", "EX-", c),
 		Category:    "InternalActivity",
@@ -53,22 +47,16 @@ func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
 	}
 }
 
-func NewFakeAssignmentGradeCredential(teacherID string, courseEntity *Entity, ag *AssignmentGrade) *AssignmentGradeCredential {
+func NewFakeAssignmentGradeCredential(creatorID string, courseEntity *Entity, ag *AssignmentGrade) *AssignmentGradeCredential {
 	creationTime := time.Now().UTC().UnixNano()
 	return &AssignmentGradeCredential{
 		Assignment:       ag,
-		CreatedBy:        teacherID,
+		CreatedBy:        creatorID,
 		CreatedAt:        &timestamp.Timestamp{Seconds: creationTime},
 		OfferedBy:        []*Entity{courseEntity},
 		EvidenceDocument: "use swarm hash here",
 		DocumentPresence: "Physical",
 	}
-}
-
-// TODO: DRY
-func (ag *AssignmentGradeCredential) Hash() [32]byte {
-	data, _ := proto.Marshal(ag)
-	return sha256.Sum256(data)
 }
 
 // n is the number of assignments to generate
@@ -103,80 +91,113 @@ func NewFakeCourseGrade(courseID string, credentials []*AssignmentGradeCredentia
 	var d duration.Duration
 	d.Seconds = lastTimestamp.Seconds - firstTimestamp.Seconds
 	d.Nanos = lastTimestamp.Nanos - firstTimestamp.Nanos
-
-	teacherID := credentials[0].CreatedBy
-	studentID := credentials[0].Assignment.GetStudent().GetId()
-	c := rand.Intn(100)
-
 	cgrade := &CourseGrade{
-		Id:          hashString(fmt.Sprintf("%s%d", "CourseFinalGrade-", c)),
-		Name:        fmt.Sprintf("%s%d", "Course ", c),
-		Code:        fmt.Sprintf("%s%d", "CS-", c),
-		Category:    "InternalCourse",
-		Type:        []string{"MandatoryCourse"},
-		Language:    "en",
-		Description: "The course provides insight into both theoretical and practical aspects of something",
-		Duration:    &d,
-		Teachers: []*Entity{
-			&Entity{
-				Id: teacherID,
-			},
-		},
-		Evaluators: []*Entity{
-			&Entity{
-				Id: teacherID,
-			},
-		},
-		Student: &Entity{
-			Id: studentID,
-		},
+		Id:              courseID,
+		Name:            fmt.Sprintf("%s-%s", "Course", courseID),
+		Code:            fmt.Sprintf("%s%s", "C", courseID[:4]),
+		Category:        "InternalCourse",
+		Type:            []string{"MandatoryCourse"},
+		Language:        "en",
+		Description:     "The course provides insight into both theoretical and practical aspects of something",
+		Duration:        &d,
+		Teachers:        credentials[0].Assignment.GetEvaluators(),
+		Evaluators:      credentials[0].Assignment.GetEvaluators(),
+		Student:         credentials[0].Assignment.GetStudent(),
 		GradingSystem:   "ECTS",
 		TotalCredits:    20,
-		FinalGrade:      int64(c),
+		FinalGrade:      int64(rand.Intn(100)), // TODO: compute base on assignments' grades
 		StudentPresence: "Physical",
-		Assignments:     credentials,
+		Assignments:     credentials, //TODO: store only map with ids and grades
 	}
 	return cgrade
 }
 
-func NewFakeCourseGradeCredential(teacherID string, facultyEntity *Entity, cg *CourseGrade) *CourseGradeCredential {
+func NewFakeCourseGradeCredential(creatorID string, cg *CourseGrade) *CourseGradeCredential {
 	creationTime := time.Now().UTC().UnixNano()
 	return &CourseGradeCredential{
-		Course:           cg,
-		CreatedBy:        teacherID,
-		CreatedAt:        &timestamp.Timestamp{Seconds: creationTime},
-		OfferedBy:        []*Entity{facultyEntity},
+		Course:    cg,
+		CreatedBy: creatorID,
+		CreatedAt: &timestamp.Timestamp{Seconds: creationTime},
+		OfferedBy: []*Entity{
+			&Entity{
+				Id:   cg.GetId(),
+				Name: "Course Test Contract",
+			},
+		},
 		EvidenceDocument: "use swarm hash here",
 		DocumentPresence: "Physical",
 	}
 }
 
 func generateFakeCoursesGrade(coursesIDS []string) (courses []*CourseGrade) {
-	t := len(evaluatorsAccounts)
 	for _, courseID := range coursesIDS {
 		assignments := generateFakeAssignmentGrades(rand.Intn(3))
 		credentials := generateFakeAssignmentGradeCredentials(courseID, assignments)
-		teacherID := evaluatorsAccounts[rand.Intn(t)].Address.Hex()
-		c := NewFakeCourseGrade(teacherID, credentials)
+		c := NewFakeCourseGrade(courseID, credentials)
 		courses = append(courses, c)
 	}
 	return courses
 }
 
-func generateFakeCoursesGradeCredentials(facultyID string, courses []*CourseGrade) (credentials []*CourseGradeCredential) {
-	facultyEntity := &Entity{
-		Id:   facultyID,
-		Name: "Faculty Test Contract",
-	}
+func generateFakeCoursesGradeCredentials(courses []*CourseGrade) (credentials []*CourseGradeCredential) {
 	for _, c := range courses {
 		teacherID := c.Evaluators[0].GetId()
-		c := NewFakeCourseGradeCredential(teacherID, facultyEntity, c)
+		c := NewFakeCourseGradeCredential(teacherID, c)
 		credentials = append(credentials, c)
 	}
 	return credentials
 }
 
-func (cg *CourseGradeCredential) Hash() [32]byte {
-	data, _ := proto.Marshal(cg)
-	return sha256.Sum256(data)
+// TODO: DRY
+func NewFakeDiploma(facultyID string, credentials []*CourseGradeCredential) *Diploma {
+	firstTimestamp := credentials[0].CreatedAt
+	lastTimestamp := credentials[len(credentials)-1].CreatedAt
+	var d duration.Duration
+	d.Seconds = lastTimestamp.Seconds - firstTimestamp.Seconds
+	d.Nanos = lastTimestamp.Nanos - firstTimestamp.Nanos
+	diploma := &Diploma{
+		Id:            facultyID,
+		Name:          fmt.Sprintf("%s-%s", "Faculty", facultyID),
+		Code:          fmt.Sprintf("%s%s", "F", facultyID[:4]),
+		Category:      "BachelorDiploma",
+		Type:          []string{"Diploma"},
+		Language:      "en",
+		Description:   "A bachelor diploma example",
+		Duration:      &d,
+		Supervisors:   credentials[0].Course.GetTeachers(),
+		Evaluators:    credentials[0].Course.GetTeachers(),
+		Student:       credentials[0].Course.GetStudent(),
+		GradingSystem: "ECTS",
+		ModeOfStudy:   "Full-time",
+		TotalCredits:  180,
+		Grades: map[string]int64{
+			"gpa": int64(rand.Intn(100)), // TODO: compute base on courses' grades
+		},
+		StudentPresence: "Physical",
+		Transcripts:     credentials, //TODO: store only map with ids and grades
+	}
+	return diploma
+}
+
+func NewFakeDiplomaCredential(creatorID string, d *Diploma) *DiplomaCredential {
+	creationTime := time.Now().UTC().UnixNano()
+	return &DiplomaCredential{
+		Diploma:   d,
+		CreatedBy: creatorID,
+		CreatedAt: &timestamp.Timestamp{Seconds: creationTime},
+		OfferedBy: []*Entity{
+			&Entity{
+				Id:   d.GetId(),
+				Name: "Faculty Test Contract",
+			},
+		},
+		EvidenceDocument: "use swarm hash here",
+		DocumentPresence: "Physical",
+	}
+}
+
+func generateFakeDiploma(facultyID string, coursesIDS []string) (diploma *Diploma) {
+	courses := generateFakeCoursesGrade(coursesIDS)
+	credentials := generateFakeCoursesGradeCredentials(courses)
+	return NewFakeDiploma(facultyID, credentials)
 }
