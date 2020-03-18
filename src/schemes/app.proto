@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package schemes;
 
+import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/any.proto";
 
@@ -25,8 +26,15 @@ message AssignmentGrade {
     string studentPresence = 11;
 }
 
-message Assignments {
-    repeated AssignmentGrade assignments = 1;
+// TODO: create verifiable credentials compatible with the VC spec
+message AssignmentGradeCredential {
+    AssignmentGrade assignment = 1;
+    string created_by = 2;
+    google.protobuf.Timestamp created_at = 3;
+    repeated Entity OfferedBy = 4;
+    string evidenceDocument = 5;
+    string documentPresence = 6;
+    google.protobuf.Any additionalInformation = 7;
 }
 
 message CourseGrade {
@@ -46,12 +54,18 @@ message CourseGrade {
     int64 totalCredits = 14;
     int64 finalGrade = 15; // course final grade (percentage if using ECTS grading)
     string studentPresence = 16; //e.g. physical, digital/online
-    Assignments assignments = 1; // list of assignments of student
-    
+    repeated AssignmentGradeCredential assignments = 1; // list of assignments of student
 }
 
-message Courses {
-    repeated CourseGrade courses = 1;
+// TODO: DRY
+message CourseGradeCredential {
+    CourseGrade course = 1;
+    string created_by = 2;
+    google.protobuf.Timestamp created_at = 3;
+    repeated Entity OfferedBy = 4;
+    string evidenceDocument = 5;
+    string documentPresence = 6;
+    google.protobuf.Any additionalInformation = 7;
 }
 
 message Diploma {
@@ -71,6 +85,17 @@ message Diploma {
     string modeOfStudy = 14; // e.g. Full-time, part-time
     map<string, int64> grades = 15; // final diploma grades (e.g. gpa)
     string studentPresence = 16;
-    Courses transcripts = 1; // list of courses grades of student
+    repeated CourseGradeCredential transcripts = 1; // list of courses grades of student
     google.protobuf.Any supplement = 17;
 }
+
+message DiplomaCredential {
+    Diploma diploma = 1;
+    string created_by = 2;
+    google.protobuf.Timestamp created_at = 3;
+    repeated Entity OfferedBy = 4;
+    string evidenceDocument = 5;
+    string documentPresence = 6;
+    google.protobuf.Any additionalInformation = 7;
+}
+
