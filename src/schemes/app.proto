@@ -86,7 +86,7 @@ message Diploma {
     int64 totalCredits = 15;
     map<string, int64> grades = 16; // final diploma grades (e.g. gpa)
     string studentPresence = 17;
-    repeated CourseGradeCredential transcripts = 1; // list of courses grades of student
+    repeated CourseGradeCredential courses = 1; // list of courses grades of student
     google.protobuf.Any supplement = 18;
 }
 

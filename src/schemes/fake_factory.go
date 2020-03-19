@@ -7,25 +7,14 @@ import (
 
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/r0qs/bbchain-dapp/src/core/backends"
-)
-
-var (
-	admsAccounts       backends.Accounts
-	evaluatorsAccounts backends.Accounts
-	studentsAccounts   backends.Accounts
 )
 
 func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
-	// 10 accounts on total
-	admsAccounts = backends.TestAccounts[:2]
-	evaluatorsAccounts = backends.TestAccounts[2:4]
-	studentsAccounts = backends.TestAccounts[4:]
+	rand.Seed(time.Now().UnixNano())
 }
 
 func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
-	c := rand.Intn(100)
+	c := rand.Intn(10000) //FIXME: if the same number is chosen twice, two assignments will have the same hash in the test case and some tests will fail since isn't possible to issue two assignments with the same hash
 	return &AssignmentGrade{
 		Id:          HashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
 		Name:        fmt.Sprintf("%s%d", "Exam ", c),
@@ -48,7 +37,7 @@ func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
 }
 
 func NewFakeAssignmentGradeCredential(creatorID string, courseEntity *Entity, ag *AssignmentGrade) *AssignmentGradeCredential {
-	creationTime := time.Now().UTC().UnixNano()
+	creationTime := time.Now().Unix()
 	return &AssignmentGradeCredential{
 		Assignment:       ag,
 		CreatedBy:        creatorID,
@@ -59,26 +48,21 @@ func NewFakeAssignmentGradeCredential(creatorID string, courseEntity *Entity, ag
 	}
 }
 
-// n is the number of assignments to generate
-func generateFakeAssignmentGrades(n int) (assignments []*AssignmentGrade) {
-	t := len(evaluatorsAccounts)
-	studentID := studentsAccounts[rand.Intn(len(studentsAccounts))].Address.Hex()
+func generateFakeAssignmentGrades(teacherID, studentID string, n int) (assignments []*AssignmentGrade) {
 	for i := 0; i < n; i++ {
-		teacherID := evaluatorsAccounts[rand.Intn(t)].Address.Hex()
 		ag := NewFakeAssignmentGrade(teacherID, studentID)
 		assignments = append(assignments, ag)
 	}
 	return assignments
 }
 
-func generateFakeAssignmentGradeCredentials(courseID string, assignments []*AssignmentGrade) (credentials []*AssignmentGradeCredential) {
+func generateFakeAssignmentGradeCredentials(creatorID string, courseID string, assignments []*AssignmentGrade) (credentials []*AssignmentGradeCredential) {
 	courseEntity := &Entity{
 		Id:   courseID,
 		Name: "Course Test Contract",
 	}
 	for _, a := range assignments {
-		teacherID := a.Evaluators[0].GetId() // the first evaluator will be the creator of the assignment
-		c := NewFakeAssignmentGradeCredential(teacherID, courseEntity, a)
+		c := NewFakeAssignmentGradeCredential(creatorID, courseEntity, a)
 		credentials = append(credentials, c)
 	}
 	return credentials
@@ -94,7 +78,7 @@ func NewFakeCourseGrade(courseID string, credentials []*AssignmentGradeCredentia
 	cgrade := &CourseGrade{
 		Id:              courseID,
 		Name:            fmt.Sprintf("%s-%s", "Course", courseID),
-		Code:            fmt.Sprintf("%s%s", "C", courseID[:4]),
+		Code:            fmt.Sprintf("%s%s", "C", courseID[2:6]),
 		Category:        "InternalCourse",
 		Type:            []string{"MandatoryCourse"},
 		Language:        "en",
@@ -113,7 +97,7 @@ func NewFakeCourseGrade(courseID string, credentials []*AssignmentGradeCredentia
 }
 
 func NewFakeCourseGradeCredential(creatorID string, cg *CourseGrade) *CourseGradeCredential {
-	creationTime := time.Now().UTC().UnixNano()
+	creationTime := time.Now().Unix()
 	return &CourseGradeCredential{
 		Course:    cg,
 		CreatedBy: creatorID,
@@ -129,20 +113,19 @@ func NewFakeCourseGradeCredential(creatorID string, cg *CourseGrade) *CourseGrad
 	}
 }
 
-func generateFakeCoursesGrade(coursesIDS []string) (courses []*CourseGrade) {
+func generateFakeCoursesGrade(teacherID, studentID string, coursesIDS []string) (courses []*CourseGrade) {
 	for _, courseID := range coursesIDS {
-		assignments := generateFakeAssignmentGrades(rand.Intn(3))
-		credentials := generateFakeAssignmentGradeCredentials(courseID, assignments)
+		assignments := generateFakeAssignmentGrades(teacherID, studentID, 4) // 4 assignments per course
+		credentials := generateFakeAssignmentGradeCredentials(teacherID, courseID, assignments)
 		c := NewFakeCourseGrade(courseID, credentials)
 		courses = append(courses, c)
 	}
 	return courses
 }
 
-func generateFakeCoursesGradeCredentials(courses []*CourseGrade) (credentials []*CourseGradeCredential) {
+func generateFakeCoursesGradeCredentials(creatorID string, courses []*CourseGrade) (credentials []*CourseGradeCredential) {
 	for _, c := range courses {
-		teacherID := c.Evaluators[0].GetId()
-		c := NewFakeCourseGradeCredential(teacherID, c)
+		c := NewFakeCourseGradeCredential(creatorID, c)
 		credentials = append(credentials, c)
 	}
 	return credentials
@@ -158,7 +141,7 @@ func NewFakeDiploma(facultyID string, credentials []*CourseGradeCredential) *Dip
 	diploma := &Diploma{
 		Id:            facultyID,
 		Name:          fmt.Sprintf("%s-%s", "Faculty", facultyID),
-		Code:          fmt.Sprintf("%s%s", "F", facultyID[:4]),
+		Code:          fmt.Sprintf("%s%s", "F", facultyID[2:6]),
 		Category:      "BachelorDiploma",
 		Type:          []string{"Diploma"},
 		Language:      "en",
@@ -174,13 +157,13 @@ func NewFakeDiploma(facultyID string, credentials []*CourseGradeCredential) *Dip
 			"gpa": int64(rand.Intn(100)), // TODO: compute base on courses' grades
 		},
 		StudentPresence: "Physical",
-		Transcripts:     credentials, //TODO: store only map with ids and grades
+		Courses:         credentials, //TODO: store only map with ids and grades
 	}
 	return diploma
 }
 
 func NewFakeDiplomaCredential(creatorID string, d *Diploma) *DiplomaCredential {
-	creationTime := time.Now().UTC().UnixNano()
+	creationTime := time.Now().Unix()
 	return &DiplomaCredential{
 		Diploma:   d,
 		CreatedBy: creatorID,
@@ -196,8 +179,8 @@ func NewFakeDiplomaCredential(creatorID string, d *Diploma) *DiplomaCredential {
 	}
 }
 
-func generateFakeDiploma(facultyID string, coursesIDS []string) (diploma *Diploma) {
-	courses := generateFakeCoursesGrade(coursesIDS)
-	credentials := generateFakeCoursesGradeCredentials(courses)
+func GenerateFakeDiploma(facultyID, teacherID, studentID string, coursesIDS []string) (diploma *Diploma) {
+	courses := generateFakeCoursesGrade(teacherID, studentID, coursesIDS)
+	credentials := generateFakeCoursesGradeCredentials(teacherID, courses)
 	return NewFakeDiploma(facultyID, credentials)
 }

@@ -3,6 +3,7 @@ package schemes
 import (
 	"crypto/sha256"
 	"fmt"
+
 	proto "github.com/golang/protobuf/proto"
 )
 

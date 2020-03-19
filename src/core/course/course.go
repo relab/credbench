@@ -9,6 +9,7 @@ import (
 	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
 	"github.com/r0qs/bbchain-dapp/src/core/notary"
 	"github.com/r0qs/bbchain-dapp/src/core/notary/owners"
+	"math/big"
 )
 
 type Params struct {
@@ -81,8 +82,8 @@ func (c *Course) Revoke(opts *bind.TransactOpts, digest [32]byte, reason [32]byt
 }
 
 // DigestsBySubject
-func (c *Course) DigestsBySubject(opts *bind.CallOpts, subject common.Address) ([][32]byte, error) {
-	return c.contract.DigestsBySubject(opts, subject)
+func (c *Course) DigestsBySubject(opts *bind.CallOpts, student common.Address) ([][32]byte, error) {
+	return c.contract.DigestsBySubject(opts, student)
 }
 
 // IssuedCredentials
@@ -97,4 +98,21 @@ func (c *Course) RevokedCredentials(opts *bind.CallOpts, digest [32]byte) *notar
 	proof, _ := c.contract.RevokedCredentials(opts, digest)
 	var rp notary.RevocationProof = proof
 	return &rp
+}
+
+func (c *Course) AggregateCredentials(opts *bind.TransactOpts, student common.Address) (*types.Transaction, error) {
+	return c.contract.AggregateCredentials(opts, student)
+}
+
+func (c *Course) GetProof(opts *bind.CallOpts, student common.Address) ([32]byte, error) {
+	return c.contract.GetProof(opts, student)
+}
+
+// TODO: separate time logic from course
+func (c *Course) HasEnded(opts *bind.CallOpts) (bool, error) {
+	return c.contract.HasEnded(opts)
+}
+
+func (c *Course) EndingTime(opts *bind.CallOpts) (*big.Int, error) {
+	return c.contract.EndingTime(opts)
 }

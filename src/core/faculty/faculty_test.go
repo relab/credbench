@@ -4,10 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
-	// proto "github.com/golang/protobuf/proto"
-	// pb "github.com/r0qs/bbchain-dapp/src/schemes"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -18,11 +15,9 @@ import (
 	"github.com/r0qs/bbchain-dapp/src/core/course"
 	"github.com/r0qs/bbchain-dapp/src/core/faculty/contract"
 	"github.com/stretchr/testify/assert"
-)
 
-func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
-}
+	pb "github.com/r0qs/bbchain-dapp/src/schemes"
+)
 
 type TestFaculty struct {
 	Backend    *backends.TestBackend
@@ -32,7 +27,6 @@ type TestFaculty struct {
 	Faculty    *Faculty
 }
 
-// if possible make these methods generic (reflect)
 func NewTestFaculty(t *testing.T, adms backends.Accounts, quorum *big.Int) *TestFaculty {
 	backend := backends.NewTestBackend()
 
@@ -52,7 +46,6 @@ func NewTestFaculty(t *testing.T, adms backends.Accounts, quorum *big.Int) *Test
 	}
 }
 
-// TODO: make generic (reflect)
 func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, adms []common.Address, quorum *big.Int) (common.Address, *contract.Faculty, error) {
 	opts := bind.NewKeyedTransactor(prvKey)
 	facultyAddr, _, faculty, err := contract.DeployFaculty(opts, backend, adms, quorum)
@@ -86,10 +79,6 @@ func TestFacultyCreateCourse(t *testing.T) {
 
 	tf := NewTestFaculty(t, adms, big.NewInt(int64(len(adms))))
 	defer tf.Backend.Close()
-
-	if ok, err := tf.Faculty.IsOwner(&bind.CallOpts{Pending: true}, tf.Adms[0].Address); !ok {
-		t.Fatalf("IsOwner expected to be true but return: %t, %v", ok, err)
-	}
 
 	startingTime, endingTime := tf.Backend.GetPeriod(uint64(100))
 	semester := sha256.Sum256([]byte("spring2020"))
@@ -142,4 +131,188 @@ func TestFacultyCreateCourse(t *testing.T) {
 		t.Fatalf("OwnersList expected no errors but got: %v", err)
 	}
 	assert.ElementsMatch(t, evaluators.Addresses(), teachers)
+}
+
+func TestCreateDiploma(t *testing.T) {
+	adms := backends.TestAccounts[:2]
+	evaluators := backends.TestAccounts[2:4]
+	student := backends.TestAccounts[4]
+
+	tf := NewTestFaculty(t, adms, big.NewInt(int64(len(adms))))
+	defer tf.Backend.Close()
+
+	var coursesAddresses []common.Address
+	for i := 0; i < 4; i++ {
+		// adm creates course
+		startingTime, endingTime := tf.Backend.GetPeriod(uint64(10000))
+		semester := sha256.Sum256([]byte("spring2020"))
+		opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
+		_, err := tf.Faculty.contract.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))), startingTime, endingTime)
+		if err != nil {
+			t.Fatalf("CreateCourse expected no error but got: %v", err)
+		}
+		tf.Backend.Commit()
+
+		// get course instance
+		courseAddr, _ := tf.Faculty.contract.Issuers(nil, big.NewInt(int64(i)))
+		coursesAddresses = append(coursesAddresses, courseAddr)
+
+		courseInstance, err := course.NewCourse(courseAddr, tf.Backend)
+		if err != nil {
+			t.Fatalf("create contract: expected no error, got %v", err)
+		}
+		if ok, _ := courseInstance.IsOwner(nil, evaluators[0].Address); !ok {
+			t.Fatalf("Evaluator %v is expected to be owner of the course", evaluators[0].Address.Hex())
+		}
+
+		// teacher adds student
+		opts, _ = tf.Backend.GetTxOpts(evaluators[0].Key)
+		_, err = courseInstance.AddStudent(opts, student.Address)
+		if err != nil {
+			t.Fatalf("AddStudent expected no error, got: %v", err)
+		}
+		tf.Backend.Commit()
+
+		if ok, _ := courseInstance.IsEnrolled(nil, student.Address); !ok {
+			t.Fatalf("Student %v is expected to be enrolled in the course", student.Address.Hex())
+		}
+	}
+
+	cAddresses := make([]string, len(coursesAddresses))
+	for i, addr := range coursesAddresses {
+		cAddresses[i] = addr.Hex()
+	}
+
+	// TODO pass list of teachers and students
+	diploma := pb.GenerateFakeDiploma(tf.Faculty.Address().Hex(), evaluators[0].Address.Hex(), student.Address.Hex(), cAddresses)
+
+	var expectedDigests [][32]byte
+	for _, c := range diploma.Courses {
+		caddr := common.HexToAddress(c.Course.GetId())
+		courseInstance, _ := course.NewCourse(caddr, tf.Backend)
+
+		var courseDigests [][32]byte
+		for _, a := range c.Course.Assignments {
+			// Publish digest of assignment credential
+			digest := pb.Hash(a)
+			courseDigests = append(courseDigests, digest)
+			opts, _ := tf.Backend.GetTxOpts(evaluators[0].Key)
+			_, err := courseInstance.RegisterCredential(opts, student.Address, digest)
+			if err != nil {
+				t.Fatalf("RegisterCredential expected no error, got: %v", err)
+			}
+			tf.Backend.Commit()
+			proof := courseInstance.IssuedCredentials(nil, digest)
+			assert.Equal(t, digest, proof.Digest)
+
+			// Second evaluator confirms
+			opts, _ = tf.Backend.GetTxOpts(evaluators[1].Key)
+			_, err = courseInstance.RegisterCredential(opts, student.Address, digest)
+			if err != nil {
+				t.Fatalf("RegisterCredential expected no error, got: %v", err)
+			}
+			tf.Backend.Commit()
+
+			opts, _ = tf.Backend.GetTxOpts(student.Key)
+			_, err = courseInstance.ConfirmCredential(opts, digest)
+			if err != nil {
+				t.Fatalf("ConfirmCredential expected no error, got: %v", err)
+			}
+			tf.Backend.Commit()
+		}
+
+		// issue final course certificate
+		digest := pb.Hash(c)
+		courseDigests = append(courseDigests, digest)
+		opts, _ := tf.Backend.GetTxOpts(evaluators[0].Key)
+		_, err := courseInstance.RegisterCredential(opts, student.Address, digest)
+		if err != nil {
+			t.Fatalf("RegisterCredential expected no error, got: %v", err)
+		}
+		tf.Backend.Commit()
+		proof := courseInstance.IssuedCredentials(nil, digest)
+		assert.Equal(t, digest, proof.Digest)
+
+		// Second evaluator confirms
+		opts, _ = tf.Backend.GetTxOpts(evaluators[1].Key)
+		_, err = courseInstance.RegisterCredential(opts, student.Address, digest)
+		if err != nil {
+			t.Fatalf("RegisterCredential expected no error, got: %v", err)
+		}
+		tf.Backend.Commit()
+
+		opts, _ = tf.Backend.GetTxOpts(student.Key)
+		_, err = courseInstance.ConfirmCredential(opts, digest)
+		if err != nil {
+			t.Fatalf("ConfirmCredential expected no error, got: %v", err)
+		}
+		tf.Backend.Commit()
+
+		d, err := backends.EncodeByteArray(courseDigests)
+		if err != nil {
+			t.Error(err)
+		}
+		expectedDigests = append(expectedDigests, d)
+	}
+	// Finalize courses
+	for _, c := range diploma.Courses {
+		caddr := common.HexToAddress(c.Course.GetId())
+		courseInstance, _ := course.NewCourse(caddr, tf.Backend)
+
+		endingTime, _ := courseInstance.EndingTime(nil)
+		tf.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
+		ended, _ := courseInstance.HasEnded(nil)
+		assert.True(t, ended)
+
+		opts, _ := tf.Backend.GetTxOpts(evaluators[0].Key)
+		_, err := courseInstance.AggregateCredentials(opts, student.Address)
+		if err != nil {
+			t.Fatalf("AggregateCredentials expected no error, got: %v", err)
+		}
+		tf.Backend.Commit()
+	}
+
+	diplomaCredential := pb.NewFakeDiplomaCredential(adms[0].Address.Hex(), diploma)
+	digest := pb.Hash(diplomaCredential)
+	expectedDigests = append(expectedDigests, digest)
+	digestRoot, _ := backends.EncodeByteArray(expectedDigests)
+
+	collectedDigests, err := tf.Faculty.contract.CollectCredentials(&bind.CallOpts{From: adms[0].Address}, student.Address, coursesAddresses)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, _ := backends.EncodeByteArray(append(collectedDigests, digest))
+	assert.Equal(t, digestRoot, root)
+
+	opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
+	_, err = tf.Faculty.contract.RegisterCredential0(opts, student.Address, digest, digestRoot, coursesAddresses)
+	if err != nil {
+		t.Fatalf("RegisterCredential0 expected no error, got: %v", err)
+	}
+	tf.Backend.Commit()
+
+	d, _ := tf.Faculty.contract.IssuedCredentials(nil, digest)
+	assert.Equal(t, digest, d.Digest)
+
+	p, _ := tf.Faculty.contract.GetProof(nil, student.Address)
+	assert.Equal(t, digestRoot, p)
+
+	// Second evaluator confirms
+	opts, _ = tf.Backend.GetTxOpts(adms[1].Key)
+	_, err = tf.Faculty.contract.RegisterCredential(opts, student.Address, digest)
+	if err != nil {
+		t.Fatalf("RegisterCredential expected no error, got: %v", err)
+	}
+	tf.Backend.Commit()
+
+	opts, _ = tf.Backend.GetTxOpts(student.Key)
+	_, err = tf.Faculty.contract.ConfirmCredential(opts, digest)
+	if err != nil {
+		t.Fatalf("ConfirmCredential expected no error, got: %v", err)
+	}
+	tf.Backend.Commit()
+
+	if ok, _ := tf.Faculty.contract.Certified(nil, digest); !ok {
+		t.Fatalf("Digest %x should be certified", digest)
+	}
 }
