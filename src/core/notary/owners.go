@@ -1,6 +1,6 @@
-package owners
+package notary
 
-//go:generate abigen --abi ../../../ethereum/build/abi/Owners.abi --bin ../../../ethereum/build/bin/Owners.bin --pkg contract --type Owners --out ./contract/owners.go
+//go:generate abigen --abi ../../ethereum/build/abi/Owners.abi --bin ../../ethereum/build/bin/Owners.bin --pkg contract --type Owners --out ./contract/owners.go
 
 import (
 	"math/big"
@@ -8,14 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/r0qs/bbchain-dapp/src/core/notary/owners/contract"
+	"github.com/r0qs/bbchain-dapp/src/core/notary/contract"
 )
 
-type Params struct {
-	ContractCode, ContractAbi string
-}
-
-var ContractParams = &Params{contract.OwnersBin, contract.OwnersABI}
+var OwnersParams = &Params{contract.OwnersBin, contract.OwnersABI}
 
 // Owners is a Go wrapper around an on-chain owners contract.
 type Owners struct {

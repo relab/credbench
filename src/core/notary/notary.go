@@ -6,8 +6,6 @@ package notary
 
 //go:generate abigen --abi ../../ethereum/build/abi/CredentialSum.abi --bin ../../ethereum/build/bin/CredentialSum.bin --pkg contract --type CredentialSum --out ./contract/credential_sum.go
 
-//go:generate abigen --abi ../../ethereum/build/abi/Timed.abi --bin ../../ethereum/build/bin/Timed.bin --pkg contract --type Timed --out ./contract/timed.go
-
 //go:generate abigen --abi ../../ethereum/build/abi/IssuerInterface.abi --bin ../../ethereum/build/bin/IssuerInterface.bin --pkg contract --type IssuerInterface --out ./contract/issuer_interface.go
 
 import (
@@ -17,7 +15,7 @@ import (
 )
 
 type Params struct {
-	ContractAbi string
+	ContractCode, ContractAbi string
 }
 
 // CredentialProof represents an on-chain proof that a

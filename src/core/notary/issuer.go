@@ -10,12 +10,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/r0qs/bbchain-dapp/src/core/notary/contract"
-	"github.com/r0qs/bbchain-dapp/src/core/notary/owners"
 )
+
+var IssuerParams = &Params{ContractAbi: contract.OwnersABI}
 
 // Issuer is a Go wrapper around an on-chain issuer contract.
 type Issuer struct {
-	*owners.Owners
+	*Owners
 	address  common.Address
 	contract *contract.Issuer
 }
@@ -27,7 +28,7 @@ func NewIssuer(contractAddr common.Address, backend bind.ContractBackend) (*Issu
 	if err != nil {
 		return nil, err
 	}
-	o, err := owners.NewOwners(contractAddr, backend)
+	o, err := NewOwners(contractAddr, backend)
 	return &Issuer{o, contractAddr, i}, nil
 }
 

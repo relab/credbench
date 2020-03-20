@@ -20,6 +20,7 @@ var ContractParams = &Params{contract.CourseBin, contract.CourseABI}
 // Course is a Go wrapper around an on-chain course contract.
 type Course struct {
 	*notary.Issuer
+	*notary.Timed
 	address  common.Address
 	contract *contract.Course
 }
@@ -32,7 +33,8 @@ func NewCourse(contractAddr common.Address, backend bind.ContractBackend) (*Cour
 		return nil, err
 	}
 	i, err := notary.NewIssuer(contractAddr, backend)
-	return &Course{i, contractAddr, c}, nil
+	t, err := notary.NewTimed(contractAddr, backend)
+	return &Course{i, t, contractAddr, c}, nil
 }
 
 // Address returns the contract address of the course.
@@ -65,11 +67,7 @@ func (c *Course) IsEnrolled(opts *bind.CallOpts, student common.Address) (bool, 
 	return c.contract.IsEnrolled(opts, student)
 }
 
-// TODO: separate time logic from course
-func (c *Course) HasEnded(opts *bind.CallOpts) (bool, error) {
-	return c.contract.HasEnded(opts)
-}
-
-func (c *Course) EndingTime(opts *bind.CallOpts) (*big.Int, error) {
-	return c.contract.EndingTime(opts)
+// ExtendTime extends the notarization time.
+func (c *Course) ExtendTime(opts *bind.TransactOpts, newEndingTime *big.Int) (*types.Transaction, error) {
+	return c.contract.ExtendTime(opts, newEndingTime)
 }
