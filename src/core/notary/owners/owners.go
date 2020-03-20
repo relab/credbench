@@ -3,10 +3,12 @@ package owners
 //go:generate abigen --abi ../../../ethereum/build/abi/Owners.abi --bin ../../../ethereum/build/bin/Owners.bin --pkg contract --type Owners --out ./contract/owners.go
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/r0qs/bbchain-dapp/src/core/notary/owners/contract"
-	"math/big"
 )
 
 type Params struct {
@@ -30,12 +32,12 @@ func NewOwners(contractAddr common.Address, backend bind.ContractBackend) (*Owne
 	return &Owners{contract: c}, nil
 }
 
-// IsOwner
+// IsOwner check if a given address is an Owner
 func (c *Owners) IsOwner(opts *bind.CallOpts, address common.Address) (bool, error) {
 	return c.contract.IsOwner(opts, address)
 }
 
-// OwnersList
+// OwnersList returns the length of the owners array
 func (c *Owners) OwnersList(opts *bind.CallOpts) ([]common.Address, error) {
 	length, err := c.contract.OwnersLength(opts)
 	var owners []common.Address
@@ -46,4 +48,9 @@ func (c *Owners) OwnersList(opts *bind.CallOpts) ([]common.Address, error) {
 		i.Add(i, big.NewInt(1))
 	}
 	return owners, err
+}
+
+// ChangeOwner one of the owners. Sender should be the old owner.
+func (c *Owners) ChangeOwner(opts *bind.TransactOpts, newOwner common.Address) (*types.Transaction, error) {
+	return c.contract.ChangeOwner(opts, newOwner)
 }

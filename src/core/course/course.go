@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
 	"github.com/r0qs/bbchain-dapp/src/core/notary"
-	"github.com/r0qs/bbchain-dapp/src/core/notary/owners"
 	"math/big"
 )
 
@@ -20,7 +19,7 @@ var ContractParams = &Params{contract.CourseBin, contract.CourseABI}
 
 // Course is a Go wrapper around an on-chain course contract.
 type Course struct {
-	*owners.Owners
+	*notary.Issuer
 	address  common.Address
 	contract *contract.Course
 }
@@ -32,11 +31,11 @@ func NewCourse(contractAddr common.Address, backend bind.ContractBackend) (*Cour
 	if err != nil {
 		return nil, err
 	}
-	o, err := owners.NewOwners(contractAddr, backend)
-	return &Course{o, contractAddr, c}, nil
+	i, err := notary.NewIssuer(contractAddr, backend)
+	return &Course{i, contractAddr, c}, nil
 }
 
-// Address returns the on-chain contract address of the course.
+// Address returns the contract address of the course.
 func (c *Course) Address() common.Address {
 	return c.address
 }
@@ -64,48 +63,6 @@ func (c *Course) EnrolledStudents(opts *bind.CallOpts, student common.Address) (
 // IsEnrolled
 func (c *Course) IsEnrolled(opts *bind.CallOpts, student common.Address) (bool, error) {
 	return c.contract.IsEnrolled(opts, student)
-}
-
-// RegisterCredential
-func (c *Course) RegisterCredential(opts *bind.TransactOpts, student common.Address, digest [32]byte) (*types.Transaction, error) {
-	return c.contract.RegisterCredential(opts, student, digest)
-}
-
-// ConfirmCredential
-func (c *Course) ConfirmCredential(opts *bind.TransactOpts, digest [32]byte) (*types.Transaction, error) {
-	return c.contract.ConfirmCredential(opts, digest)
-}
-
-// Revoke
-func (c *Course) Revoke(opts *bind.TransactOpts, digest [32]byte, reason [32]byte) (*types.Transaction, error) {
-	return c.contract.RevokeCredential(opts, digest, reason)
-}
-
-// DigestsBySubject
-func (c *Course) DigestsBySubject(opts *bind.CallOpts, student common.Address) ([][32]byte, error) {
-	return c.contract.DigestsBySubject(opts, student)
-}
-
-// IssuedCredentials
-func (c *Course) IssuedCredentials(opts *bind.CallOpts, digest [32]byte) *notary.CredentialProof {
-	proof, _ := c.contract.IssuedCredentials(opts, digest)
-	var cp notary.CredentialProof = proof
-	return &cp
-}
-
-// RevokedCredentials
-func (c *Course) RevokedCredentials(opts *bind.CallOpts, digest [32]byte) *notary.RevocationProof {
-	proof, _ := c.contract.RevokedCredentials(opts, digest)
-	var rp notary.RevocationProof = proof
-	return &rp
-}
-
-func (c *Course) AggregateCredentials(opts *bind.TransactOpts, student common.Address) (*types.Transaction, error) {
-	return c.contract.AggregateCredentials(opts, student)
-}
-
-func (c *Course) GetProof(opts *bind.CallOpts, student common.Address) ([32]byte, error) {
-	return c.contract.GetProof(opts, student)
 }
 
 // TODO: separate time logic from course

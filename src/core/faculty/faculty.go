@@ -33,7 +33,7 @@ func NewFaculty(contractAddr common.Address, backend bind.ContractBackend) (*Fac
 	return &Faculty{o, contractAddr, c}, nil
 }
 
-// Address returns the on-chain contract address of the faculty.
-func (c *Faculty) Address() common.Address {
-	return c.address
+// Address returns the contract address of the faculty.
+func (f *Faculty) Address() common.Address {
+	return f.address
 }
