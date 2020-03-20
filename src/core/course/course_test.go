@@ -9,6 +9,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/r0qs/bbchain-dapp/src/core/accounts"
 	"github.com/r0qs/bbchain-dapp/src/core/backends"
 	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
 	"github.com/stretchr/testify/assert"
@@ -63,12 +65,23 @@ func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [3
 	ag := pb.NewFakeAssignmentGrade(evaluatorAddr, to.Hex())
 	credential := pb.NewFakeAssignmentGradeCredential(evaluatorAddr, courseEntity, ag)
 	digest := pb.Hash(credential)
+
+	ch := make(chan *contract.CourseCredentialIssued)
+	sub, _ := tc.Course.contract.WatchCredentialIssued(nil, ch, [][32]byte{digest}, []common.Address{to}, nil)
+	defer func() {
+		sub.Unsubscribe()
+	}()
+
 	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
 	_, err := tc.Course.RegisterCredential(opts, to, digest)
 	if err != nil {
 		t.Fatalf("RegisterCredential expected no error, got: %v", err)
 	}
 	tc.Backend.Commit()
+
+	event := <-ch
+	assert.Equal(t, digest, event.Digest)
+
 	proof := tc.Course.IssuedCredentials(nil, digest)
 	assert.Equal(t, digest, proof.Digest)
 
@@ -76,12 +89,21 @@ func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [3
 }
 
 func (tc *TestCourse) ConfirmTestCredential(t *testing.T, from *ecdsa.PrivateKey, digest [32]byte) {
+	ch := make(chan *contract.CourseCredentialSigned)
+	sub, _ := tc.Course.contract.WatchCredentialSigned(nil, ch, nil, [][32]byte{digest})
+	defer func() {
+		sub.Unsubscribe()
+	}()
+
 	opts, _ := tc.Backend.GetTxOpts(from)
 	_, err := tc.Course.ConfirmCredential(opts, digest)
 	if err != nil {
 		t.Fatalf("ConfirmCredential expected no error, got: %v", err)
 	}
 	tc.Backend.Commit()
+
+	event := <-ch
+	assert.Equal(t, accounts.GetAddress(from), event.Signer)
 }
 
 func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, evaluators []common.Address, quorum *big.Int) (common.Address, *contract.Course, error) {
@@ -141,6 +163,11 @@ func TestAddStudent(t *testing.T) {
 	}
 	tc.Backend.Commit()
 
+	for iter, _ := tc.Course.contract.FilterStudentAdded(nil, []common.Address{studentAddress}, nil); iter.Next(); {
+		event := iter.Event
+		assert.Equal(t, studentAddress, event.Student)
+	}
+
 	// Verify if a student was added
 	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || !ok {
 		t.Fatalf("EnrolledStudents expected student %v to be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
@@ -166,6 +193,11 @@ func TestRemoveStudent(t *testing.T) {
 	}
 	tc.Backend.Commit()
 
+	for iter, _ := tc.Course.contract.FilterStudentRemoved(nil, []common.Address{studentAddress}, nil); iter.Next(); {
+		event := iter.Event
+		assert.Equal(t, studentAddress, event.Student)
+	}
+
 	// Verify if a student was removed
 	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
 		t.Fatalf("EnrolledStudents expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
@@ -190,6 +222,11 @@ func TestRenounceCourse(t *testing.T) {
 		t.Fatalf("RenounceCourse expected to remove the sender (student) but return: %v", err)
 	}
 	tc.Backend.Commit()
+
+	for iter, _ := tc.Course.contract.FilterStudentRemoved(nil, []common.Address{studentAddress}, nil); iter.Next(); {
+		event := iter.Event
+		assert.Equal(t, studentAddress, event.Student)
+	}
 
 	// Verify if a student was removed
 	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {

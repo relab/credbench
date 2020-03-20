@@ -66,10 +66,10 @@ func (a *AccountableIssuer) CollectCredentials(opts *bind.CallOpts, subject comm
 	return a.contract.CollectCredentials(opts, subject, issuersAddresses)
 }
 
-// RegisterCredentialRoot collects all subject's credentials and issue a
+// RegisterRootCredential collects all subject's credentials and issue a
 // new credential proof iff the aggregation of those credentials on
 // the sub-contracts match the given root (i.e. off-chain aggregation == on-chain aggregation)
-func (a *AccountableIssuer) RegisterCredentialRoot(opts *bind.TransactOpts, subject common.Address, digest [32]byte, digestRoot [32]byte, issuersAddresses []common.Address) (*types.Transaction, error) {
+func (a *AccountableIssuer) RegisterRootCredential(opts *bind.TransactOpts, subject common.Address, digest [32]byte, digestRoot [32]byte, issuersAddresses []common.Address) (*types.Transaction, error) {
 	return a.contract.RegisterCredential0(opts, subject, digest, digestRoot, issuersAddresses)
 }
 

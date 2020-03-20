@@ -161,6 +161,10 @@ func GetAccountAddress(addr string, keystoreDir string) common.Address {
 	return address
 }
 
+func GetAddress(key *ecdsa.PrivateKey) common.Address {
+	return crypto.PubkeyToAddress(key.PublicKey)
+}
+
 func getAccount(accountAddr common.Address, keyStore *keystore.KeyStore) (ethAccounts.Account, error) {
 	accounts := keyStore.Accounts()
 

@@ -35,7 +35,7 @@ build:
 
 test: generate
 	@echo "+ executing tests"
-	$(GOTEST) -v  $(PKG)/...
+	$(GOTEST) -v -count=1 $(PKG)/...
 
 run: build
 	@echo "+ running"
