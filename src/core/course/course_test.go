@@ -256,26 +256,26 @@ func TestIssuerAggregateCredential(t *testing.T) {
 	}
 
 	// Force end of the course
-	endingTime, _ := tc.Course.contract.EndingTime(nil)
+	endingTime, _ := tc.Course.EndingTime(nil)
 	err := tc.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
 	if err != nil {
 		t.Error(err)
 	}
 
-	ended, err := tc.Course.contract.HasEnded(nil)
+	ended, err := tc.Course.HasEnded(nil)
 	if err != nil {
 		t.Error(err)
 	}
 	assert.True(t, ended)
 
 	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
-	_, err = tc.Course.contract.AggregateCredentials(opts, studentAddress)
+	_, err = tc.Course.AggregateCredentials(opts, studentAddress)
 	if err != nil {
 		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
 	}
 	tc.Backend.Commit()
 
-	aggregatedDigest, err := tc.Course.contract.GetProof(nil, studentAddress)
+	aggregatedDigest, err := tc.Course.GetProof(nil, studentAddress)
 	if err != nil {
 		t.Error(err)
 	}
@@ -303,20 +303,20 @@ func TestVerifyCredential(t *testing.T) {
 		tc.ConfirmTestCredential(t, studentKey, d)
 	}
 
-	endingTime, _ := tc.Course.contract.EndingTime(nil)
+	endingTime, _ := tc.Course.EndingTime(nil)
 	err := tc.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
 	if err != nil {
 		t.Error(err)
 	}
 
-	ended, err := tc.Course.contract.HasEnded(nil)
+	ended, err := tc.Course.HasEnded(nil)
 	if err != nil {
 		t.Error(err)
 	}
 	assert.True(t, ended)
 
 	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
-	_, err = tc.Course.contract.AggregateCredentials(opts, studentAddress)
+	_, err = tc.Course.AggregateCredentials(opts, studentAddress)
 	if err != nil {
 		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
 	}
@@ -327,7 +327,7 @@ func TestVerifyCredential(t *testing.T) {
 		t.Error(err)
 	}
 
-	b, err := tc.Course.contract.VerifyCredential(nil, studentAddress, expectedDigest)
+	b, err := tc.Course.VerifyCredential(nil, studentAddress, expectedDigest)
 	if err != nil {
 		t.Error(err)
 	}

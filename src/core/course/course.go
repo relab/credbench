@@ -11,11 +11,7 @@ import (
 	"math/big"
 )
 
-type Params struct {
-	ContractCode, ContractAbi string
-}
-
-var ContractParams = &Params{contract.CourseBin, contract.CourseABI}
+var CourseParams = &notary.Params{contract.CourseBin, contract.CourseABI}
 
 // Course is a Go wrapper around an on-chain course contract.
 type Course struct {

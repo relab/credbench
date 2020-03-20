@@ -83,7 +83,7 @@ func TestFacultyCreateCourse(t *testing.T) {
 	startingTime, endingTime := tf.Backend.GetPeriod(uint64(100))
 	semester := sha256.Sum256([]byte("spring2020"))
 	opts := bind.NewKeyedTransactor(adms[0].Key)
-	_, err := tf.Faculty.contract.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))), startingTime, endingTime)
+	_, err := tf.Faculty.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))), startingTime, endingTime)
 	if err != nil {
 		t.Fatalf("CreateCourse expected no error but got: %v", err)
 	}
@@ -108,15 +108,15 @@ func TestFacultyCreateCourse(t *testing.T) {
 	}
 	assert.Equal(t, evIssuerAdded.AddedBy, adms[0].Address)
 	courseAddr := evIssuerAdded.IssuerAddress
-	c, err := tf.Faculty.contract.Courses(nil, courseAddr)
-	assert.Equal(t, courseAddr, c)
+	ok, err := tf.Faculty.IsIssuer(nil, courseAddr)
+	assert.True(t, ok)
 
 	evCourseCreated, err := tf.Faculty.contract.ParseCourseCreated(logs[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, evCourseCreated.CreatedBy, adms[0].Address)
-	assert.Equal(t, evCourseCreated.CourseAddress, c)
+	assert.Equal(t, evCourseCreated.CourseAddress, courseAddr)
 	assert.Equal(t, evCourseCreated.Semester, semester)
 	assert.Equal(t, evCourseCreated.Quorum, big.NewInt(int64(len(evaluators))))
 	assert.ElementsMatch(t, evCourseCreated.Teachers, evaluators.Addresses())
@@ -147,7 +147,7 @@ func TestCreateDiploma(t *testing.T) {
 		startingTime, endingTime := tf.Backend.GetPeriod(uint64(10000))
 		semester := sha256.Sum256([]byte("spring2020"))
 		opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
-		_, err := tf.Faculty.contract.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))), startingTime, endingTime)
+		_, err := tf.Faculty.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))), startingTime, endingTime)
 		if err != nil {
 			t.Fatalf("CreateCourse expected no error but got: %v", err)
 		}
@@ -277,7 +277,7 @@ func TestCreateDiploma(t *testing.T) {
 	expectedDigests = append(expectedDigests, digest)
 	digestRoot, _ := backends.EncodeByteArray(expectedDigests)
 
-	collectedDigests, err := tf.Faculty.contract.CollectCredentials(&bind.CallOpts{From: adms[0].Address}, student.Address, coursesAddresses)
+	collectedDigests, err := tf.Faculty.CollectCredentials(&bind.CallOpts{From: adms[0].Address}, student.Address, coursesAddresses)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,34 +285,34 @@ func TestCreateDiploma(t *testing.T) {
 	assert.Equal(t, digestRoot, root)
 
 	opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
-	_, err = tf.Faculty.contract.RegisterCredential0(opts, student.Address, digest, digestRoot, coursesAddresses)
+	_, err = tf.Faculty.RegisterCredentialRoot(opts, student.Address, digest, digestRoot, coursesAddresses)
 	if err != nil {
 		t.Fatalf("RegisterCredential0 expected no error, got: %v", err)
 	}
 	tf.Backend.Commit()
 
-	d, _ := tf.Faculty.contract.IssuedCredentials(nil, digest)
+	d := tf.Faculty.IssuedCredentials(nil, digest)
 	assert.Equal(t, digest, d.Digest)
 
-	p, _ := tf.Faculty.contract.GetProof(nil, student.Address)
+	p, _ := tf.Faculty.GetProof(nil, student.Address)
 	assert.Equal(t, digestRoot, p)
 
 	// Second evaluator confirms
 	opts, _ = tf.Backend.GetTxOpts(adms[1].Key)
-	_, err = tf.Faculty.contract.RegisterCredential(opts, student.Address, digest)
+	_, err = tf.Faculty.RegisterCredential(opts, student.Address, digest)
 	if err != nil {
 		t.Fatalf("RegisterCredential expected no error, got: %v", err)
 	}
 	tf.Backend.Commit()
 
 	opts, _ = tf.Backend.GetTxOpts(student.Key)
-	_, err = tf.Faculty.contract.ConfirmCredential(opts, digest)
+	_, err = tf.Faculty.ConfirmCredential(opts, digest)
 	if err != nil {
 		t.Fatalf("ConfirmCredential expected no error, got: %v", err)
 	}
 	tf.Backend.Commit()
 
-	if ok, _ := tf.Faculty.contract.Certified(nil, digest); !ok {
+	if ok, _ := tf.Faculty.Certified(nil, digest); !ok {
 		t.Fatalf("Digest %x should be certified", digest)
 	}
 }
