@@ -287,15 +287,12 @@ func TestCreateDiploma(t *testing.T) {
 	opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
 	_, err = tf.Faculty.RegisterRootCredential(opts, student.Address, digest, digestRoot, coursesAddresses)
 	if err != nil {
-		t.Fatalf("RegisterCredential0 expected no error, got: %v", err)
+		t.Fatalf("RegisterRootCredential expected no error, got: %v", err)
 	}
 	tf.Backend.Commit()
 
 	d := tf.Faculty.IssuedCredentials(nil, digest)
 	assert.Equal(t, digest, d.Digest)
-
-	p, _ := tf.Faculty.GetProof(nil, student.Address)
-	assert.Equal(t, digestRoot, p)
 
 	// Second evaluator confirms
 	opts, _ = tf.Backend.GetTxOpts(adms[1].Key)
