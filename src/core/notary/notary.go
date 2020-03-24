@@ -2,8 +2,6 @@ package notary
 
 //TODO: Use abi and bin files for binding and make manual deployement and link in the application, using truffle or using go directly, in both cases will be required to parse the json artifacts created during contract's compilation/deployement and retrieve the linking/address information.
 
-//go:generate abigen --abi ../../ethereum/build/abi/AccountableIssuer.abi --bin ../../ethereum/build/bin/AccountableIssuer.bin --pkg contract --type AccountableIssuer --out ./contract/accountable_issuer.go
-
 //go:generate abigen --abi ../../ethereum/build/abi/CredentialSum.abi --bin ../../ethereum/build/bin/CredentialSum.bin --pkg contract --type CredentialSum --out ./contract/credential_sum.go
 
 //go:generate abigen --abi ../../ethereum/build/abi/IssuerInterface.abi --bin ../../ethereum/build/bin/IssuerInterface.bin --pkg contract --type IssuerInterface --out ./contract/issuer_interface.go
