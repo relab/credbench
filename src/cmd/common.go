@@ -7,8 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/r0qs/bbchain-dapp/src/core/accounts"
-	"github.com/r0qs/bbchain-dapp/src/core/client"
+	"github.com/relab/bbchain-dapp/src/core/accounts"
+	"github.com/relab/bbchain-dapp/src/core/client"
 	"github.com/spf13/cobra"
 )
 

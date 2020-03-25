@@ -10,12 +10,12 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/r0qs/bbchain-dapp/src/core/accounts"
-	"github.com/r0qs/bbchain-dapp/src/core/backends"
-	"github.com/r0qs/bbchain-dapp/src/core/course/contract"
+	"github.com/relab/bbchain-dapp/src/core/accounts"
+	"github.com/relab/bbchain-dapp/src/core/backends"
+	"github.com/relab/bbchain-dapp/src/core/course/contract"
 	"github.com/stretchr/testify/assert"
 
-	pb "github.com/r0qs/bbchain-dapp/src/schemes"
+	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
 
 type TestCourse struct {

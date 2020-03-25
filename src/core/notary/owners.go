@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/r0qs/bbchain-dapp/src/core/notary/contract"
+	"github.com/relab/bbchain-dapp/src/core/notary/contract"
 )
 
 var OwnersParams = &Params{contract.OwnersBin, contract.OwnersABI}
