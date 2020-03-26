@@ -23,7 +23,7 @@ message AssignmentGrade {
     repeated Entity evaluators = 8;
     Entity student = 9;
     int64 grade = 10;
-    string studentPresence = 11;
+    string student_presence = 11;
 }
 
 // TODO: create verifiable credentials compatible with the VC spec
@@ -31,10 +31,10 @@ message AssignmentGradeCredential {
     AssignmentGrade assignment = 1;
     string created_by = 2;
     google.protobuf.Timestamp created_at = 3;
-    repeated Entity OfferedBy = 4;
-    string evidenceDocument = 5;
-    string documentPresence = 6;
-    google.protobuf.Any additionalInformation = 7;
+    repeated Entity offered_by = 4;
+    string evidence_document = 5;
+    string document_presence = 6;
+    google.protobuf.Any additional_information = 7;
 }
 
 message CourseGrade {
@@ -50,10 +50,10 @@ message CourseGrade {
     repeated Entity teachers = 10;
     repeated Entity evaluators = 11;
     Entity student = 12;
-    string gradingSystem = 13; // e.g. ECTS, U.S, UK, 13-scale
-    int64 totalCredits = 14;
-    int64 finalGrade = 15; // course final grade (percentage if using ECTS grading)
-    string studentPresence = 16; //e.g. physical, digital/online
+    string grading_system = 13; // e.g. ECTS, U.S, UK, 13-scale
+    int64 total_credits = 14;
+    int64 final_grade = 15; // course final grade (percentage if using ECTS grading)
+    string student_presence = 16; //e.g. physical, digital/online
     repeated AssignmentGradeCredential assignments = 1; // list of assignments of student
 }
 
@@ -62,10 +62,10 @@ message CourseGradeCredential {
     CourseGrade course = 1;
     string created_by = 2;
     google.protobuf.Timestamp created_at = 3;
-    repeated Entity OfferedBy = 4;
-    string evidenceDocument = 5;
-    string documentPresence = 6;
-    google.protobuf.Any additionalInformation = 7;
+    repeated Entity offered_by = 4;
+    string evidence_document = 5;
+    string document_presence = 6;
+    google.protobuf.Any additional_information = 7;
 }
 
 message Diploma {
@@ -81,11 +81,11 @@ message Diploma {
     repeated Entity evaluators = 10;
     Entity student = 11;
     google.protobuf.Duration duration = 12; // e.g. 3 years
-    string gradingSystem = 13; // e.g. ECTS, U.S, UK, 13-scale
-    string modeOfStudy = 14; // e.g. Full-time, part-time
-    int64 totalCredits = 15;
+    string grading_system = 13; // e.g. ECTS, U.S, UK, 13-scale
+    string mode_of_study = 14; // e.g. Full-time, part-time
+    int64 total_credits = 15;
     map<string, int64> grades = 16; // final diploma grades (e.g. gpa)
-    string studentPresence = 17;
+    string student_presence = 17;
     repeated CourseGradeCredential courses = 1; // list of courses grades of student
     google.protobuf.Any supplement = 18;
 }
@@ -94,9 +94,9 @@ message DiplomaCredential {
     Diploma diploma = 1;
     string created_by = 2;
     google.protobuf.Timestamp created_at = 3;
-    repeated Entity OfferedBy = 4;
-    string evidenceDocument = 5;
-    string documentPresence = 6;
-    google.protobuf.Any additionalInformation = 7;
+    repeated Entity offered_by = 4;
+    string evidence_document = 5;
+    string document_presence = 6;
+    google.protobuf.Any additional_information = 7;
 }
 
