@@ -17,11 +17,6 @@ import (
 	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
 
-var (
-	courseContract *contract.Course
-	courseAddress  string
-)
-
 var courseCmd = &cobra.Command{
 	Use:   "course",
 	Short: "Course contract",
@@ -72,8 +67,8 @@ func deployCourse(owners []common.Address, quorum int64) (tx *types.Transaction,
 	endingTime := now.Add(time.Hour).Unix()
 
 	var cAddr common.Address
-	cAddr, tx, courseContract, err = contract.DeployCourse(opts, backend, owners, big.NewInt(quorum), big.NewInt(startingTime), big.NewInt(endingTime))
-	courseAddress = cAddr.Hex()
+	cAddr, tx, _, err = contract.DeployCourse(opts, backend, owners, big.NewInt(quorum), big.NewInt(startingTime), big.NewInt(endingTime))
+	courseAddress := cAddr.Hex()
 	if err != nil || courseAddress == "0x0000000000000000000000000000000000000000" {
 		return nil, fmt.Errorf("failed to deploy the contract: %v", err)
 	}
@@ -84,113 +79,116 @@ func deployCourse(owners []common.Address, quorum int64) (tx *types.Transaction,
 var addStudentCmd = &cobra.Command{
 	Use:   "addStudent",
 	Short: "Add a student to the course contract",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		studentAddress := common.HexToAddress(args[0])
-		err := addStudent(studentAddress)
+		course, err := getCourse(common.HexToAddress(args[0]))
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
+		studentAddress := common.HexToAddress(args[1])
+		tx, err := addStudent(course, studentAddress)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		fmt.Printf("Transaction ID: %x\n", tx.Hash())
 	},
 }
 
-func addStudent(studentAddress common.Address) error {
-	cAddr := common.HexToAddress(courseAddress)
+func addStudent(course *course.Course, studentAddress common.Address) (*types.Transaction, error) {
 	backend, _ := clientConn.Backend()
 	opts, _ := wallet.GetTxOpts(backend)
 
-	course, err := course.NewCourse(cAddr, backend)
+	tx, err := course.AddStudent(opts, studentAddress)
 	if err != nil {
-		return fmt.Errorf("Failed to get course: %v", err)
+		return nil, fmt.Errorf("Failed to add student: %v", err)
 	}
 
-	_, err = course.AddStudent(opts, studentAddress)
-	if err != nil {
-		return fmt.Errorf("Failed to add student: %v", err)
+	if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: false}, studentAddress); ok {
+		fmt.Printf("student %s successfully enrolled!\n", studentAddress.Hex())
 	}
-
-	if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); ok {
-		fmt.Printf("student %s successfully enrolled!", studentAddress.Hex())
-	}
-	return nil
+	return tx, nil
 }
 
 var rmStudentCmd = &cobra.Command{
 	Use:   "rmStudent",
 	Short: "Remove a student to the course contract",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		studentAddress := common.HexToAddress(args[0])
-		err := rmStudent(studentAddress)
+		course, err := getCourse(common.HexToAddress(args[0]))
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-
+		studentAddress := common.HexToAddress(args[1])
+		tx, err := rmStudent(course, studentAddress)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		fmt.Printf("Transaction ID: %x\n", tx.Hash())
 	},
 }
 
-func rmStudent(studentAddress common.Address) error {
-	cAddr := common.HexToAddress(courseAddress)
+func rmStudent(course *course.Course, studentAddress common.Address) (*types.Transaction, error) {
 	backend, _ := clientConn.Backend()
 	opts, _ := wallet.GetTxOpts(backend)
 
-	course, err := course.NewCourse(cAddr, backend)
+	tx, err := course.RemoveStudent(opts, studentAddress)
 	if err != nil {
-		return fmt.Errorf("Failed to get course: %v", err)
+		return nil, fmt.Errorf("Failed to remove student: %v", err)
 	}
 
-	_, err = course.RemoveStudent(opts, studentAddress)
-	if err != nil {
-		return fmt.Errorf("Failed to remove student: %v", err)
+	if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: false}, studentAddress); !ok {
+		fmt.Printf("student %s successfully removed!\n", studentAddress.Hex())
 	}
-
-	if ok, _ := course.IsEnrolled(nil, studentAddress); ok {
-		fmt.Printf("student %s successfully removed!", studentAddress.Hex())
-	}
-	return nil
+	return tx, nil
 }
 
 var issueCourseCredentialCmd = &cobra.Command{
 	Use:   "issue",
 	Short: "Issue a new credential",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 2 {
-			return errors.New("Missing arguments. Please specify: student_address path_to_json_credential")
+		if len(args) < 3 {
+			return errors.New("Missing arguments. Please specify: course_address student_address path_to_json_credential")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		studentAddress := common.HexToAddress(args[0])
-		a := &pb.AssignmentGradeCredential{}
-		pb.ParseJSON(args[1], a)
-		digest := pb.Hash(a)
-		err := registerCredential(studentAddress, digest)
+		course, err := getCourse(common.HexToAddress(args[0]))
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
+		studentAddress := common.HexToAddress(args[1])
+		a := &pb.AssignmentGradeCredential{}
+		pb.ParseJSON(args[2], a)
+		digest := pb.Hash(a)
+		tx, err := registerCredential(course, studentAddress, digest)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		fmt.Printf("Transaction ID: %x\n", tx.Hash())
 	},
 }
 
-func registerCredential(studentAddress common.Address, digest [32]byte) error {
-	cAddr := common.HexToAddress(courseAddress)
-	backend, err := clientConn.Backend()
-	opts, err := wallet.GetTxOpts(backend)
+func registerCredential(course *course.Course, studentAddress common.Address, digest [32]byte) (*types.Transaction, error) {
+	backend, _ := clientConn.Backend()
+	opts, _ := wallet.GetTxOpts(backend)
 
-	course, err := course.NewCourse(cAddr, backend)
+	tx, err := course.RegisterCredential(opts, studentAddress, digest)
 	if err != nil {
-		return fmt.Errorf("Failed to get course: %v", err)
+		return nil, fmt.Errorf("Failed to register credential: %v", err)
 	}
+	return tx, nil
+}
 
-	_, err = course.RegisterCredential(opts, studentAddress, digest)
+func getCourse(courseAddress common.Address) (*course.Course, error) {
+	backend, _ := clientConn.Backend()
+	course, err := course.NewCourse(courseAddress, backend)
 	if err != nil {
-		return fmt.Errorf("Failed to register credential: %v", err)
+		return nil, fmt.Errorf("Failed to get course: %v", err)
 	}
-	return nil
+	return course, nil
 }
 
 func init() {
-	courseCmd.PersistentFlags().StringVar(&courseAddress, "courseAddress", "", "Use specified course address")
-
 	courseCmd.AddCommand(deployCourseCmd())
 	courseCmd.AddCommand(addStudentCmd)
 	courseCmd.AddCommand(rmStudentCmd)
