@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/relab/bbchain-dapp/src/core/accounts"
 	"github.com/spf13/cobra"
 )
@@ -14,17 +16,25 @@ var newAccount = &cobra.Command{
 	Use:   "new",
 	Short: "Create a new account",
 	Run: func(cmd *cobra.Command, args []string) {
-		accounts.NewAccount(accountAddress)
+		err := accounts.NewAccount(keystoreDir)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
 	},
 }
 
 var importAccount = &cobra.Command{
-	Use:    "import",
-	Short:  "Import an account based on private key",
-	PreRun: loadKeystore,
+	Use:   "import",
+	Short: "Import an account based on private key",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadKeystore()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		hexKey := args[0]
-		wallet, _ = accounts.ImportKey(hexKey, keyStore)
+		var err error
+		wallet, err = accounts.ImportKey(args[0], keyStore)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
 	},
 }
 
