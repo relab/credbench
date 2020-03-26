@@ -11,10 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/relab/bbchain-dapp/src/core/backends"
 	"github.com/relab/bbchain-dapp/src/core/course"
 	"github.com/relab/bbchain-dapp/src/core/faculty/contract"
-	"github.com/stretchr/testify/assert"
+	"github.com/relab/bbchain-dapp/src/utils"
 
 	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
@@ -248,7 +250,7 @@ func TestCreateDiploma(t *testing.T) {
 		}
 		tf.Backend.Commit()
 
-		d, err := backends.EncodeByteArray(courseDigests)
+		d, err := utils.EncodeByteArray(courseDigests)
 		if err != nil {
 			t.Error(err)
 		}
@@ -275,13 +277,13 @@ func TestCreateDiploma(t *testing.T) {
 	diplomaCredential := pb.NewFakeDiplomaCredential(adms[0].Address.Hex(), diploma)
 	digest := pb.Hash(diplomaCredential)
 	expectedDigests = append(expectedDigests, digest)
-	digestRoot, _ := backends.EncodeByteArray(expectedDigests)
+	digestRoot, _ := utils.EncodeByteArray(expectedDigests)
 
 	collectedDigests, err := tf.Faculty.CollectCredentials(&bind.CallOpts{From: adms[0].Address}, student.Address, coursesAddresses)
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, _ := backends.EncodeByteArray(append(collectedDigests, digest))
+	root, _ := utils.EncodeByteArray(append(collectedDigests, digest))
 	assert.Equal(t, digestRoot, root)
 
 	opts, _ := tf.Backend.GetTxOpts(adms[0].Key)

@@ -10,7 +10,7 @@ import (
 	"github.com/relab/bbchain-dapp/src/core/notary/contract"
 )
 
-var TimedParams = &Params{ContractAbi: contract.TimedABI}
+var TimedParams = &Params{ContractABI: contract.TimedABI}
 
 // Timed is a Go wrapper around an on-chain timed contract.
 type Timed struct {

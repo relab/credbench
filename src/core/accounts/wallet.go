@@ -4,13 +4,14 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"io/ioutil"
+
 	ethAccounts "github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console"
 	"github.com/ethereum/go-ethereum/crypto"
-	"io/ioutil"
 )
 
 type BBChainWallet interface {
@@ -81,9 +82,8 @@ func ImportKey(hexkey string, keyStore *keystore.KeyStore) (BBChainWallet, error
 	}, nil
 }
 
-func NewAccount(keystoreDir string) error {
+func NewAccount(keystoreDir string) (err error) {
 	var account ethAccounts.Account
-	var err error
 
 	keyStore := keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP)
 	account, err = createAccount(keyStore)
@@ -100,14 +100,12 @@ func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, er
 		return nil, fmt.Errorf("Failed to estimate the gas price: %v", err)
 	}
 	transactOpts := bind.NewKeyedTransactor(w.privateKey)
-	transactOpts.GasLimit = uint64(6721975)
+	transactOpts.GasLimit = uint64(6721975) //TODO: get from config file
 	transactOpts.GasPrice = gasPrice
 	return transactOpts, nil
 }
 
-func (w *wallet) Unlock(password string) error {
-	var err error
-
+func (w *wallet) Unlock(password string) (err error) {
 	err = w.keyStore.Unlock(w.account, password)
 	if err != nil {
 		if password != "" {
@@ -149,15 +147,12 @@ func GetAccountAddress(addr string, keystoreDir string) common.Address {
 	var account ethAccounts.Account
 
 	address := common.HexToAddress(addr)
-
 	keyStore := keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP)
-
 	if (address != common.Address{}) && keyStore.HasAddress(address) {
 		return address
 	}
 	account, _ = getAccount(address, keyStore)
 	address = account.Address
-
 	return address
 }
 
@@ -167,6 +162,9 @@ func GetAddress(key *ecdsa.PrivateKey) common.Address {
 
 func getAccount(accountAddr common.Address, keyStore *keystore.KeyStore) (ethAccounts.Account, error) {
 	accounts := keyStore.Accounts()
+	if len(accounts) == 0 {
+		return ethAccounts.Account{}, fmt.Errorf("no accounts, please create one")
+	}
 
 	if (accountAddr != common.Address{}) {
 		for _, account := range accounts {
@@ -177,7 +175,7 @@ func getAccount(accountAddr common.Address, keyStore *keystore.KeyStore) (ethAcc
 
 		return ethAccounts.Account{}, fmt.Errorf("Ethereum account not found")
 	}
-	//Return the first account
+	//Return the first existent account
 	return accounts[0], nil
 }
 
@@ -212,12 +210,12 @@ func getPassword(repeat bool) (string, error) {
 }
 
 func decryptKeyFile(path string, password string) (*ecdsa.PrivateKey, error) {
-	keyJson, err := ioutil.ReadFile(path)
+	keyJSON, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("cannot open account file: %v", err)
 	}
 
-	key, err := keystore.DecryptKey(keyJson, password)
+	key, err := keystore.DecryptKey(keyJSON, password)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +223,7 @@ func decryptKeyFile(path string, password string) (*ecdsa.PrivateKey, error) {
 	return key.PrivateKey, nil
 }
 
-func getKeys(hexkey string) (*ecdsa.PrivateKey, common.Address, error) {
+func GetKeys(hexkey string) (*ecdsa.PrivateKey, common.Address, error) {
 	key, err := crypto.HexToECDSA(hexkey)
 	if err != nil {
 		return nil, common.Address{}, fmt.Errorf("Error parsing the private key: %v", err)

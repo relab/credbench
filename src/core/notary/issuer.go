@@ -12,7 +12,7 @@ import (
 	"github.com/relab/bbchain-dapp/src/core/notary/contract"
 )
 
-var IssuerParams = &Params{ContractAbi: contract.OwnersABI}
+var IssuerParams = &Params{ContractABI: contract.IssuerABI}
 
 // Issuer is a Go wrapper around an on-chain issuer contract.
 type Issuer struct {

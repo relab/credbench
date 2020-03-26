@@ -13,7 +13,10 @@ import (
 	"github.com/relab/bbchain-dapp/src/core/notary"
 )
 
-var FacultyParams = &notary.Params{contract.FacultyBin, contract.FacultyABI}
+var FacultyParams = &notary.Params{
+	ContractCode: contract.FacultyBin,
+	ContractABI:  contract.FacultyABI,
+}
 
 // Faculty is a Go wrapper around an on-chain faculty contract.
 type Faculty struct {

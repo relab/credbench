@@ -4,16 +4,15 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/crypto"
+
+	wallet "github.com/relab/bbchain-dapp/src/core/accounts"
 )
 
 // Account represents a test account
@@ -57,7 +56,7 @@ type TestBackend struct {
 func init() {
 	var accounts []Account
 	for _, acc := range defaultHexkeys {
-		key, addr := getKeys(acc)
+		key, addr, _ := wallet.GetKeys(acc)
 		accounts = append(accounts, Account{Key: key, Address: addr})
 	}
 	TestAccounts = accounts
@@ -70,15 +69,6 @@ func NewTestBackend() *TestBackend {
 	}
 	backend := backends.NewSimulatedBackend(ethAccounts, 10000000)
 	return &TestBackend{backend}
-}
-
-func getKeys(hexkey string) (*ecdsa.PrivateKey, common.Address) {
-	key, err := crypto.HexToECDSA(hexkey)
-	if err != nil {
-		log.Fatal(err)
-	}
-	address := crypto.PubkeyToAddress(key.PublicKey)
-	return key, address
 }
 
 // duration in seconds
@@ -109,21 +99,4 @@ func (b *TestBackend) GetTxOpts(key *ecdsa.PrivateKey) (*bind.TransactOpts, erro
 	opts.GasLimit = uint64(6721975)
 	opts.GasPrice = gasPrice
 	return opts, nil
-}
-
-func EncodeByteArray(byteArray [][32]byte) ([32]byte, error) {
-	var hash [32]byte
-
-	bytes32ArrayType, err := abi.NewType("bytes32[]", "", nil)
-	if err != nil {
-		return hash, err
-	}
-	arguments := abi.Arguments{{Type: bytes32ArrayType}}
-	bytes, err := arguments.Pack(byteArray)
-	if err != nil {
-		return hash, err
-	}
-
-	hash = crypto.Keccak256Hash(bytes)
-	return hash, nil
 }

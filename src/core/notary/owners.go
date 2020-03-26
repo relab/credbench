@@ -11,7 +11,10 @@ import (
 	"github.com/relab/bbchain-dapp/src/core/notary/contract"
 )
 
-var OwnersParams = &Params{contract.OwnersBin, contract.OwnersABI}
+var OwnersParams = &Params{
+	ContractCode: contract.OwnersBin,
+	ContractABI:  contract.OwnersABI,
+}
 
 // Owners is a Go wrapper around an on-chain owners contract.
 type Owners struct {

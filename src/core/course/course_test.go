@@ -9,11 +9,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/relab/bbchain-dapp/src/core/accounts"
 	"github.com/relab/bbchain-dapp/src/core/backends"
 	"github.com/relab/bbchain-dapp/src/core/course/contract"
-	"github.com/stretchr/testify/assert"
+	"github.com/relab/bbchain-dapp/src/utils"
 
 	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
@@ -317,7 +318,7 @@ func TestIssuerAggregateCredential(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedDigest, err := backends.EncodeByteArray(digests)
+	expectedDigest, err := utils.EncodeByteArray(digests)
 	if err != nil {
 		t.Error(err)
 	}
@@ -359,7 +360,7 @@ func TestVerifyCredential(t *testing.T) {
 	}
 	tc.Backend.Commit()
 
-	expectedDigest, err := backends.EncodeByteArray(digests)
+	expectedDigest, err := utils.EncodeByteArray(digests)
 	if err != nil {
 		t.Error(err)
 	}

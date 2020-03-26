@@ -8,12 +8,24 @@ package notary
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type Params struct {
-	ContractCode, ContractAbi string
+	ContractCode, ContractABI string
+}
+
+type Notary interface {
+	RegisterCredential(opts *bind.TransactOpts, subject common.Address, digest [32]byte) (*types.Transaction, error)
+	ConfirmCredential(opts *bind.TransactOpts, digest [32]byte) (*types.Transaction, error)
+	Certified(opts *bind.CallOpts, digest [32]byte) (bool, error)
+	Revoke(opts *bind.TransactOpts, digest [32]byte, reason [32]byte) (*types.Transaction, error)
+	AggregateCredentials(opts *bind.TransactOpts, subject common.Address) (*types.Transaction, error)
+	VerifyCredential(opts *bind.CallOpts, subject common.Address, digest [32]byte) (bool, error)
 }
 
 // CredentialProof represents an on-chain proof that a

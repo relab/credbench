@@ -12,7 +12,7 @@ import (
 	"github.com/relab/bbchain-dapp/src/core/notary/contract"
 )
 
-var AccountableIssuerParams = &Params{ContractAbi: contract.OwnersABI}
+var AccountableIssuerParams = &Params{ContractABI: contract.AccountableIssuerABI}
 
 // AccountableIssuer is a Go wrapper around an on-chain AccountableIssuer contract.
 type AccountableIssuer struct {

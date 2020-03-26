@@ -3,15 +3,20 @@ package course
 //go:generate abigen --combined-json ../../ethereum/build/course/combined.json --pkg contract --out ./contract/course.go
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/relab/bbchain-dapp/src/core/course/contract"
 	"github.com/relab/bbchain-dapp/src/core/notary"
-	"math/big"
 )
 
-var CourseParams = &notary.Params{contract.CourseBin, contract.CourseABI}
+var CourseParams = &notary.Params{
+	ContractCode: contract.CourseBin,
+	ContractABI:  contract.CourseABI,
+}
 
 // Course is a Go wrapper around an on-chain course contract.
 type Course struct {
