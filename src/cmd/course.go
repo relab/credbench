@@ -191,8 +191,7 @@ func registerCredential(course *course.Course, studentAddress common.Address, di
 		return nil, fmt.Errorf("Failed to register credential: %v", err)
 	}
 
-	// TODO: use ethereum hash
-	err = db.UpdateEntry("course", course.Address().Hex(), map[string][]string{"credentials": []string{fmt.Sprintf("%x", digest)}})
+	err = db.UpdateEntry("course", course.Address().Hex(), map[string][]string{"credentials": []string{common.Bytes2Hex(digest[:])}})
 	if err != nil {
 		return nil, fmt.Errorf("Failed update course entry: %v", err)
 	}

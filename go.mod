@@ -8,4 +8,5 @@ require (
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.5.1
+	go.etcd.io/bbolt v1.3.2
 )
