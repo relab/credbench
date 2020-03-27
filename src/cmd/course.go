@@ -10,10 +10,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/relab/bbchain-dapp/src/core/course"
 	"github.com/spf13/cobra"
 
+	"github.com/relab/bbchain-dapp/src/core/course"
 	contract "github.com/relab/bbchain-dapp/src/core/course/contract"
+	"github.com/relab/bbchain-dapp/src/database"
 	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
 
@@ -21,7 +22,7 @@ var courseCmd = &cobra.Command{
 	Use:   "course",
 	Short: "Course contract",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		err := setupClient()
+		err := setupClient(dbPath, dbFile)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
@@ -37,11 +38,7 @@ func deployCourseCmd() *cobra.Command {
 		Use:   "deploy",
 		Short: "Deploy course contract",
 		Run: func(cmd *cobra.Command, args []string) {
-			var ownersList []common.Address
-			for _, addr := range owners {
-				ownersList = append(ownersList, common.HexToAddress(addr))
-			}
-			tx, err := deployCourse(ownersList, quorum)
+			tx, err := deployCourse(owners, quorum)
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
@@ -58,7 +55,12 @@ func deployCourseCmd() *cobra.Command {
 	return c
 }
 
-func deployCourse(owners []common.Address, quorum int64) (tx *types.Transaction, err error) {
+func deployCourse(ownersList []string, quorum int64) (tx *types.Transaction, err error) {
+	var owners []common.Address
+	for _, addr := range ownersList {
+		owners = append(owners, common.HexToAddress(addr))
+	}
+
 	backend, _ := clientConn.Backend()
 	opts, _ := wallet.GetTxOpts(backend)
 
@@ -73,6 +75,8 @@ func deployCourse(owners []common.Address, quorum int64) (tx *types.Transaction,
 		return nil, fmt.Errorf("failed to deploy the contract: %v", err)
 	}
 	fmt.Printf("Contract %v successfully deployed\n", courseAddress)
+	c := database.NewEntry(cAddr.Hex(), map[string][]string{"evaluators": ownersList})
+	db.CreateDBEntry("course", c)
 	return tx, nil
 }
 
@@ -106,6 +110,11 @@ func addStudent(course *course.Course, studentAddress common.Address) (*types.Tr
 	if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: false}, studentAddress); ok {
 		fmt.Printf("student %s successfully enrolled!\n", studentAddress.Hex())
 	}
+
+	err = db.UpdateEntry("course", course.Address().Hex(), map[string][]string{"students": []string{studentAddress.Hex()}})
+	if err != nil {
+		return nil, fmt.Errorf("Failed update course entry: %v", err)
+	}
 	return tx, nil
 }
 
@@ -138,6 +147,11 @@ func rmStudent(course *course.Course, studentAddress common.Address) (*types.Tra
 
 	if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: false}, studentAddress); !ok {
 		fmt.Printf("student %s successfully removed!\n", studentAddress.Hex())
+	}
+
+	err = db.DeleteEntryElement("course", course.Address().Hex(), studentAddress.Hex())
+	if err != nil {
+		return nil, fmt.Errorf("Failed update course entry: %v", err)
 	}
 	return tx, nil
 }
@@ -175,6 +189,12 @@ func registerCredential(course *course.Course, studentAddress common.Address, di
 	tx, err := course.RegisterCredential(opts, studentAddress, digest)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to register credential: %v", err)
+	}
+
+	// TODO: use ethereum hash
+	err = db.UpdateEntry("course", course.Address().Hex(), map[string][]string{"credentials": []string{fmt.Sprintf("%x", digest)}})
+	if err != nil {
+		return nil, fmt.Errorf("Failed update course entry: %v", err)
 	}
 	return tx, nil
 }

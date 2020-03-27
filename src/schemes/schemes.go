@@ -3,7 +3,6 @@ package schemes
 import (
 	"bytes"
 	"crypto/sha256"
-	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -14,10 +13,6 @@ import (
 func Hash(pb proto.Message) [32]byte {
 	data, _ := proto.Marshal(pb)
 	return sha256.Sum256(data)
-}
-
-func HashString(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }
 
 func ParseJSON(path string, m proto.Message) {
