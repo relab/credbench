@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"path"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/relab/bbchain-dapp/src/core/accounts"
 	"github.com/relab/bbchain-dapp/src/core/client"
-	"github.com/relab/bbchain-dapp/src/database"
 )
 
 var (
@@ -22,7 +20,6 @@ var (
 	wallet     accounts.BBChainWallet
 	senderAddr common.Address
 	clientConn client.BBChainEthClient
-	db         *database.Database
 )
 
 func setupClient(dbpath, dbfile string) (err error) {
@@ -42,19 +39,11 @@ func setupClient(dbpath, dbfile string) (err error) {
 			return err
 		}
 	}
-
-	dbFileName := path.Join(dbpath, dbfile)
-	db, err = database.NewDatabase(dbFileName)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func clientClose(_ *cobra.Command, _ []string) {
 	clientConn.Close()
-	db.Close()
 }
 
 func newClientConn() (client.BBChainEthClient, error) {

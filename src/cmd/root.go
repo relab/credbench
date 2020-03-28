@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/relab/bbchain-dapp/src/database"
 	"github.com/relab/bbchain-dapp/src/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -50,8 +49,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&ipcFile, "ipc",
 		defaultIPC(), "Ethereum Inter-process Communication file")
 	rootCmd.PersistentFlags().BoolVar(&waitPeers, "waitPeers", false, "Minimum number of peers connected")
-	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", "", "Path to the database file")
-	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "", "File name of the database")
 }
 
 func initConfig() {
@@ -69,22 +66,15 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 		parseConfigFile()
 	}
-	setupDatabase()
+	initSetup()
 }
 
-func setupDatabase() (err error) {
+func initSetup() (err error) {
 	err = utils.CreateDir(datadir)
 	if err != nil {
 		return err
 	}
-
-	db, err = database.CreateDatabase(dbPath, dbFile)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	return nil
+	return err
 }
 
 func parseConfigFile() {
@@ -94,8 +84,6 @@ func parseConfigFile() {
 	backendURL = "http://" + viper.GetString("backend.host") + ":" + viper.GetString("backend.port")
 	ipcFile = viper.GetString("backend.ipc")
 	waitPeers = viper.GetBool("backend.waitPeers")
-	dbPath = viper.GetString("database.path")
-	dbFile = viper.GetString("database.filename")
 }
 
 func defaultConfigPath() string {

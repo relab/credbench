@@ -14,7 +14,6 @@ import (
 
 	"github.com/relab/bbchain-dapp/src/core/course"
 	contract "github.com/relab/bbchain-dapp/src/core/course/contract"
-	"github.com/relab/bbchain-dapp/src/database"
 	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
 
@@ -75,8 +74,6 @@ func deployCourse(ownersList []string, quorum int64) (tx *types.Transaction, err
 		return nil, fmt.Errorf("failed to deploy the contract: %v", err)
 	}
 	fmt.Printf("Contract %v successfully deployed\n", courseAddress)
-	c := database.NewEntry(cAddr.Hex(), map[string][]string{"evaluators": ownersList})
-	db.CreateDBEntry("course", c)
 	return tx, nil
 }
 
@@ -110,11 +107,6 @@ func addStudent(course *course.Course, studentAddress common.Address) (*types.Tr
 	if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: false}, studentAddress); ok {
 		fmt.Printf("student %s successfully enrolled!\n", studentAddress.Hex())
 	}
-
-	err = db.UpdateEntry("course", course.Address().Hex(), map[string][]string{"students": []string{studentAddress.Hex()}})
-	if err != nil {
-		return nil, fmt.Errorf("Failed update course entry: %v", err)
-	}
 	return tx, nil
 }
 
@@ -147,11 +139,6 @@ func rmStudent(course *course.Course, studentAddress common.Address) (*types.Tra
 
 	if ok, _ := course.IsEnrolled(&bind.CallOpts{Pending: false}, studentAddress); !ok {
 		fmt.Printf("student %s successfully removed!\n", studentAddress.Hex())
-	}
-
-	err = db.DeleteEntryElement("course", course.Address().Hex(), studentAddress.Hex())
-	if err != nil {
-		return nil, fmt.Errorf("Failed update course entry: %v", err)
 	}
 	return tx, nil
 }
@@ -189,11 +176,6 @@ func registerCredential(course *course.Course, studentAddress common.Address, di
 	tx, err := course.RegisterCredential(opts, studentAddress, digest)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to register credential: %v", err)
-	}
-
-	err = db.UpdateEntry("course", course.Address().Hex(), map[string][]string{"credentials": []string{common.Bytes2Hex(digest[:])}})
-	if err != nil {
-		return nil, fmt.Errorf("Failed update course entry: %v", err)
 	}
 	return tx, nil
 }
