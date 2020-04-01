@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/relab/bbchain-dapp/benchmark/database"
+	"github.com/relab/bbchain-dapp/src/core/client"
 	"github.com/relab/bbchain-dapp/src/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,9 +31,28 @@ var (
 
 var defaultWaitTime = 10 * time.Second
 
+var (
+	clientConn client.BBChainEthClient
+	db         *database.Database
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "bbchain",
 	Short: "BBChain verifiable credential system",
+	PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		err := setupClient()
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		err = setupDB(dbPath, dbFile)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+	},
+	PersistentPostRun: func(_ *cobra.Command, _ []string) {
+		clientConn.Close()
+		db.Close()
+	},
 }
 
 func Execute() {

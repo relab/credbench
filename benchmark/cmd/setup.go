@@ -20,20 +20,6 @@ import (
 var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Setup benchmark",
-	PersistentPreRun: func(_ *cobra.Command, _ []string) {
-		err := setupClient()
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-		err = setupDB(dbPath, dbFile)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-	},
-	PersistentPostRun: func(_ *cobra.Command, _ []string) {
-		clientConn.Close()
-		db.Close()
-	},
 }
 
 var deployCoursesCmd = &cobra.Command{

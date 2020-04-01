@@ -25,15 +25,6 @@ var inc = template.FuncMap{
 var genesisCmd = &cobra.Command{
 	Use:   "genesis",
 	Short: "Generate genesis file",
-	PersistentPreRun: func(_ *cobra.Command, _ []string) {
-		err := setupDB(dbPath, dbFile)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-	},
-	PersistentPostRun: func(_ *cobra.Command, _ []string) {
-		db.Close()
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		n, err := strconv.Atoi(args[0])
 		if err != nil {

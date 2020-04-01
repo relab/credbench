@@ -30,6 +30,13 @@ var defaultWaitTime = 10 * time.Second
 var rootCmd = &cobra.Command{
 	Use:   "bbchain",
 	Short: "BBChain verifiable credential system",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		err := setupClient(dbPath, dbFile)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+	},
+	PersistentPostRun: clientClose,
 }
 
 func Execute() {

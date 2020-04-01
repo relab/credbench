@@ -3,9 +3,27 @@ package cmd
 import (
 	"log"
 
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/relab/bbchain-dapp/src/core/accounts"
 	"github.com/spf13/cobra"
 )
+
+var (
+	keyStore   *keystore.KeyStore
+	wallet     accounts.BBChainWallet
+	senderAddr common.Address
+)
+
+func loadWallet() (err error) {
+	senderAddr = accounts.GetAccountAddress(defaultAccount, keystoreDir)
+	wallet, err = accounts.NewWallet(senderAddr, keystoreDir)
+	return err
+}
+
+func loadKeystore() {
+	keyStore = keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP)
+}
 
 var accountCmd = &cobra.Command{
 	Use:   "account",

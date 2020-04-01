@@ -24,11 +24,6 @@ import (
 	"github.com/relab/bbchain-dapp/benchmark/database"
 )
 
-var (
-	clientConn client.BBChainEthClient
-	db         *database.Database
-)
-
 func setupClient() (err error) {
 	clientConn, err = newClientConn()
 	if err != nil {

@@ -13,15 +13,6 @@ import (
 var accountsCmd = &cobra.Command{
 	Use:   "accounts",
 	Short: "Manage accounts",
-	PersistentPreRun: func(_ *cobra.Command, _ []string) {
-		err := setupDB(dbPath, dbFile)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-	},
-	PersistentPostRun: func(_ *cobra.Command, _ []string) {
-		db.Close()
-	},
 }
 
 var createAccountsCmd = &cobra.Command{

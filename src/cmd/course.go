@@ -19,13 +19,6 @@ import (
 var courseCmd = &cobra.Command{
 	Use:   "course",
 	Short: "Course contract",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		err := setupClient(dbPath, dbFile)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-	},
-	PersistentPostRun: clientClose,
 }
 
 func deployCourseCmd() *cobra.Command {
