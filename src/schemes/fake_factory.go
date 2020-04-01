@@ -1,23 +1,27 @@
 package schemes
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/relab/bbchain-dapp/src/utils"
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+func hashString(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
+}
+
 func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
 	c := rand.Intn(10000) //FIXME: if the same number is chosen twice, two assignments will have the same hash in the test case and some tests will fail since isn't possible to issue two assignments with the same hash
 	return &AssignmentGrade{
-		Id:          utils.HashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
+		Id:          hashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
 		Name:        fmt.Sprintf("%s%d", "Exam ", c),
 		Code:        fmt.Sprintf("%s%d", "EX-", c),
 		Category:    "InternalActivity",

@@ -15,8 +15,8 @@ import (
 
 	"github.com/relab/bbchain-dapp/src/core/backends"
 	"github.com/relab/bbchain-dapp/src/core/course"
+	"github.com/relab/bbchain-dapp/src/core/encode"
 	"github.com/relab/bbchain-dapp/src/core/faculty/contract"
-	"github.com/relab/bbchain-dapp/src/utils"
 
 	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
@@ -250,7 +250,7 @@ func TestCreateDiploma(t *testing.T) {
 		}
 		tf.Backend.Commit()
 
-		d, err := utils.EncodeByteArray(courseDigests)
+		d, err := encode.EncodeByteArray(courseDigests)
 		if err != nil {
 			t.Error(err)
 		}
@@ -277,13 +277,13 @@ func TestCreateDiploma(t *testing.T) {
 	diplomaCredential := pb.NewFakeDiplomaCredential(adms[0].Address.Hex(), diploma)
 	digest := pb.Hash(diplomaCredential)
 	expectedDigests = append(expectedDigests, digest)
-	digestRoot, _ := utils.EncodeByteArray(expectedDigests)
+	digestRoot, _ := encode.EncodeByteArray(expectedDigests)
 
 	collectedDigests, err := tf.Faculty.CollectCredentials(&bind.CallOpts{From: adms[0].Address}, student.Address, coursesAddresses)
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, _ := utils.EncodeByteArray(append(collectedDigests, digest))
+	root, _ := encode.EncodeByteArray(append(collectedDigests, digest))
 	assert.Equal(t, digestRoot, root)
 
 	opts, _ := tf.Backend.GetTxOpts(adms[0].Key)

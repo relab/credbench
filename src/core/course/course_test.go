@@ -14,7 +14,7 @@ import (
 	"github.com/relab/bbchain-dapp/src/core/accounts"
 	"github.com/relab/bbchain-dapp/src/core/backends"
 	"github.com/relab/bbchain-dapp/src/core/course/contract"
-	"github.com/relab/bbchain-dapp/src/utils"
+	"github.com/relab/bbchain-dapp/src/core/encode"
 
 	pb "github.com/relab/bbchain-dapp/src/schemes"
 )
@@ -318,7 +318,7 @@ func TestIssuerAggregateCredential(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedDigest, err := utils.EncodeByteArray(digests)
+	expectedDigest, err := encode.EncodeByteArray(digests)
 	if err != nil {
 		t.Error(err)
 	}
@@ -360,7 +360,7 @@ func TestVerifyCredential(t *testing.T) {
 	}
 	tc.Backend.Commit()
 
-	expectedDigest, err := utils.EncodeByteArray(digests)
+	expectedDigest, err := encode.EncodeByteArray(digests)
 	if err != nil {
 		t.Error(err)
 	}
