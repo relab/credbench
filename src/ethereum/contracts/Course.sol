@@ -2,12 +2,11 @@ pragma solidity >=0.5.13 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "bbchain-contracts/contracts/Issuer.sol";
-import "bbchain-contracts/contracts/Timed.sol";
 
 /**
  * @title Academic Course
  */
-contract Course is Timed, Issuer {
+contract Course is Issuer {
     // The teacher and the evaluator are owners of the contract
     mapping(address => bool) public enrolledStudents;
 
@@ -20,14 +19,12 @@ contract Course is Timed, Issuer {
     }
 
     /**
-    * @dev Constructor creates a Issuer contract
+    * @dev Constructor creates a Course contract
     */
     constructor(
         address[] memory owners,
-        uint256 quorum,
-        uint256 startingTime,
-        uint256 endingTime
-    ) public Issuer(owners, quorum) Timed(startingTime, endingTime) {
+        uint256 quorum
+    ) public Issuer(owners, quorum) {
         // solhint-disable-previous-line no-empty-blocks
     }
 
@@ -45,7 +42,7 @@ contract Course is Timed, Issuer {
      * @dev Adds a student to the course
      * @param student the address of the student to be added.
      */
-    function addStudent(address student) public onlyOwner whileNotEnded {
+    function addStudent(address student) public virtual onlyOwner {
         require(
             !isEnrolled(student),
             "Course: student already registered in this course"
@@ -60,7 +57,6 @@ contract Course is Timed, Issuer {
      */
     function _removeStudent(address student)
         internal
-        whileNotEnded
         registeredStudent(student)
     {
         enrolledStudents[student] = false;
@@ -70,20 +66,15 @@ contract Course is Timed, Issuer {
     /**
      * @dev Removes a student from the course
      */
-    function removeStudent(address student) public onlyOwner {
+    function removeStudent(address student) public virtual onlyOwner {
         _removeStudent(student);
     }
 
     /**
      * @dev Gives up the course
      */
-    function renounceCourse() public {
+    function renounceCourse() public virtual {
         _removeStudent(msg.sender);
-    }
-
-    // TODO: add tests for extenting time
-    function extendTime(uint256 NewEndingTime) public onlyOwner {
-        _extendTime(NewEndingTime);
     }
 
     /**
@@ -91,9 +82,9 @@ contract Course is Timed, Issuer {
      */
     function registerCredential(address student, bytes32 digest)
         public
+        virtual
         override
         onlyOwner
-        whileNotEnded
         registeredStudent(student)
     {
         super.registerCredential(student, digest);
@@ -102,11 +93,11 @@ contract Course is Timed, Issuer {
     // TODO: only allow onwer to call the aggregation? If so, the faculty contract will not be able to call the method, and the teacher will need to call it
     function aggregateCredentials(address student)
         public
+        virtual
         override
         registeredStudent(student)
         returns (bytes32)
     {
-        require(hasEnded(), "Course: course not ended yet");
         return super.aggregateCredentials(student);
     }
 }

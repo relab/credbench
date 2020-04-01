@@ -1,12 +1,12 @@
 pragma solidity >=0.5.13 <0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../Faculty.sol";
+import "../TimedFaculty.sol";
 
-contract FacultyMock is Faculty {
+contract TimedFacultyMock is TimedFaculty {
     constructor(address[] memory owners, uint256 quorum)
         public
-        Faculty(owners, quorum)
+        TimedFaculty(owners, quorum)
     {
         // solhint-disable-previous-line no-empty-blocks
     }

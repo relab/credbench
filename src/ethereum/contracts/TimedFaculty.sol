@@ -1,13 +1,14 @@
 pragma solidity >=0.5.13 <0.7.0;
 
 import "bbchain-contracts/contracts/AccountableIssuer.sol";
-import "./Course.sol";
+import "./TimedCourse.sol";
 
+// TODO: contract to manage employees (addresses) - enhancement
 /**
- * @title Academic Faculty
+ * @title Academic TimedFaculty
  * This contract manage courses contracts.
  */
-contract Faculty is AccountableIssuer {
+contract TimedFaculty is AccountableIssuer {
     // Map courses by semester
     mapping(bytes32 => address[]) public coursesBySemester;
 
@@ -29,11 +30,15 @@ contract Faculty is AccountableIssuer {
     function createCourse(
         bytes32 semester,
         address[] memory teachers,
-        uint256 quorum
+        uint256 quorum,
+        uint256 beginTimestamp,
+        uint256 endTimestamp
     ) public onlyOwner returns (address) {
-        Course course = new Course(
+        TimedCourse course = new TimedCourse(
             teachers,
-            quorum
+            quorum,
+            beginTimestamp,
+            endTimestamp
         );
         coursesBySemester[semester].push(address(course));
         addIssuer(address(course));

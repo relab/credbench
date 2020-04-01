@@ -6,10 +6,12 @@
     "test": "test"
   },
   "scripts": {
-    "compile": "truffle compile",
+    "compile": "truffle compile --all",
     "console": "truffle console",
     "migrate": "truffle migrate --reset",
     "migrate:ganache": "truffle migrate --reset --network ganache",
+    "generate": "node scripts/parseArtifact.js",
+    "clean": "rm -rf ./build",
     "ganache-cli": "ganache-cli --deterministic --networkId 5777 --host 127.0.0.1 --port 7545",
     "test": "truffle test",
     "test:ganache": "truffle test --network ganache",
@@ -36,6 +38,7 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "ganache-cli": "^6.9.1",
+    "mkdirp": "^1.0.3",
     "sol2uml": "^1.1.13",
     "solhint": "^2.3.0",
     "truffle": "^5.1.15"
