@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"math"
 	"math/big"
 	"strconv"
 	"time"
@@ -60,7 +62,7 @@ var deployCoursesCmd = &cobra.Command{
 }
 
 func createCourses(c, e, s int) error {
-	as := database.NewAccountStore(db, []string{"accounts"})
+	as := database.NewAccountStore(db, []string{"eth_accounts"})
 	for i := 0; i < c; i++ {
 		evaluators, err := as.GetAndSelect(as.Path, e, pb.Type_EVALUATOR)
 		sender := evaluators[0]
@@ -142,6 +144,19 @@ func addStudents(senderHexKey string, course *course.Course, addresses []string)
 		}
 	}
 	return nil
+}
+
+func getBalance(hexAddress string) *big.Float {
+	backend, _ := clientConn.Backend()
+	address := common.HexToAddress(hexAddress)
+	balance, err := backend.BalanceAt(context.Background(), address, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fbalance := new(big.Float)
+	fbalance.SetString(balance.String())
+	// eth = wei / 10^18
+	return new(big.Float).Quo(fbalance, big.NewFloat(math.Pow10(18)))
 }
 
 func init() {

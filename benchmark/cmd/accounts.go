@@ -46,7 +46,7 @@ func createAccounts(n int) ([]*pb.Account, error) {
 		return []*pb.Account{}, err
 	}
 	accounts := generateAccounts(n)
-	err = as.AddAccounts([]string{"accounts"}, accounts)
+	err = as.AddAccounts([]string{"eth_accounts"}, accounts)
 	if err != nil {
 		return []*pb.Account{}, err
 	}

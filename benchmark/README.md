@@ -4,7 +4,7 @@
 
 ### Compiling protobuf files 
 ```
-protoc -I=./proto --go_out=./proto ./proto/*.proto
+$ protoc -I=./proto --go_out=./proto ./proto/*.proto
 ```
 
 ### Generate genesis

@@ -49,7 +49,7 @@ var genesisCmd = &cobra.Command{
 		data := &genesisData{
 			ChainID:        42,
 			GasLimit:       "6721975",
-			DefaultBalance: "9000000000000000000",
+			DefaultBalance: "10000000000000000000",
 			N:              len(addresses) - 1,
 			Accounts:       addresses,
 		}
