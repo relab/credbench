@@ -7,7 +7,6 @@ import (
 	"math"
 	"math/big"
 	"strconv"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/relab/bbchain-dapp/benchmark/database"
@@ -109,11 +108,7 @@ func deployCourse(senderHexKey string, ownersList []string, quorum int64) (commo
 		return common.Address{}, err
 	}
 
-	now := time.Now()
-	startingTime := now.Unix()
-	endingTime := now.Add(time.Hour).Unix()
-
-	cAddr, _, _, err := contract.DeployCourse(opts, backend, owners, big.NewInt(quorum), big.NewInt(startingTime), big.NewInt(endingTime))
+	cAddr, _, _, err := contract.DeployCourse(opts, backend, owners, big.NewInt(quorum))
 	if err != nil || cAddr.Hex() == "0x0000000000000000000000000000000000000000" {
 		return common.Address{}, fmt.Errorf("failed to deploy the contract: %v", err)
 	}
