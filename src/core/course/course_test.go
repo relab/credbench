@@ -1,11 +1,9 @@
 package course
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -29,7 +27,7 @@ type TestCourse struct {
 func NewTestCourse(t *testing.T, evaluators backends.Accounts, quorum *big.Int) *TestCourse {
 	backend := backends.NewTestBackend()
 
-	courseAddr, _, err := deploy(backend, evaluators[0].Key, evaluators.Addresses(), big.NewInt(int64(len(evaluators))))
+	courseAddr, _, err := deployCourse(backend, evaluators[0].Key, evaluators.Addresses(), big.NewInt(int64(len(evaluators))))
 	if err != nil {
 		t.Fatalf("deploy contract: expected no error, got %v", err)
 	}
@@ -107,10 +105,9 @@ func (tc *TestCourse) ConfirmTestCredential(t *testing.T, from *ecdsa.PrivateKey
 	assert.Equal(t, accounts.GetAddress(from), event.Signer)
 }
 
-func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, evaluators []common.Address, quorum *big.Int) (common.Address, *contract.Course, error) {
+func deployCourse(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, evaluators []common.Address, quorum *big.Int) (common.Address, *contract.Course, error) {
 	opts := bind.NewKeyedTransactor(prvKey)
-	startingTime, endingTime := backend.GetPeriod(uint64(100))
-	courseAddr, _, course, err := contract.DeployCourse(opts, backend, evaluators, quorum, startingTime, endingTime)
+	courseAddr, _, course, err := contract.DeployCourse(opts, backend, evaluators, quorum)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
@@ -140,21 +137,6 @@ func TestNewCourse(t *testing.T) {
 func TestAddStudent(t *testing.T) {
 	tc := NewTestCourse(t, backends.TestAccounts[:1], big.NewInt(1))
 	defer tc.Backend.Close()
-
-	header, err := tc.Backend.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if ok, err := tc.Course.contract.IsStarted(nil); err != nil || !ok {
-		t.Fatalf("Course should not be started yet in block: %v, but IsStarted returned: %t with error: %v", header.Number, ok, err)
-	}
-
-	// Increases block timestamp by 10 seconds
-	err = tc.Backend.AdjustTime(10 * time.Second)
-	if err != nil {
-		t.Error(err)
-	}
 
 	// Add a student
 	studentAddress := backends.TestAccounts[2].Address
@@ -293,21 +275,8 @@ func TestIssuerAggregateCredential(t *testing.T) {
 		tc.ConfirmTestCredential(t, studentKey, d)
 	}
 
-	// Force end of the course
-	endingTime, _ := tc.Course.EndingTime(nil)
-	err := tc.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
-	if err != nil {
-		t.Error(err)
-	}
-
-	ended, err := tc.Course.HasEnded(nil)
-	if err != nil {
-		t.Error(err)
-	}
-	assert.True(t, ended)
-
 	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
-	_, err = tc.Course.AggregateCredentials(opts, studentAddress)
+	_, err := tc.Course.AggregateCredentials(opts, studentAddress)
 	if err != nil {
 		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
 	}
@@ -341,20 +310,8 @@ func TestVerifyCredential(t *testing.T) {
 		tc.ConfirmTestCredential(t, studentKey, d)
 	}
 
-	endingTime, _ := tc.Course.EndingTime(nil)
-	err := tc.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
-	if err != nil {
-		t.Error(err)
-	}
-
-	ended, err := tc.Course.HasEnded(nil)
-	if err != nil {
-		t.Error(err)
-	}
-	assert.True(t, ended)
-
 	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
-	_, err = tc.Course.AggregateCredentials(opts, studentAddress)
+	_, err := tc.Course.AggregateCredentials(opts, studentAddress)
 	if err != nil {
 		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
 	}

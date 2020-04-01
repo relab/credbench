@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -32,7 +31,7 @@ type TestFaculty struct {
 func NewTestFaculty(t *testing.T, adms backends.Accounts, quorum *big.Int) *TestFaculty {
 	backend := backends.NewTestBackend()
 
-	facultyAddr, _, err := deploy(backend, adms[0].Key, adms.Addresses(), big.NewInt(int64(len(adms))))
+	facultyAddr, _, err := deployFaculty(backend, adms[0].Key, adms.Addresses(), big.NewInt(int64(len(adms))))
 	if err != nil {
 		t.Fatalf("deploy contract: expected no error, got %v", err)
 	}
@@ -48,7 +47,7 @@ func NewTestFaculty(t *testing.T, adms backends.Accounts, quorum *big.Int) *Test
 	}
 }
 
-func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, adms []common.Address, quorum *big.Int) (common.Address, *contract.Faculty, error) {
+func deployFaculty(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, adms []common.Address, quorum *big.Int) (common.Address, *contract.Faculty, error) {
 	opts := bind.NewKeyedTransactor(prvKey)
 	facultyAddr, _, faculty, err := contract.DeployFaculty(opts, backend, adms, quorum)
 	if err != nil {
@@ -58,7 +57,6 @@ func deploy(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, adms []comm
 	return facultyAddr, faculty, nil
 }
 
-// todo: create diploma
 func TestNewFaculty(t *testing.T) {
 	admsAccount := backends.TestAccounts[:2]
 	tf := NewTestFaculty(t, admsAccount, big.NewInt(2))
@@ -82,10 +80,9 @@ func TestFacultyCreateCourse(t *testing.T) {
 	tf := NewTestFaculty(t, adms, big.NewInt(int64(len(adms))))
 	defer tf.Backend.Close()
 
-	startingTime, endingTime := tf.Backend.GetPeriod(uint64(100))
 	semester := sha256.Sum256([]byte("spring2020"))
 	opts := bind.NewKeyedTransactor(adms[0].Key)
-	_, err := tf.Faculty.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))), startingTime, endingTime)
+	_, err := tf.Faculty.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))))
 	if err != nil {
 		t.Fatalf("CreateCourse expected no error but got: %v", err)
 	}
@@ -146,10 +143,9 @@ func TestCreateDiploma(t *testing.T) {
 	var coursesAddresses []common.Address
 	for i := 0; i < 4; i++ {
 		// adm creates course
-		startingTime, endingTime := tf.Backend.GetPeriod(uint64(10000))
 		semester := sha256.Sum256([]byte("spring2020"))
 		opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
-		_, err := tf.Faculty.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))), startingTime, endingTime)
+		_, err := tf.Faculty.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))))
 		if err != nil {
 			t.Fatalf("CreateCourse expected no error but got: %v", err)
 		}
@@ -260,11 +256,6 @@ func TestCreateDiploma(t *testing.T) {
 	for _, c := range diploma.Courses {
 		caddr := common.HexToAddress(c.Course.GetId())
 		courseInstance, _ := course.NewCourse(caddr, tf.Backend)
-
-		endingTime, _ := courseInstance.EndingTime(nil)
-		tf.Backend.IncreaseTime(time.Duration(endingTime.Int64()) * time.Second)
-		ended, _ := courseInstance.HasEnded(nil)
-		assert.True(t, ended)
 
 		opts, _ := tf.Backend.GetTxOpts(evaluators[0].Key)
 		_, err := courseInstance.AggregateCredentials(opts, student.Address)

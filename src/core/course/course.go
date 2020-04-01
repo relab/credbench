@@ -3,8 +3,6 @@ package course
 //go:generate abigen --combined-json ../../ethereum/build/course/combined.json --pkg contract --out ./contract/course.go
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -21,7 +19,6 @@ var CourseParams = &notary.Params{
 // Course is a Go wrapper around an on-chain course contract.
 type Course struct {
 	*notary.Issuer
-	*notary.Timed
 	address  common.Address
 	contract *contract.Course
 }
@@ -34,8 +31,7 @@ func NewCourse(contractAddr common.Address, backend bind.ContractBackend) (*Cour
 		return nil, err
 	}
 	i, err := notary.NewIssuer(contractAddr, backend)
-	t, err := notary.NewTimed(contractAddr, backend)
-	return &Course{i, t, contractAddr, c}, nil
+	return &Course{i, contractAddr, c}, nil
 }
 
 // Address returns the contract address of the course.
@@ -66,9 +62,4 @@ func (c *Course) EnrolledStudents(opts *bind.CallOpts, student common.Address) (
 // IsEnrolled
 func (c *Course) IsEnrolled(opts *bind.CallOpts, student common.Address) (bool, error) {
 	return c.contract.IsEnrolled(opts, student)
-}
-
-// ExtendTime extends the notarization time.
-func (c *Course) ExtendTime(opts *bind.TransactOpts, newEndingTime *big.Int) (*types.Transaction, error) {
-	return c.contract.ExtendTime(opts, newEndingTime)
 }

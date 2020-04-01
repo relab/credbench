@@ -55,6 +55,6 @@ func (f *Faculty) CoursesBySemester(opts *bind.CallOpts, semester [32]byte) []co
 }
 
 // CreateCourse create a new course contract
-func (f *Faculty) CreateCourse(opts *bind.TransactOpts, semester [32]byte, teachers []common.Address, quorum *big.Int, beginTimestamp *big.Int, endTimestamp *big.Int) (*types.Transaction, error) {
-	return f.contract.CreateCourse(opts, semester, teachers, quorum, beginTimestamp, endTimestamp)
+func (f *Faculty) CreateCourse(opts *bind.TransactOpts, semester [32]byte, teachers []common.Address, quorum *big.Int) (*types.Transaction, error) {
+	return f.contract.CreateCourse(opts, semester, teachers, quorum)
 }
