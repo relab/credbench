@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/relab/bbchain-dapp/src/core/client"
 	"github.com/relab/bbchain-dapp/src/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,23 +21,28 @@ var (
 	keystoreDir    string
 	datadir        string
 	ipcFile        string
-	dbPath         string
-	dbFile         string
 	waitPeers      bool
 )
 
-var defaultWaitTime = 10 * time.Second
+var clientConn client.BBChainEthClient
 
 var rootCmd = &cobra.Command{
 	Use:   "bbchain",
 	Short: "BBChain verifiable credential system",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		err := setupClient(dbPath, dbFile)
+	PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		err := loadWallet()
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+
+		clientConn, err = setupClient()
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
 	},
-	PersistentPostRun: clientClose,
+	PersistentPostRun: func(_ *cobra.Command, _ []string) {
+		clientConn.Close()
+	},
 }
 
 func Execute() {
@@ -82,6 +88,21 @@ func initSetup() (err error) {
 		return err
 	}
 	return err
+}
+
+func setupClient() (client.BBChainEthClient, error) {
+	c, err := client.NewClient(backendURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if waitPeers {
+		err = c.CheckConnectPeers(10 * time.Second)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
 }
 
 func parseConfigFile() {
