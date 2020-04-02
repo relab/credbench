@@ -9,11 +9,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	bolt "go.etcd.io/bbolt"
+
 	"github.com/relab/bbchain-dapp/benchmark/database"
 	"github.com/relab/bbchain-dapp/src/core/client"
 	"github.com/relab/bbchain-dapp/src/utils"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -29,22 +31,21 @@ var (
 	waitPeers           bool
 )
 
-var defaultWaitTime = 10 * time.Second
-
 var (
 	clientConn client.BBChainEthClient
 	db         *database.Database
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "bbchain",
-	Short: "BBChain verifiable credential system",
+	Use:   "benchmark",
+	Short: "BBChain benchmark generator",
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
-		err := setupClient()
+		err := setupDB(dbPath, dbFile)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-		err = setupDB(dbPath, dbFile)
+
+		clientConn, err = setupClient()
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
@@ -71,8 +72,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&ipcFile, "ipc",
 		defaultIPC(), "Ethereum Inter-process Communication file")
 	rootCmd.PersistentFlags().BoolVar(&waitPeers, "waitPeers", false, "Minimum number of peers connected")
-	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", "", "Path to the database file")
-	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "", "File name of the database")
+	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", defaultDatabasePath(), "Path to the database file")
+	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "bbchain.db", "File name of the database")
 	rootCmd.PersistentFlags().StringVar(&genesisFile, "genesisFile", "", "Path to the ethereum genesis file")
 
 	//FIXME: should be relative to code path
@@ -124,6 +125,27 @@ func createDatabase() (err error) {
 	return nil
 }
 
+func setupClient() (client.BBChainEthClient, error) {
+	c, err := client.NewClient(backendURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if waitPeers {
+		err = c.CheckConnectPeers(10 * time.Second)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
+}
+
+func setupDB(dbpath, dbfile string) (err error) {
+	dbFileName := path.Join(dbpath, dbfile)
+	db, err = database.NewDatabase(dbFileName, &bolt.Options{Timeout: 1 * time.Second})
+	return err
+}
+
 func defaultConfigPath() string {
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -138,6 +160,10 @@ func defaultDatadir() string {
 		log.Fatalf("error getting user home directory: %v", err)
 	}
 	return filepath.Join(currentUser.HomeDir, ".bbchain")
+}
+
+func defaultDatabasePath() string {
+	return filepath.Join(datadir, "database")
 }
 
 func defaultIPC() string {

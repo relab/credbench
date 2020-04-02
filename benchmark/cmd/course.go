@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -17,14 +18,20 @@ import (
 	pb "github.com/relab/bbchain-dapp/benchmark/proto"
 )
 
-var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "Setup benchmark",
+var courseCmd = &cobra.Command{
+	Use:   "course",
+	Short: "Setup course contracts",
 }
 
 var deployCoursesCmd = &cobra.Command{
-	Use:   "courses",
+	Use:   "deploy",
 	Short: "Deploy N courses contract",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 3 {
+			return errors.New("please provide the: {{number_of_course}} {{number_of_evaluators}} and {{number_of_students}}")
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := strconv.Atoi(args[0])
 		if err != nil {
@@ -141,6 +148,6 @@ func getBalance(hexAddress string) *big.Float {
 }
 
 func init() {
-	rootCmd.AddCommand(setupCmd)
-	setupCmd.AddCommand(deployCoursesCmd)
+	rootCmd.AddCommand(courseCmd)
+	courseCmd.AddCommand(deployCoursesCmd)
 }

@@ -18,10 +18,6 @@ type genesisData struct {
 	Accounts       []string // Account addresses
 }
 
-var inc = template.FuncMap{
-	"inc": func(i int) int { return i + 1 },
-}
-
 var genesisCmd = &cobra.Command{
 	Use:   "genesis",
 	Short: "Generate genesis file",
