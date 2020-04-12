@@ -1,4 +1,5 @@
-const { expectEvent, constants, time, expectRevert } = require('@openzeppelin/test-helpers');
+const { BN, expectEvent, constants, time, expectRevert } = require('@openzeppelin/test-helpers');
+const { expect } = require('chai');
 
 const TimedCourse = artifacts.require('TimedCourseMock');
 
@@ -17,7 +18,7 @@ contract('TimedCourse', accounts => {
             course = await TimedCourse.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
             (await course.isOwner(teacher)).should.equal(true);
             (await course.isOwner(evaluator)).should.equal(true);
-            assert(course.quorum(), 2);
+            expect(await course.quorum()).to.be.bignumber.equal(new BN(2));
         });
     });
 
