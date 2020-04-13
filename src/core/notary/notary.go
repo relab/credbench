@@ -32,7 +32,7 @@ type Notary interface {
 // verifiable credential was created and signed by an issuer.
 type CredentialProof struct {
 	Signed         *big.Int
-	SubjectSigned  bool
+	Approved       bool
 	InsertedBlock  *big.Int
 	BlockTimestamp *big.Int
 	Nonce          *big.Int
@@ -42,7 +42,7 @@ type CredentialProof struct {
 }
 
 func (cp *CredentialProof) String() string {
-	return fmt.Sprintf("Signed: %v, SubjectSigned: %t, InsertedBlock: %v, Issuer: %s, Subject: %s, Digest: %x", cp.Signed, cp.SubjectSigned, cp.InsertedBlock, cp.Issuer.Hex(), cp.Subject.Hex(), cp.Digest)
+	return fmt.Sprintf("Signed: %v, Approved: %t, InsertedBlock: %v, Issuer: %s, Subject: %s, Digest: %x", cp.Signed, cp.Approved, cp.InsertedBlock, cp.Issuer.Hex(), cp.Subject.Hex(), cp.Digest)
 }
 
 // RevocationProof represents an on-chain proof that a

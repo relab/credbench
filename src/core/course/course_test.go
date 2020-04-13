@@ -236,7 +236,7 @@ func TestIssuerRegisterCredential(t *testing.T) {
 	assert.Equal(t, studentAddress, proof.Subject, "Subject address should be equal")
 	assert.Equal(t, tc.Evaluators[0].Address, proof.Issuer, "Subject address should be equal")
 	assert.Equal(t, digest, proof.Digest, "Assignment digest should be equal")
-	assert.False(t, proof.SubjectSigned)
+	assert.False(t, proof.Approved)
 }
 
 func TestStudentSignCredential(t *testing.T) {
@@ -251,12 +251,12 @@ func TestStudentSignCredential(t *testing.T) {
 	digest := tc.RegisterTestCredential(t, studentAddress)
 
 	proof := tc.Course.IssuedCredentials(nil, digest)
-	assert.False(t, proof.SubjectSigned)
+	assert.False(t, proof.Approved)
 
 	tc.ConfirmTestCredential(t, studentKey, digest)
 
 	proof = tc.Course.IssuedCredentials(nil, digest)
-	assert.True(t, proof.SubjectSigned)
+	assert.True(t, proof.Approved)
 }
 
 func TestIssuerAggregateCredential(t *testing.T) {
