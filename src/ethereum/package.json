@@ -8,6 +8,7 @@
   "scripts": {
     "compile": "truffle compile --all",
     "console": "truffle console",
+    "coverage": "truffle run coverage --file=\"test/*.js\" --network ganache",
     "migrate": "truffle migrate --reset",
     "migrate:ganache": "truffle migrate --reset --network ganache",
     "generate": "node scripts/parseArtifact.js",
@@ -37,10 +38,12 @@
     "eslint-plugin-node": "^9.2.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
+    "eth-gas-reporter": "^0.2.17",
     "ganache-cli": "^6.9.1",
     "mkdirp": "^1.0.3",
     "sol2uml": "^1.1.13",
     "solhint": "^2.3.0",
+    "solidity-coverage": "^0.7.4",
     "truffle": "^5.1.15"
   }
 }
