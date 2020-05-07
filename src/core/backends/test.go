@@ -3,11 +3,9 @@ package backends
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -75,7 +73,7 @@ func NewTestBackend() *TestBackend {
 func (b *TestBackend) GetPeriod(duration uint64) (*big.Int, *big.Int) {
 	header, _ := b.HeaderByNumber(context.Background(), nil)
 	// Every backend.Commit() increases the block time in 10 secs
-	// so we calculate the start time to in the next block
+	// so we calculate the start time to be in the next block
 	startingTime := header.Time + 10
 	endingTime := startingTime + duration
 	return new(big.Int).SetUint64(startingTime), new(big.Int).SetUint64(endingTime)
@@ -88,15 +86,4 @@ func (b *TestBackend) IncreaseTime(duration time.Duration) error {
 	}
 	b.Commit()
 	return nil
-}
-
-func (b *TestBackend) GetTxOpts(key *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
-	gasPrice, err := b.SuggestGasPrice(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("Failed to estimate the gas price: %v", err)
-	}
-	opts := bind.NewKeyedTransactor(key)
-	opts.GasLimit = uint64(6721975)
-	opts.GasPrice = gasPrice
-	return opts, nil
 }

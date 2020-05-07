@@ -14,12 +14,12 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+// TODO: separate account and wallet
 type BBChainWallet interface {
 	Account() ethAccounts.Account
 	PrivateKey() *ecdsa.PrivateKey
 	Unlock(password string) error
 	Lock() error
-	GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error)
 }
 
 type wallet struct {
@@ -94,12 +94,12 @@ func NewAccount(keystoreDir string) (err error) {
 	return nil
 }
 
-func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error) {
+func GetTxOpts(key *ecdsa.PrivateKey, backend bind.ContractBackend) (*bind.TransactOpts, error) {
 	gasPrice, err := backend.SuggestGasPrice(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("Failed to estimate the gas price: %v", err)
 	}
-	transactOpts := bind.NewKeyedTransactor(w.privateKey)
+	transactOpts := bind.NewKeyedTransactor(key)
 	transactOpts.GasLimit = uint64(6721975) //TODO: get from config file
 	transactOpts.GasPrice = gasPrice
 	return transactOpts, nil

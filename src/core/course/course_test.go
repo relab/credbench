@@ -44,7 +44,7 @@ func NewTestCourse(t *testing.T, evaluators backends.Accounts, quorum *big.Int) 
 }
 
 func (tc *TestCourse) AddStudents(t *testing.T, students backends.Accounts) {
-	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
+	opts, _ := accounts.GetTxOpts(tc.Evaluators[0].Key, tc.Backend)
 	for _, addr := range students.Addresses() {
 		_, err := tc.Course.AddStudent(opts, addr)
 		if err != nil {
@@ -71,7 +71,7 @@ func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [3
 		sub.Unsubscribe()
 	}()
 
-	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
+	opts, _ := accounts.GetTxOpts(tc.Evaluators[0].Key, tc.Backend)
 	_, err := tc.Course.RegisterCredential(opts, to, digest)
 	if err != nil {
 		t.Fatalf("RegisterCredential expected no error, got: %v", err)
@@ -94,7 +94,7 @@ func (tc *TestCourse) ConfirmTestCredential(t *testing.T, from *ecdsa.PrivateKey
 		sub.Unsubscribe()
 	}()
 
-	opts, _ := tc.Backend.GetTxOpts(from)
+	opts, _ := accounts.GetTxOpts(from, tc.Backend)
 	_, err := tc.Course.ConfirmCredential(opts, digest)
 	if err != nil {
 		t.Fatalf("ConfirmCredential expected no error, got: %v", err)
@@ -140,7 +140,7 @@ func TestAddStudent(t *testing.T) {
 
 	// Add a student
 	studentAddress := backends.TestAccounts[2].Address
-	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
+	opts, _ := accounts.GetTxOpts(tc.Evaluators[0].Key, tc.Backend)
 	if _, err := tc.Course.AddStudent(opts, studentAddress); err != nil {
 		t.Fatalf("AddStudent expected to add a student but return: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestRemoveStudent(t *testing.T) {
 	tc.AddStudents(t, backends.Accounts{student})
 
 	// Remove a student
-	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
+	opts, _ := accounts.GetTxOpts(tc.Evaluators[0].Key, tc.Backend)
 	if _, err := tc.Course.RemoveStudent(opts, studentAddress); err != nil {
 		t.Fatalf("RemoveStudent expected to remove a student but return: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestRenounceCourse(t *testing.T) {
 	studentAddress := student.Address
 	tc.AddStudents(t, backends.Accounts{student})
 
-	opts, _ := tc.Backend.GetTxOpts(studentKey)
+	opts, _ := accounts.GetTxOpts(studentKey, tc.Backend)
 	if _, err := tc.Course.RenounceCourse(opts); err != nil {
 		t.Fatalf("RenounceCourse expected to remove the sender (student) but return: %v", err)
 	}
@@ -275,7 +275,7 @@ func TestIssuerAggregateCredential(t *testing.T) {
 		tc.ConfirmTestCredential(t, studentKey, d)
 	}
 
-	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
+	opts, _ := accounts.GetTxOpts(tc.Evaluators[0].Key, tc.Backend)
 	_, err := tc.Course.AggregateCredentials(opts, studentAddress)
 	if err != nil {
 		t.Fatalf("AggregateCredentials expected no error, got: %v", err)
@@ -310,7 +310,7 @@ func TestVerifyCredential(t *testing.T) {
 		tc.ConfirmTestCredential(t, studentKey, d)
 	}
 
-	opts, _ := tc.Backend.GetTxOpts(tc.Evaluators[0].Key)
+	opts, _ := accounts.GetTxOpts(tc.Evaluators[0].Key, tc.Backend)
 	_, err := tc.Course.AggregateCredentials(opts, studentAddress)
 	if err != nil {
 		t.Fatalf("AggregateCredentials expected no error, got: %v", err)

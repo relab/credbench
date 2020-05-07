@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 
+	"github.com/relab/bbchain-dapp/src/core/accounts"
 	"github.com/relab/bbchain-dapp/src/core/course"
 	contract "github.com/relab/bbchain-dapp/src/core/course/contract"
 	pb "github.com/relab/bbchain-dapp/src/schemes"
@@ -53,7 +54,7 @@ func deployCourse(ownersList []string, quorum int64) (tx *types.Transaction, err
 	}
 
 	backend, _ := clientConn.Backend()
-	opts, _ := wallet.GetTxOpts(backend)
+	opts, _ := accounts.GetTxOpts(wallet.PrivateKey(), backend)
 
 	var cAddr common.Address
 	cAddr, tx, _, err = contract.DeployCourse(opts, backend, owners, big.NewInt(quorum))
@@ -85,7 +86,7 @@ var addStudentCmd = &cobra.Command{
 
 func addStudent(course *course.Course, studentAddress common.Address) (*types.Transaction, error) {
 	backend, _ := clientConn.Backend()
-	opts, _ := wallet.GetTxOpts(backend)
+	opts, _ := accounts.GetTxOpts(wallet.PrivateKey(), backend)
 
 	tx, err := course.AddStudent(opts, studentAddress)
 	if err != nil {
@@ -118,7 +119,7 @@ var rmStudentCmd = &cobra.Command{
 
 func rmStudent(course *course.Course, studentAddress common.Address) (*types.Transaction, error) {
 	backend, _ := clientConn.Backend()
-	opts, _ := wallet.GetTxOpts(backend)
+	opts, _ := accounts.GetTxOpts(wallet.PrivateKey(), backend)
 
 	tx, err := course.RemoveStudent(opts, studentAddress)
 	if err != nil {
@@ -159,7 +160,7 @@ var issueCourseCredentialCmd = &cobra.Command{
 
 func registerCredential(course *course.Course, studentAddress common.Address, digest [32]byte) (*types.Transaction, error) {
 	backend, _ := clientConn.Backend()
-	opts, _ := wallet.GetTxOpts(backend)
+	opts, _ := accounts.GetTxOpts(wallet.PrivateKey(), backend)
 
 	tx, err := course.RegisterCredential(opts, studentAddress, digest)
 	if err != nil {

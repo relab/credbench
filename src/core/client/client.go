@@ -17,6 +17,7 @@ type BBChainEthClient interface {
 	CheckConnectPeers(timeout time.Duration) error
 }
 
+// TODO: add fixed embedded contract sessions and addresses
 type client struct {
 	url     string
 	rpc     *rpc.Client

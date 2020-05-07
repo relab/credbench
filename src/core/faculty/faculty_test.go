@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/relab/bbchain-dapp/src/core/accounts"
 	"github.com/relab/bbchain-dapp/src/core/backends"
 	"github.com/relab/bbchain-dapp/src/core/course"
 	"github.com/relab/bbchain-dapp/src/core/encode"
@@ -144,7 +145,7 @@ func TestCreateDiploma(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		// adm creates course
 		semester := sha256.Sum256([]byte("spring2020"))
-		opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
+		opts, _ := accounts.GetTxOpts(adms[0].Key, tf.Backend)
 		_, err := tf.Faculty.CreateCourse(opts, semester, evaluators.Addresses(), big.NewInt(int64(len(evaluators))))
 		if err != nil {
 			t.Fatalf("CreateCourse expected no error but got: %v", err)
@@ -164,7 +165,7 @@ func TestCreateDiploma(t *testing.T) {
 		}
 
 		// teacher adds student
-		opts, _ = tf.Backend.GetTxOpts(evaluators[0].Key)
+		opts, _ = accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
 		_, err = courseInstance.AddStudent(opts, student.Address)
 		if err != nil {
 			t.Fatalf("AddStudent expected no error, got: %v", err)
@@ -194,7 +195,7 @@ func TestCreateDiploma(t *testing.T) {
 			// Publish digest of assignment credential
 			digest := pb.Hash(a)
 			courseDigests = append(courseDigests, digest)
-			opts, _ := tf.Backend.GetTxOpts(evaluators[0].Key)
+			opts, _ := accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
 			_, err := courseInstance.RegisterCredential(opts, student.Address, digest)
 			if err != nil {
 				t.Fatalf("RegisterCredential expected no error, got: %v", err)
@@ -204,14 +205,14 @@ func TestCreateDiploma(t *testing.T) {
 			assert.Equal(t, digest, proof.Digest)
 
 			// Second evaluator confirms
-			opts, _ = tf.Backend.GetTxOpts(evaluators[1].Key)
+			opts, _ = accounts.GetTxOpts(evaluators[1].Key, tf.Backend)
 			_, err = courseInstance.RegisterCredential(opts, student.Address, digest)
 			if err != nil {
 				t.Fatalf("RegisterCredential expected no error, got: %v", err)
 			}
 			tf.Backend.Commit()
 
-			opts, _ = tf.Backend.GetTxOpts(student.Key)
+			opts, _ = accounts.GetTxOpts(student.Key, tf.Backend)
 			_, err = courseInstance.ConfirmCredential(opts, digest)
 			if err != nil {
 				t.Fatalf("ConfirmCredential expected no error, got: %v", err)
@@ -222,7 +223,7 @@ func TestCreateDiploma(t *testing.T) {
 		// issue final course certificate
 		digest := pb.Hash(c)
 		courseDigests = append(courseDigests, digest)
-		opts, _ := tf.Backend.GetTxOpts(evaluators[0].Key)
+		opts, _ := accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
 		_, err := courseInstance.RegisterCredential(opts, student.Address, digest)
 		if err != nil {
 			t.Fatalf("RegisterCredential expected no error, got: %v", err)
@@ -232,14 +233,14 @@ func TestCreateDiploma(t *testing.T) {
 		assert.Equal(t, digest, proof.Digest)
 
 		// Second evaluator confirms
-		opts, _ = tf.Backend.GetTxOpts(evaluators[1].Key)
+		opts, _ = accounts.GetTxOpts(evaluators[1].Key, tf.Backend)
 		_, err = courseInstance.RegisterCredential(opts, student.Address, digest)
 		if err != nil {
 			t.Fatalf("RegisterCredential expected no error, got: %v", err)
 		}
 		tf.Backend.Commit()
 
-		opts, _ = tf.Backend.GetTxOpts(student.Key)
+		opts, _ = accounts.GetTxOpts(student.Key, tf.Backend)
 		_, err = courseInstance.ConfirmCredential(opts, digest)
 		if err != nil {
 			t.Fatalf("ConfirmCredential expected no error, got: %v", err)
@@ -257,7 +258,7 @@ func TestCreateDiploma(t *testing.T) {
 		caddr := common.HexToAddress(c.Course.GetId())
 		courseInstance, _ := course.NewCourse(caddr, tf.Backend)
 
-		opts, _ := tf.Backend.GetTxOpts(evaluators[0].Key)
+		opts, _ := accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
 		_, err := courseInstance.AggregateCredentials(opts, student.Address)
 		if err != nil {
 			t.Fatalf("AggregateCredentials expected no error, got: %v", err)
@@ -277,7 +278,7 @@ func TestCreateDiploma(t *testing.T) {
 	root, _ := encode.EncodeByteArray(append(collectedDigests, digest))
 	assert.Equal(t, digestRoot, root)
 
-	opts, _ := tf.Backend.GetTxOpts(adms[0].Key)
+	opts, _ := accounts.GetTxOpts(adms[0].Key, tf.Backend)
 	_, err = tf.Faculty.RegisterRootCredential(opts, student.Address, digest, digestRoot, coursesAddresses)
 	if err != nil {
 		t.Fatalf("RegisterRootCredential expected no error, got: %v", err)
@@ -288,14 +289,14 @@ func TestCreateDiploma(t *testing.T) {
 	assert.Equal(t, digest, d.Digest)
 
 	// Second evaluator confirms
-	opts, _ = tf.Backend.GetTxOpts(adms[1].Key)
+	opts, _ = accounts.GetTxOpts(adms[1].Key, tf.Backend)
 	_, err = tf.Faculty.RegisterCredential(opts, student.Address, digest)
 	if err != nil {
 		t.Fatalf("RegisterCredential expected no error, got: %v", err)
 	}
 	tf.Backend.Commit()
 
-	opts, _ = tf.Backend.GetTxOpts(student.Key)
+	opts, _ = accounts.GetTxOpts(student.Key, tf.Backend)
 	_, err = tf.Faculty.ConfirmCredential(opts, digest)
 	if err != nil {
 		t.Fatalf("ConfirmCredential expected no error, got: %v", err)
