@@ -31,7 +31,10 @@ module.exports = {
             currency: 'USD', // NOK, EUR
             src: "contracts",
             showMethodSig: true,
-            outputFile: "gas-report.txt"
+            outputFile: "gas-report.txt",
+            onlyCalledMethods: true,
+            showTimeSpent: true,
+            excludeContracts: ['Migrations']
         }
     },
 
@@ -39,7 +42,7 @@ module.exports = {
 
     compilers: {
         solc: {
-            version: '0.6.3',
+            version: '0.6.12',
             settings: {
                 optimizer: {
                     enabled: true,
