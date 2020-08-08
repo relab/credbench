@@ -1,9 +1,9 @@
 const { BN, expectEvent, constants, time, expectRevert } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 
-const TimedCourse = artifacts.require('TimedCourseMock');
+const Course = artifacts.require('CourseMock');
 
-contract('TimedCourse', accounts => {
+contract('Course', accounts => {
     const [teacher, evaluator, student, other] = accounts;
     let course = null;
     const digest1 = web3.utils.keccak256(web3.utils.toHex('cert1'));
@@ -13,9 +13,7 @@ contract('TimedCourse', accounts => {
 
     describe('constructor', () => {
         it('should successfully deploy the contract', async () => {
-            let beginTimestamp = (await time.latest()).add(time.duration.seconds(3));
-            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
-            course = await TimedCourse.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
+            course = await Course.new([teacher, evaluator], 2);
             (await course.isOwner(teacher)).should.equal(true);
             (await course.isOwner(evaluator)).should.equal(true);
             expect(await course.quorum()).to.be.bignumber.equal(new BN(2));
@@ -25,9 +23,7 @@ contract('TimedCourse', accounts => {
     describe('CRUD operations', () => {
 
         beforeEach(async () => {
-            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
-            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
-            course = await TimedCourse.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
+            course = await Course.new([teacher, evaluator], 2);
             await time.increase(time.duration.seconds(1));
         });
 
@@ -42,7 +38,7 @@ contract('TimedCourse', accounts => {
             (await course.enrolledStudents(student)).should.equal(true);
         });
 
-        it('only onwer should be able to add a student', async () => {
+        it('only owner should be able to add a student', async () => {
             await expectRevert(
                 course.addStudent(student, { from: other }),
                 "Owners: sender is not an owner"
@@ -70,7 +66,7 @@ contract('TimedCourse', accounts => {
             );
         });
 
-        it('only onwer should be able to remove an enrolled student', async () => {
+        it('only owner should be able to remove an enrolled student', async () => {
             await course.addStudent(student, { from: evaluator });
             (await course.enrolledStudents(student)).should.equal(true);
 
@@ -119,9 +115,7 @@ contract('TimedCourse', accounts => {
     describe('Certification', () => {
 
         beforeEach(async () => {
-            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
-            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
-            course = await TimedCourse.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
+            course = await Course.new([teacher, evaluator], 2);
             await time.increase(time.duration.seconds(1));
         });
 
@@ -153,8 +147,8 @@ contract('TimedCourse', accounts => {
             await course.registerCredential(student, courseDigest, { from: evaluator });
             await course.confirmCredential(courseDigest, { from: student });
 
-            await time.increase(time.duration.hours(1));
-            (await course.hasEnded()).should.equal(true);
+            // await time.increase(time.duration.hours(1));
+            // (await course.hasEnded()).should.equal(true);
 
             const aggregated = await course.aggregateCredentials.call(student);
             let expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', [digest1, digest2, digest3, courseDigest]));
@@ -167,9 +161,7 @@ contract('TimedCourse', accounts => {
         const expected = web3.utils.keccak256(web3.eth.abi.encodeParameter('bytes32[]', digests));
 
         beforeEach(async () => {
-            let beginTimestamp = (await time.latest()).add(time.duration.seconds(1));
-            let endTimestamp = beginTimestamp.add(await time.duration.hours(1));
-            course = await TimedCourse.new([teacher, evaluator], 2, beginTimestamp, endTimestamp);
+            course = await Course.new([teacher, evaluator], 2);
             await course.enrollStudents([student]);
             await time.increase(time.duration.seconds(1));
 
@@ -181,27 +173,9 @@ contract('TimedCourse', accounts => {
             }
         });
 
-        it('should revert when trying aggregate in an unfinished course', async () => {
-            (await course.hasEnded()).should.equal(false);
-
-            await expectRevert(
-                course.aggregateCredentials(student, { from: teacher }),
-                'TimedCourse: course not ended yet'
-            );
-        });
-
-        it('should only perform the aggregation after the course ends', async () => {
-            await time.increase(time.duration.hours(1));
-            (await course.hasEnded()).should.equal(true);
-
-            let proof = await course.aggregateCredentials.call(student, { from: teacher });
-
-            (proof).should.equal(expected);
-        });
-
         it('should not perform aggregation for unregistered students', async () => {
-            await time.increase(time.duration.hours(1));
-            (await course.hasEnded()).should.equal(true);
+            // await time.increase(time.duration.hours(1));
+            // (await course.hasEnded()).should.equal(true);
 
             await expectRevert(
                 course.aggregateCredentials(other, { from: teacher }),

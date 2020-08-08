@@ -1,6 +1,7 @@
-pragma solidity >=0.5.13 <0.7.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.7.0;
 
-import "bbchain-contracts/contracts/AccountableIssuer.sol";
+import "ct-eth/contracts/AccountableIssuer.sol";
 import "./Course.sol";
 
 /**

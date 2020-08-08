@@ -1,12 +1,13 @@
-pragma solidity >=0.5.13 <0.7.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../TimedFaculty.sol";
+import "../Faculty.sol";
 
-contract TimedFacultyMock is TimedFaculty {
+contract FacultyMock is Faculty {
     constructor(address[] memory owners, uint256 quorum)
         public
-        TimedFaculty(owners, quorum)
+        Faculty(owners, quorum)
     {
         // solhint-disable-previous-line no-empty-blocks
     }

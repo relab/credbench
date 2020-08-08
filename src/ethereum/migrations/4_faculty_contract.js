@@ -1,5 +1,5 @@
 var CredentialSum = artifacts.require("CredentialSum");
-var Faculty = artifacts.require("TimedFacultyMock");
+var Faculty = artifacts.require("FacultyMock");
 
 module.exports = async function (deployer, network, accounts) {
     const [issuer1, issuer2] = accounts;

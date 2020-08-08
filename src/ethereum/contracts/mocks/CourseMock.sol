@@ -1,15 +1,14 @@
-pragma solidity >=0.5.13 <0.7.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../TimedCourse.sol";
+import "../Course.sol";
 
-contract TimedCourseMock is TimedCourse {
+contract CourseMock is Course {
     constructor(
         address[] memory owners,
-        uint256 quorum,
-        uint256 startingTime,
-        uint256 endingTime
-    ) public TimedCourse(owners, quorum, startingTime, endingTime) {
+        uint256 quorum
+    ) public Course(owners, quorum) {
         // solhint-disable-previous-line no-empty-blocks
     }
 

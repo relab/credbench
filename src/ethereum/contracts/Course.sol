@@ -1,7 +1,8 @@
-pragma solidity >=0.5.13 <0.7.0;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "bbchain-contracts/contracts/Issuer.sol";
+import "ct-eth/contracts/Issuer.sol";
 
 /**
  * @title Academic Course
@@ -24,7 +25,7 @@ contract Course is Issuer {
     constructor(
         address[] memory owners,
         uint256 quorum
-    ) public Issuer(owners, quorum) {
+    ) public Issuer(owners, quorum, true) {
         // solhint-disable-previous-line no-empty-blocks
     }
 
