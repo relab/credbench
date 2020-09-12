@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
+pragma experimental ABIEncoderV2;
 
 import "ct-eth/contracts/AccountableIssuer.sol";
 import "./Course.sol";
@@ -21,7 +22,6 @@ contract Faculty is AccountableIssuer {
     );
 
     constructor(address[] memory owners, uint256 quorum)
-        public
         AccountableIssuer(owners, quorum)
     {
         // solhint-disable-previous-line no-empty-blocks

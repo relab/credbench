@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "../Faculty.sol";
 
 contract FacultyMock is Faculty {
     constructor(address[] memory owners, uint256 quorum)
-        public
         Faculty(owners, quorum)
     {
         // solhint-disable-previous-line no-empty-blocks

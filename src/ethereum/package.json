@@ -6,7 +6,7 @@
     "test": "test"
   },
   "scripts": {
-    "compile": "truffle compile --all",
+    "compile": "truffle compile --all && node scripts/parseArtifact.js",
     "console": "truffle console",
     "coverage": "truffle run coverage --file=\"test/*.js\" --network ganache",
     "migrate": "truffle migrate --reset",
@@ -30,7 +30,7 @@
   "devDependencies": {
     "@openzeppelin/contracts": "^3.1.0",
     "@openzeppelin/test-helpers": "^0.5.6",
-    "@truffle/hdwallet-provider": "^1.0.40",
+    "@truffle/hdwallet-provider": "^1.0.44",
     "chai": "^4.2.0",
     "eslint": "^7.6.0",
     "eslint-config-standard": "^14.1.1",
@@ -45,6 +45,6 @@
     "sol2uml": "^1.1.14",
     "solhint": "^3.1.0",
     "solidity-coverage": "^0.7.9",
-    "truffle": "^5.1.37"
+    "truffle": "^5.1.42"
   }
 }

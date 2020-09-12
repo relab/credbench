@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "ct-eth/contracts/Issuer.sol";
@@ -25,7 +25,7 @@ contract Course is Issuer {
     constructor(
         address[] memory owners,
         uint256 quorum
-    ) public Issuer(owners, quorum, true) {
+    ) Issuer(owners, quorum, true) {
         // solhint-disable-previous-line no-empty-blocks
     }
 
@@ -91,11 +91,11 @@ contract Course is Issuer {
         super.registerCredential(student, digest);
     }
 
-    // TODO: only allow onwer to call the aggregation? If so, the faculty contract will not be able to call the method, and the teacher will need to call it
     function aggregateCredentials(address student)
         public
         virtual
         override
+        onlyOwner
         registeredStudent(student)
         returns (bytes32)
     {
