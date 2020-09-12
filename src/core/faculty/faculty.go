@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/relab/bbchain-dapp/src/core/faculty/contract"
-	"github.com/relab/bbchain-dapp/src/core/notary"
+	"github.com/relab/ct-eth-dapp/src/core/faculty/contract"
+	"github.com/relab/ct-eth-dapp/src/core/notary"
 )
 
 var FacultyParams = &notary.Params{

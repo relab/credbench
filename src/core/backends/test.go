@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 
-	wallet "github.com/relab/bbchain-dapp/src/core/accounts"
+	wallet "github.com/relab/ct-eth-dapp/src/core/accounts"
 )
 
 // Account represents a test account

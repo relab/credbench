@@ -1,6 +1,6 @@
 package notary
 
-//go:generate abigen --abi ../../ethereum/build/abi/Issuer.abi --bin ../../ethereum/build/bin/Issuer.bin --pkg contract --type Issuer --out ./contract/issuer.go
+//go:generate abigen --abi ../../ethereum/build/abi/Issuer.abi --bin ../../ethereum/build/bin/Issuer.bin --pkg issuer --type Issuer --out ./contract/issuer/issuer.go
 
 import (
 	"math/big"
@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/relab/bbchain-dapp/src/core/notary/contract"
+	contract "github.com/relab/ct-eth-dapp/src/core/notary/contract/issuer"
 )
 
 var IssuerParams = &Params{ContractABI: contract.IssuerABI}
@@ -43,17 +43,22 @@ func (i *Issuer) Nonce(opts *bind.CallOpts, subject common.Address) (*big.Int, e
 }
 
 // IssuedCredentials maps document digest to issued credential proof
-func (i *Issuer) IssuedCredentials(opts *bind.CallOpts, digest [32]byte) *CredentialProof {
-	proof, _ := i.contract.IssuedCredentials(opts, digest)
-	var cp CredentialProof = proof
+func (i *Issuer) IssuedCredentials(opts *bind.CallOpts, digest [32]byte) *contract.IssuerCredentialProof {
+	proof, _ := i.contract.GetCredentialProof(opts, digest)
+	var cp contract.IssuerCredentialProof = proof
 	return &cp
 }
 
 // RevokedCredentials maps document digest to revoked proof
-func (i *Issuer) RevokedCredentials(opts *bind.CallOpts, digest [32]byte) *RevocationProof {
+func (i *Issuer) RevokedCredentials(opts *bind.CallOpts, digest [32]byte) *contract.IssuerRevocationProof {
 	proof, _ := i.contract.RevokedCredentials(opts, digest)
-	var rp RevocationProof = proof
+	var rp contract.IssuerRevocationProof = proof
 	return &rp
+}
+
+// OwnersList return the list of owners
+func (i *Issuer) OwnersList(opts *bind.CallOpts) ([]common.Address, error) {
+	return i.contract.Owners(opts)
 }
 
 // OwnersSigned maps digest to owners that already signed it
@@ -69,6 +74,16 @@ func (i *Issuer) DigestsBySubject(opts *bind.CallOpts, subject common.Address) (
 // GetProof returns the aggregated proof of a subject
 func (i *Issuer) GetProof(opts *bind.CallOpts, subject common.Address) ([32]byte, error) {
 	return i.contract.GetProof(opts, subject)
+}
+
+// GetWitnesses returns the witnesses of a proof
+func (i *Issuer) GetWitnesses(opts *bind.CallOpts, digest [32]byte) ([]common.Address, error) {
+	return i.contract.GetWitnesses(opts, digest)
+}
+
+// GetEvidenceRoot returns the root of the evidences of an issued credential proof
+func (i *Issuer) GetEvidenceRoot(opts *bind.CallOpts, digest [32]byte) ([32]byte, error) {
+	return i.contract.GetEvidenceRoot(opts, digest)
 }
 
 // IsRevoked verifies if a credential proof was revoked
@@ -107,6 +122,6 @@ func (i *Issuer) AggregateCredentials(opts *bind.TransactOpts, subject common.Ad
 }
 
 // VerifyCredential verifies if the credential of a given subject was correctly generated
-func (i *Issuer) VerifyCredential(opts *bind.CallOpts, subject common.Address, digest [32]byte) (bool, error) {
-	return i.contract.VerifyCredential(opts, subject, digest)
+func (i *Issuer) VerifyCredential(opts *bind.CallOpts, subject common.Address, root [32]byte) (bool, error) {
+	return i.contract.VerifyCredentialLeaf(opts, subject, root)
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/relab/bbchain-dapp/src/core/accounts"
+	"github.com/relab/ct-eth-dapp/src/core/accounts"
 	"github.com/spf13/cobra"
 )
 

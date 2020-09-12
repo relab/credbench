@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/relab/bbchain-dapp/src/core/client"
-	"github.com/relab/bbchain-dapp/src/utils"
+	"github.com/relab/ct-eth-dapp/src/core/client"
+	"github.com/relab/ct-eth-dapp/src/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

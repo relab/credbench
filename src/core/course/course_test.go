@@ -9,12 +9,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/relab/bbchain-dapp/src/core/accounts"
-	"github.com/relab/bbchain-dapp/src/core/backends"
-	"github.com/relab/bbchain-dapp/src/core/course/contract"
-	"github.com/relab/bbchain-dapp/src/core/encode"
+	"github.com/relab/ct-eth-dapp/src/core/accounts"
+	"github.com/relab/ct-eth-dapp/src/core/backends"
+	"github.com/relab/ct-eth-dapp/src/core/course/contract"
+	"github.com/relab/ct-eth-dapp/src/core/encode"
 
-	pb "github.com/relab/bbchain-dapp/src/schemes"
+	pb "github.com/relab/ct-eth-dapp/src/schemes"
 )
 
 type TestCourse struct {

@@ -11,10 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 
-	"github.com/relab/bbchain-dapp/src/core/accounts"
-	"github.com/relab/bbchain-dapp/src/core/course"
-	contract "github.com/relab/bbchain-dapp/src/core/course/contract"
-	pb "github.com/relab/bbchain-dapp/src/schemes"
+	"github.com/relab/ct-eth-dapp/src/core/accounts"
+	"github.com/relab/ct-eth-dapp/src/core/course"
+	contract "github.com/relab/ct-eth-dapp/src/core/course/contract"
+	pb "github.com/relab/ct-eth-dapp/src/schemes"
 )
 
 var courseCmd = &cobra.Command{

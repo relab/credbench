@@ -12,13 +12,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/relab/bbchain-dapp/src/core/accounts"
-	"github.com/relab/bbchain-dapp/src/core/backends"
-	"github.com/relab/bbchain-dapp/src/core/course"
-	"github.com/relab/bbchain-dapp/src/core/encode"
-	"github.com/relab/bbchain-dapp/src/core/faculty/contract"
+	"github.com/relab/ct-eth-dapp/src/core/accounts"
+	"github.com/relab/ct-eth-dapp/src/core/backends"
+	"github.com/relab/ct-eth-dapp/src/core/course"
+	"github.com/relab/ct-eth-dapp/src/core/encode"
+	"github.com/relab/ct-eth-dapp/src/core/faculty/contract"
 
-	pb "github.com/relab/bbchain-dapp/src/schemes"
+	pb "github.com/relab/ct-eth-dapp/src/schemes"
 )
 
 type TestFaculty struct {
@@ -153,7 +153,8 @@ func TestCreateDiploma(t *testing.T) {
 		tf.Backend.Commit()
 
 		// get course instance
-		courseAddr, _ := tf.Faculty.contract.Issuers(nil, big.NewInt(int64(i)))
+		courses, _ := tf.Faculty.contract.Issuers(nil)
+		courseAddr := courses[i]
 		coursesAddresses = append(coursesAddresses, courseAddr)
 
 		courseInstance, err := course.NewCourse(courseAddr, tf.Backend)
@@ -268,22 +269,17 @@ func TestCreateDiploma(t *testing.T) {
 
 	diplomaCredential := pb.NewFakeDiplomaCredential(adms[0].Address.Hex(), diploma)
 	digest := pb.Hash(diplomaCredential)
-	expectedDigests = append(expectedDigests, digest)
-	digestRoot, _ := encode.EncodeByteArray(expectedDigests)
-
-	collectedDigests, err := tf.Faculty.CollectCredentials(&bind.CallOpts{From: adms[0].Address}, student.Address, coursesAddresses)
-	if err != nil {
-		t.Fatal(err)
-	}
-	root, _ := encode.EncodeByteArray(append(collectedDigests, digest))
-	assert.Equal(t, digestRoot, root)
 
 	opts, _ := accounts.GetTxOpts(adms[0].Key, tf.Backend)
-	_, err = tf.Faculty.RegisterRootCredential(opts, student.Address, digest, digestRoot, coursesAddresses)
+	_, err := tf.Faculty.RegisterRootCredential(opts, student.Address, digest, coursesAddresses)
 	if err != nil {
 		t.Fatalf("RegisterRootCredential expected no error, got: %v", err)
 	}
 	tf.Backend.Commit()
+
+	digestRoot, _ := encode.EncodeByteArray(expectedDigests)
+	root, _ := tf.Faculty.GetEvidenceRoot(nil, digest)
+	assert.Equal(t, digestRoot, root)
 
 	d := tf.Faculty.IssuedCredentials(nil, digest)
 	assert.Equal(t, digest, d.Digest)

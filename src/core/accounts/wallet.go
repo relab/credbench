@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console"
+	"github.com/ethereum/go-ethereum/console/prompt"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -190,13 +190,13 @@ func createAccount(keyStore *keystore.KeyStore) (ethAccounts.Account, error) {
 }
 
 func getPassword(repeat bool) (string, error) {
-	password, err := console.Stdin.PromptPassword("Password: ")
+	password, err := prompt.Stdin.PromptPassword("Password: ")
 	if err != nil {
 		return "", err
 	}
 
 	if repeat {
-		confirmation, err := console.Stdin.PromptPassword("Repeat password: ")
+		confirmation, err := prompt.Stdin.PromptPassword("Repeat password: ")
 		if err != nil {
 			return "", err
 		}
