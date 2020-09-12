@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/relab/bbchain-dapp/src/cmd"
+	"github.com/relab/ct-eth-dapp/src/cmd"
 )
 
 func main() {

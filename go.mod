@@ -1,12 +1,12 @@
-module github.com/relab/bbchain-dapp
+module github.com/relab/ct-eth-dapp
 
-go 1.14
+go 1.15
 
 require (
-	github.com/ethereum/go-ethereum v1.9.12
-	github.com/golang/protobuf v1.3.5
-	github.com/spf13/cobra v0.0.7
-	github.com/spf13/viper v1.6.2
-	github.com/stretchr/testify v1.5.1
-	go.etcd.io/bbolt v1.3.4
+	github.com/ethereum/go-ethereum v1.9.21
+	github.com/golang/protobuf v1.4.2
+	github.com/spf13/cobra v1.0.0
+	github.com/spf13/viper v1.7.1
+	github.com/stretchr/testify v1.4.0
+	google.golang.org/protobuf v1.25.0
 )

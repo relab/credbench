@@ -2,7 +2,6 @@ PKG := .
 
 .PHONY: all build test run clean deps generate solc proto
 .PHONY: fmt lint vet codecheck
-.PHONY: build-linux build-osx build-windows
 
 # Go parameters
 GOCMD = go
@@ -12,19 +11,18 @@ GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get -u
 GOBIN_DIR = $(PKG)/bin
 SCHEMES_DIR = $(PKG)/schemes
-GO_BINDINGS_DIR = {$(PKG)/core/course/contract,$(PKG)/core/faculty/contract,$(PKG)/core/notary/contract}
+GO_BINDINGS_DIR = {$(PKG)/core/course/contract,$(PKG)/core/faculty/contract,$(PKG)/core/notary/contract,$(PKG)/core/notary/contract/issuer,$(PKG)/core/notary/contract/aissuer}
 CONTRACTS_SRC = ./ethereum/contracts
 SOLC_BUILD_DIR = ./ethereum/build
-EXTERNAL_CONTRACTS_SRC = ./ethereum/node_modules/bbchain-contracts/contracts,
+EXTERNAL_CONTRACTS_SRC = ./ethereum/node_modules/ct-eth/contracts,
 #../../node_modules/@openzeppelin/contracts/,
-CONTRACTS_DEPS = bbchain-contracts/contracts=./ethereum/node_modules/bbchain-contracts/contracts
+CONTRACTS_DEPS = ct-eth/contracts=./ethereum/node_modules/ct-eth/contracts
 # @openzeppelin/contracts=../../node_modules/@openzeppelin/contracts
-BBCHAIN_LIBS = ./ethereum/node_modules/bbchain-contracts/contracts/CredentialSum.sol
-SOLC_ARGS = --optimize --optimize-runs 200 --overwrite --combined-json abi,asm,ast,bin,bin-runtime,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc $(CONTRACTS_DEPS)
+BBCHAIN_LIBS = ./ethereum/node_modules/ct-eth/contracts/CredentialSum.sol
+SOLC_ARGS = --optimize --optimize-runs 100 --overwrite --combined-json abi,asm,ast,bin,bin-runtime,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc $(CONTRACTS_DEPS)
 BINARY_FILE = $(GOBIN_DIR)/bbchain
 
-# TODO: install contract dependencies: bbchain-contracts + openzeppelin contracts
-# TODO: use generate to create the directory structure too
+# TODO: install contract dependencies: ct-eth + openzeppelin contracts
 # TODO: generate abi/bin files in contracts directories (maybe calling the npm)
 
 all: proto solc generate build
@@ -55,7 +53,7 @@ deps:
 
 proto:
 	@echo Compiling proto files
-	@protoc -I=$(SCHEMES_DIR) --go_out=$(SCHEMES_DIR) $(SCHEMES_DIR)/*.proto
+	@protoc -I=$(SCHEMES_DIR) --go_out=paths=source_relative:$(SCHEMES_DIR) $(SCHEMES_DIR)/*.proto
 
 generate:
 	@echo "+ go generate"
@@ -79,15 +77,3 @@ lint:
 vet:
 	@echo "+ go vet"
 	$(GOCMD) vet $(PKG)/...
-
-build-linux:
-	@echo "+ building $@"
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GOBUILD) -v -o $(BINARY_FILE)
-
-build-osx:
-	@echo "+ building $@"
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) -v -o $(BINARY_FILE)
-
-build-windows:
-	@echo "+ building $@"
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -v -o $(BINARY_FILE)
