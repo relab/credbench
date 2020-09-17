@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package proto;
 
+option go_package = "github.com/relab/ct-eth-dapp/bemchmark/proto";
+
 enum Type {
     NONE = 0;
     STUDENT = 1;
@@ -10,9 +12,9 @@ enum Type {
 }
 
 message Account {
-    string address = 1;
+    bytes address = 1;
     string hex_key = 2;
-    repeated string contracts = 3;
-    repeated string credentials = 4;
+    repeated bytes contracts = 3;
+    repeated bytes credentials = 4;
     Type selected = 5;
 }
