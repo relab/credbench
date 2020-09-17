@@ -2,10 +2,15 @@ package database
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
+)
+
+var (
+	ErrBucketNotFound = fmt.Errorf("bucket not found")
+	ErrNoBuckets      = fmt.Errorf("there is no buckets")
+	ErrEntryNotFound  = fmt.Errorf("entry not found")
 )
 
 type boltDB struct {
@@ -41,12 +46,12 @@ func (d *boltDB) Close() error {
 func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 	b := tx.Bucket([]byte(path[0]))
 	if b == nil {
-		return nil, fmt.Errorf("bucket not found at path: " + path[0])
+		return nil, ErrBucketNotFound
 	}
 	for i := 1; i < len(path); i++ {
 		b = b.Bucket([]byte(path[i]))
 		if b == nil {
-			return nil, fmt.Errorf("bucket not found at path: " + strings.Join(path[:i+1], "/"))
+			return nil, ErrBucketNotFound
 		}
 	}
 	return b, nil
@@ -56,7 +61,7 @@ func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 func (d *boltDB) DeleteBucket(path []string) error {
 	s := len(path)
 	if s < 1 {
-		return fmt.Errorf("empty list of buckets")
+		return ErrNoBuckets
 	}
 	err := d.db.Update(func(tx *bolt.Tx) error {
 		if s == 1 { // root bucket
@@ -78,7 +83,7 @@ func (d *boltDB) DeleteBucket(path []string) error {
 // CreateBucketPath create a list of buckets
 func (d *boltDB) CreateBucketPath(path []string) error {
 	if len(path) < 1 {
-		return fmt.Errorf("empty list of buckets")
+		return ErrNoBuckets
 	}
 
 	err := d.db.Update(func(tx *bolt.Tx) error {
@@ -109,7 +114,7 @@ func (d *boltDB) CreateBucketPath(path []string) error {
 // GetKeys returns the list of keys at a given path, encoded as string
 func (d *boltDB) GetKeys(path []string) (keys [][]byte, err error) {
 	if len(path) < 1 {
-		return keys, fmt.Errorf("empty list of buckets")
+		return keys, ErrNoBuckets
 	}
 
 	err = d.db.View(func(tx *bolt.Tx) error {
@@ -129,13 +134,13 @@ func (d *boltDB) GetKeys(path []string) (keys [][]byte, err error) {
 	return keys, err
 }
 
-func (d *boltDB) AddEntry(path []string, key []byte, val []byte) error {
+func (d *boltDB) AddEntry(path []string, key []byte, value []byte) error {
 	err := d.db.Update(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
 		}
-		err = b.Put(key, val)
+		err = b.Put(key, value)
 		if err != nil {
 			return err
 		}
@@ -186,19 +191,39 @@ func (d *boltDB) MapValues(path []string, process func(value []byte) error) erro
 	return err
 }
 
-func (d *boltDB) UpdateEntry(path []string, key []byte, update func(value []byte) error) error {
+func (d *boltDB) GetFirstEntry(path []string) ([]byte, []byte, error) {
+	var key, value []byte
 	err := d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
 		}
-		buf := b.Get(key)
-		update(buf)
-		err = b.Put(key, buf)
-		if err != nil {
-			return err
+		c := b.Cursor()
+		if c != nil {
+			key, value = c.First()
 		}
 		return nil
 	})
-	return err
+	return key, value, err
+}
+
+// FIXME: not efficient, open a db tx every time...consider to
+// allow the datastore to access the boltdb methods.
+func (d *boltDB) GetNextEntry(path []string, key []byte) ([]byte, []byte, error) {
+	var next, value []byte
+	err := d.db.View(func(tx *bolt.Tx) error {
+		b, err := getBucket(tx, path)
+		if err != nil {
+			return err
+		}
+		c := b.Cursor()
+		k, _ := c.Seek(key)
+		if k != nil {
+			next, value = c.Next()
+		} else {
+			return ErrEntryNotFound
+		}
+		return nil
+	})
+	return next, value, err
 }

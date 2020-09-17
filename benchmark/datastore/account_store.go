@@ -8,12 +8,12 @@ type AccountStore interface {
 	Add(account *pb.Account) error
 	AddAccounts(accounts []*pb.Account) error
 
-	Get(key string) (*pb.Account, error)
+	Get(key []byte) (*pb.Account, error)
 	GetUnusedAccounts(n int) ([]*pb.Account, error)
 	GetAndSelect(n int, selectType pb.Type) ([]*pb.Account, error)
 
 	All() ([]*pb.Account, error)
-	SelectAccounts(keys []string, selectType pb.Type) error
+	SelectAccounts(keys [][]byte, selectType pb.Type) ([]*pb.Account, error)
 
-	DeleteAccount(key string) error
+	DeleteAccount(key []byte) error
 }

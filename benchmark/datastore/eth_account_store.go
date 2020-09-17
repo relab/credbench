@@ -3,8 +3,7 @@ package datastore
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-
+	"github.com/ethereum/go-ethereum/common"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/relab/ct-eth-dapp/benchmark/database"
 	hu "github.com/relab/ct-eth-dapp/benchmark/hexutil"
@@ -29,6 +28,14 @@ func NewEthAccountStore(db database.Database) *EthAccountStore {
 	return &EthAccountStore{ds: DataStore{db: db, sPath: []string{ethAccountsBucket}}}
 }
 
+func GetAddresses(accounts []*pb.Account) []common.Address {
+	addresses := make([]common.Address, len(accounts))
+	for i, a := range accounts {
+		addresses[i] = common.BytesToAddress(a.Address)
+	}
+	return addresses
+}
+
 // Add a new Account to the EthAccountStore
 func (as *EthAccountStore) Add(account *pb.Account) error {
 	if account == nil {
@@ -38,7 +45,7 @@ func (as *EthAccountStore) Add(account *pb.Account) error {
 	if err != nil {
 		return err
 	}
-	return as.ds.db.AddEntry(as.ds.sPath, hexutil.MustDecode(account.Address), buf)
+	return as.ds.db.AddEntry(as.ds.sPath, account.Address, buf)
 }
 
 func (as *EthAccountStore) AddAccounts(accounts []*pb.Account) error {
@@ -55,9 +62,9 @@ func (as *EthAccountStore) AddAccounts(accounts []*pb.Account) error {
 }
 
 // Get gets an account
-func (as *EthAccountStore) Get(key string) (*pb.Account, error) {
+func (as *EthAccountStore) Get(key []byte) (*pb.Account, error) {
 	account := &pb.Account{}
-	buf, err := as.ds.db.GetEntry(as.ds.sPath, hexutil.MustDecode(key))
+	buf, err := as.ds.db.GetEntry(as.ds.sPath, key)
 	if err != nil {
 		return account, err
 	}
@@ -73,51 +80,53 @@ func (as *EthAccountStore) Get(key string) (*pb.Account, error) {
 func (as *EthAccountStore) GetUnusedAccounts(n int) ([]*pb.Account, error) {
 	var accounts []*pb.Account
 
+	//TODO keep the last used key
+	firstKey, firstValue, err := as.ds.db.GetFirstEntry(as.ds.sPath)
+	if err != nil {
+		return accounts, err
+	}
 	i := 0
-	err := as.ds.db.MapValues(as.ds.sPath, func(value []byte) error {
-		if i == n {
-			return nil // force break ?
-		}
+	key, value := firstKey, firstValue
+	for i < n {
 		account := &pb.Account{}
-		err := proto.Unmarshal(value, account)
+		err = proto.Unmarshal(value, account)
 		if err != nil {
-			return err
+			return accounts, err
 		}
+
 		if account.GetSelected() == pb.Type_NONE {
 			accounts = append(accounts, account)
 			i++
 		}
-		return nil
-	})
+
+		// Get next
+		key, value, err = as.ds.db.GetNextEntry(as.ds.sPath, key)
+		if err != nil || key == nil {
+			return accounts, err
+		}
+	}
 	return accounts, err
 }
 
-func (as *EthAccountStore) SelectAccounts(keys []string, selectType pb.Type) error {
+func (as *EthAccountStore) SelectAccounts(keys [][]byte, selectType pb.Type) ([]*pb.Account, error) {
+	var accounts []*pb.Account
 	var err error
-	for _, k := range keys {
-		account := &pb.Account{}
-		key := hexutil.MustDecode(k)
-
-		err = as.ds.db.UpdateEntry(as.ds.sPath, key, func(value []byte) error {
-			if value != nil {
-				err := proto.Unmarshal(value, account)
-				if err != nil {
-					return err
-				}
-			}
-			account.Selected = selectType
-
-			value, err = proto.Marshal(account)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+	for _, key := range keys {
+		account, err := as.Get(key)
 		if err != nil {
-			return err
+			return accounts, err
 		}
+
+		account.Selected = selectType
+
+		err = as.Add(account)
+		if err != nil {
+			return accounts, err
+		}
+
+		accounts = append(accounts, account)
 	}
-	return err
+	return accounts, err
 }
 
 func (as EthAccountStore) GetAndSelect(n int, selectType pb.Type) ([]*pb.Account, error) {
@@ -125,7 +134,7 @@ func (as EthAccountStore) GetAndSelect(n int, selectType pb.Type) ([]*pb.Account
 	if err != nil {
 		return nil, err
 	}
-	err = as.SelectAccounts(hu.HexAddresses(accounts), selectType)
+	accounts, err = as.SelectAccounts(hu.ByteAddresses(accounts), selectType)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +156,6 @@ func (as *EthAccountStore) All() ([]*pb.Account, error) {
 	return accounts, err
 }
 
-func (as *EthAccountStore) DeleteAccount(key string) error {
-	return as.ds.db.DeleteEntry(as.ds.sPath, hexutil.MustDecode(key))
+func (as *EthAccountStore) DeleteAccount(key []byte) error {
+	return as.ds.db.DeleteEntry(as.ds.sPath, key)
 }
