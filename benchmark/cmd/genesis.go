@@ -6,11 +6,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/relab/bbchain-dapp/benchmark/database"
+	hu "github.com/relab/ct-eth-dapp/benchmark/hexutil"
+	pb "github.com/relab/ct-eth-dapp/benchmark/proto"
 	"github.com/spf13/cobra"
 )
 
-type genesisData struct {
+type GenesisData struct {
 	ChainID        int
 	GasLimit       string
 	DefaultBalance string
@@ -26,26 +27,37 @@ var genesisCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-
-		accounts, err := createAccounts(n)
+		err = generateGenesis(n)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-
-		addresses := database.HexAddresses(accounts)
-		data := &genesisData{
-			ChainID:        42,
-			GasLimit:       "6721975",
-			DefaultBalance: "10000000000000000000",
-			N:              len(addresses) - 1,
-			Accounts:       addresses,
-		}
-
-		createGenesis(data)
 	},
 }
 
-func createGenesis(data *genesisData) error {
+func generateGenesis(n int) error {
+	accounts, err := createAccounts(n)
+	if err != nil {
+		return err
+	}
+	return createGenesisFile(NewGenesisData(accounts))
+}
+
+func NewGenesisData(accounts []*pb.Account) *GenesisData {
+	if len(accounts) == 0 {
+		log.Fatalln("Attempt to create genesis without accounts")
+		return nil
+	}
+	addresses := hu.HexAddresses(accounts)
+	return &GenesisData{
+		ChainID:        42,
+		GasLimit:       "6721975",
+		DefaultBalance: "10000000000000000000",
+		N:              len(addresses) - 1,
+		Accounts:       addresses,
+	}
+}
+
+func createGenesisFile(data *GenesisData) error {
 	f, err := os.Create(genesisFile)
 	if err != nil {
 		return err

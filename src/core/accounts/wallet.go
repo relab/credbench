@@ -222,12 +222,3 @@ func decryptKeyFile(path string, password string) (*ecdsa.PrivateKey, error) {
 
 	return key.PrivateKey, nil
 }
-
-func GetKeys(hexkey string) (*ecdsa.PrivateKey, common.Address, error) {
-	key, err := crypto.HexToECDSA(hexkey)
-	if err != nil {
-		return nil, common.Address{}, fmt.Errorf("Error parsing the private key: %v", err)
-	}
-	address := crypto.PubkeyToAddress(key.PublicKey)
-	return key, address, nil
-}

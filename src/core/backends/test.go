@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 
-	wallet "github.com/relab/ct-eth-dapp/src/core/accounts"
+	keyutils "github.com/relab/ct-eth-dapp/src/core/accounts"
 )
 
 // Account represents a test account
@@ -54,7 +54,7 @@ type TestBackend struct {
 func init() {
 	var accounts []Account
 	for _, acc := range defaultHexkeys {
-		key, addr, _ := wallet.GetKeys(acc)
+		key, addr, _ := keyutils.GetKeys(acc)
 		accounts = append(accounts, Account{Key: key, Address: addr})
 	}
 	TestAccounts = accounts

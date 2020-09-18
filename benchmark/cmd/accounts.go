@@ -1,21 +1,14 @@
 package cmd
 
 import (
-	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"fmt"
 	"log"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/relab/bbchain-dapp/benchmark/database"
 	"github.com/spf13/cobra"
 
-	pb "github.com/relab/bbchain-dapp/benchmark/proto"
+	pb "github.com/relab/ct-eth-dapp/benchmark/proto"
+	keyutils "github.com/relab/ct-eth-dapp/src/core/accounts"
 )
 
 var accountsCmd = &cobra.Command{
@@ -42,12 +35,8 @@ var createAccountsCmd = &cobra.Command{
 }
 
 func createAccounts(n int) ([]*pb.Account, error) {
-	as, err := database.CreateAccountStore(db)
-	if err != nil {
-		return []*pb.Account{}, err
-	}
 	accounts := generateAccounts(n)
-	err = as.AddAccounts([]string{"eth_accounts"}, accounts)
+	err := accountStore.AddAccounts(accounts)
 	if err != nil {
 		return []*pb.Account{}, err
 	}
@@ -57,59 +46,17 @@ func createAccounts(n int) ([]*pb.Account, error) {
 func generateAccounts(n int) []*pb.Account {
 	accounts := make([]*pb.Account, n)
 	for i := 0; i < n; i++ {
-		key, address := newKey()
-		hexkey := keyToHex(key)
+		key, address := keyutils.NewKey()
+		hexkey := keyutils.KeyToHex(key)
 		accounts[i] = &pb.Account{
-			Address:     address.Hex(),
+			Address:     address.Bytes(),
 			HexKey:      hexkey,
-			Contracts:   []string{},
-			Credentials: []string{},
+			Contracts:   [][]byte{},
+			Credentials: [][]byte{},
 			Selected:    pb.Type_NONE,
 		}
 	}
 	return accounts
-}
-
-func has0xPrefix(input string) bool {
-	return len(input) >= 2 && input[0] == '0' && (input[1] == 'x' || input[1] == 'X')
-}
-
-func keyToHex(privateKey *ecdsa.PrivateKey) string {
-	keyBytes := crypto.FromECDSA(privateKey)
-	return hexutil.Encode(keyBytes)
-}
-
-func hexToKey(hexkey string) *ecdsa.PrivateKey {
-	if has0xPrefix(hexkey) {
-		hexkey = hexkey[2:]
-	}
-	key, err := crypto.HexToECDSA(hexkey)
-	if err != nil {
-		log.Panic(err)
-	}
-	return key
-}
-
-func newKey() (*ecdsa.PrivateKey, common.Address) {
-	privateKey, err := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
-	if err != nil {
-		log.Panic(err)
-	}
-	address := crypto.PubkeyToAddress(privateKey.PublicKey)
-
-	return privateKey, address
-}
-
-func GetTxOpts(hexkey string) (*bind.TransactOpts, error) {
-	backend, _ := clientConn.Backend()
-	gasPrice, err := backend.SuggestGasPrice(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("Failed to estimate the gas price: %v", err)
-	}
-	opts := bind.NewKeyedTransactor(hexToKey(hexkey))
-	opts.GasLimit = uint64(6721975)
-	opts.GasPrice = gasPrice
-	return opts, nil
 }
 
 func init() {

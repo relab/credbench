@@ -11,15 +11,16 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	bolt "go.etcd.io/bbolt"
 
-	"github.com/relab/bbchain-dapp/benchmark/database"
-	"github.com/relab/bbchain-dapp/src/core/client"
-	"github.com/relab/bbchain-dapp/src/utils"
+	"github.com/relab/ct-eth-dapp/benchmark/client"
+	"github.com/relab/ct-eth-dapp/benchmark/database"
+	"github.com/relab/ct-eth-dapp/benchmark/datastore"
+	"github.com/relab/ct-eth-dapp/src/fileutils"
 )
 
 var (
 	configFile          string
+	testFile            string
 	backendURL          string
 	defaultAccount      string
 	genesisFile         string
@@ -32,8 +33,9 @@ var (
 )
 
 var (
-	clientConn client.BBChainEthClient
-	db         *database.Database
+	clientConn   client.EthClient
+	db           database.Database
+	accountStore datastore.AccountStore
 )
 
 var rootCmd = &cobra.Command{
@@ -62,6 +64,7 @@ func Execute() {
 	}
 }
 
+// TODO: make it a tool that is independent of the bbchain implementation that can be used by anyone to profile gas of applications
 func init() {
 	cobra.OnInitialize(initConfig)
 
@@ -75,8 +78,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", defaultDatabasePath(), "Path to the database file")
 	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "bbchain.db", "File name of the database")
 	rootCmd.PersistentFlags().StringVar(&genesisFile, "genesisFile", "", "Path to the ethereum genesis file")
+	rootCmd.PersistentFlags().StringVar(&testFile, "testFile", "test-config.json", "test case config file")
 
-	//FIXME: should be relative to code path
 	pwd, _ := os.Getwd()
 	genesisTemplateFile = path.Join(pwd, "genesis/genesis.tmpl")
 }
@@ -111,21 +114,20 @@ func parseConfigFile() {
 }
 
 func createDatabase() (err error) {
-	err = utils.CreateDir(datadir)
+	err = fileutils.CreateDir(datadir)
 	if err != nil {
 		return err
 	}
 
-	db, err = database.CreateDatabase(dbPath, dbFile)
+	err = fileutils.CreateDir(dbPath)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	return nil
 }
 
-func setupClient() (client.BBChainEthClient, error) {
+func setupClient() (client.EthClient, error) {
 	c, err := client.NewClient(backendURL)
 	if err != nil {
 		return nil, err
@@ -141,9 +143,28 @@ func setupClient() (client.BBChainEthClient, error) {
 }
 
 func setupDB(dbpath, dbfile string) (err error) {
-	dbFileName := path.Join(dbpath, dbfile)
-	db, err = database.NewDatabase(dbFileName, &bolt.Options{Timeout: 1 * time.Second})
-	return err
+	db, err = database.NewDatabase(path.Join(dbpath, dbfile), &database.DefaultBoltOptions)
+	if err != nil {
+		return err
+	}
+
+	err = datastore.CreateEthAccountStore(db)
+	if err != nil {
+		return err
+	}
+	accountStore = datastore.NewEthAccountStore(db)
+
+	err = datastore.CreateCourseStore(db)
+	if err != nil {
+		return err
+	}
+
+	err = datastore.CreateFacultyStore(db)
+	if err != nil {
+		return err
+	}
+	//TODO: initialize credential store
+	return nil
 }
 
 func defaultConfigPath() string {
