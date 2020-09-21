@@ -1,8 +1,6 @@
 package datastore
 
 import (
-	"fmt"
-
 	"github.com/ethereum/go-ethereum/common"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/relab/ct-eth-dapp/benchmark/database"
@@ -31,15 +29,19 @@ func NewCourseStore(db database.Database, courseAddress common.Address) *CourseS
 	}
 }
 
-func (cs CourseStore) AddCourse(course *pb.Course) error {
+func (cs CourseStore) PutCourse(course *pb.Course) error {
 	if course == nil {
-		return fmt.Errorf("course cannot be nil")
+		return ErrEmptyData
 	}
-	buf, err := proto.Marshal(course)
+	value, err := proto.Marshal(course)
 	if err != nil {
 		return err
 	}
-	return cs.course.db.AddEntry(cs.course.sPath, course.Address, buf)
+	address := common.HexToAddress(course.ContractAddress)
+	if address == (common.Address{}) {
+		return ErrZeroAddress
+	}
+	return cs.course.db.AddEntry(cs.course.sPath, address.Bytes(), value)
 }
 
 func (cs CourseStore) GetCourse() (*pb.Course, error) {
@@ -55,4 +57,22 @@ func (cs CourseStore) GetCourse() (*pb.Course, error) {
 		}
 	}
 	return course, err
+}
+
+func (cs CourseStore) SetStudents(students []*pb.Account) error {
+	course, err := cs.GetCourse()
+	if err != nil {
+		return err
+	}
+	course.Students = students
+	return cs.PutCourse(course)
+}
+
+func (cs CourseStore) AddCredential(credential *pb.Credential) error {
+	course, err := cs.GetCourse()
+	if err != nil {
+		return err
+	}
+	course.Credentials = append(course.Credentials, credential)
+	return cs.PutCourse(course)
 }

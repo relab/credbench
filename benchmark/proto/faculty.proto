@@ -10,7 +10,7 @@ import "course.proto";
 import "google/protobuf/timestamp.proto";
 
 message Faculty {
-    bytes address = 1;
+    string contract_address = 1;
     repeated Course courses = 2;
     repeated Account adms = 3;
     repeated Credential diplomas = 4;

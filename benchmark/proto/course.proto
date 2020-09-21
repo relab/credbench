@@ -9,7 +9,7 @@ import "credential.proto";
 import "google/protobuf/timestamp.proto";
 
 message Course {
-    bytes address = 1;
+    string contract_address = 1;
     repeated Account evaluators = 2;
     repeated Account students = 3;
     repeated Credential credentials = 4;

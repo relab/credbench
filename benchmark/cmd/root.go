@@ -12,9 +12,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/relab/ct-eth-dapp/benchmark/client"
+	bolt "go.etcd.io/bbolt"
+
 	"github.com/relab/ct-eth-dapp/benchmark/database"
 	"github.com/relab/ct-eth-dapp/benchmark/datastore"
+	"github.com/relab/ct-eth-dapp/src/core/client"
 	"github.com/relab/ct-eth-dapp/src/fileutils"
 )
 
@@ -143,7 +145,7 @@ func setupClient() (client.EthClient, error) {
 }
 
 func setupDB(dbpath, dbfile string) (err error) {
-	db, err = database.NewDatabase(path.Join(dbpath, dbfile), &database.DefaultBoltOptions)
+	db, err = database.NewDatabase(path.Join(dbpath, dbfile), &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return err
 	}

@@ -1,16 +1,15 @@
 package database
 
 import (
-	"fmt"
-	"time"
+	"errors"
 
 	bolt "go.etcd.io/bbolt"
 )
 
 var (
-	ErrBucketNotFound = fmt.Errorf("bucket not found")
-	ErrNoBuckets      = fmt.Errorf("there is no buckets")
-	ErrEntryNotFound  = fmt.Errorf("entry not found")
+	errBucketNotFound = errors.New("bucket not found")
+	errNoBuckets      = errors.New("there is no buckets")
+	errEntryNotFound  = errors.New("entry not found")
 )
 
 type boltDB struct {
@@ -18,8 +17,6 @@ type boltDB struct {
 	options *bolt.Options
 	path    string
 }
-
-var DefaultBoltOptions = bolt.Options{Timeout: 1 * time.Second}
 
 // NewDatabase returns a new database instance
 func NewDatabase(path string, opts *bolt.Options) (Database, error) {
@@ -43,15 +40,19 @@ func (d *boltDB) Close() error {
 }
 
 // getBucket returns the last bucket from the given path
+//FIXME use string path
 func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
+	if len(path) < 1 {
+		return nil, errNoBuckets
+	}
 	b := tx.Bucket([]byte(path[0]))
 	if b == nil {
-		return nil, ErrBucketNotFound
+		return nil, errBucketNotFound
 	}
 	for i := 1; i < len(path); i++ {
 		b = b.Bucket([]byte(path[i]))
 		if b == nil {
-			return nil, ErrBucketNotFound
+			return nil, errBucketNotFound
 		}
 	}
 	return b, nil
@@ -61,7 +62,7 @@ func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 func (d *boltDB) DeleteBucket(path []string) error {
 	s := len(path)
 	if s < 1 {
-		return ErrNoBuckets
+		return errNoBuckets
 	}
 	err := d.db.Update(func(tx *bolt.Tx) error {
 		if s == 1 { // root bucket
@@ -83,7 +84,7 @@ func (d *boltDB) DeleteBucket(path []string) error {
 // CreateBucketPath create a list of buckets
 func (d *boltDB) CreateBucketPath(path []string) error {
 	if len(path) < 1 {
-		return ErrNoBuckets
+		return errNoBuckets
 	}
 
 	err := d.db.Update(func(tx *bolt.Tx) error {
@@ -114,7 +115,7 @@ func (d *boltDB) CreateBucketPath(path []string) error {
 // GetKeys returns the list of keys at a given path, encoded as string
 func (d *boltDB) GetKeys(path []string) (keys [][]byte, err error) {
 	if len(path) < 1 {
-		return keys, ErrNoBuckets
+		return keys, errNoBuckets
 	}
 
 	err = d.db.View(func(tx *bolt.Tx) error {
@@ -221,7 +222,7 @@ func (d *boltDB) GetNextEntry(path []string, key []byte) ([]byte, []byte, error)
 		if k != nil {
 			next, value = c.Next()
 		} else {
-			return ErrEntryNotFound
+			return errEntryNotFound
 		}
 		return nil
 	})
