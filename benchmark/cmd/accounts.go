@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/spf13/cobra"
 
 	pb "github.com/relab/ct-eth-dapp/benchmark/proto"
@@ -30,16 +30,16 @@ var createAccountsCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-		fmt.Printf("%d accounts successfully created\n", n)
 	},
 }
 
 func createAccounts(n int) ([]*pb.Account, error) {
 	accounts := generateAccounts(n)
-	err := accountStore.AddAccounts(accounts)
+	err := accountStore.PutAccount(accounts...)
 	if err != nil {
 		return []*pb.Account{}, err
 	}
+	log.Printf("%d accounts successfully created\n", n)
 	return accounts, nil
 }
 
@@ -49,10 +49,10 @@ func generateAccounts(n int) []*pb.Account {
 		key, address := keyutils.NewKey()
 		hexkey := keyutils.KeyToHex(key)
 		accounts[i] = &pb.Account{
-			Address:     address.Bytes(),
+			Address:     hexutil.Encode(address.Bytes()),
 			HexKey:      hexkey,
-			Contracts:   [][]byte{},
-			Credentials: [][]byte{},
+			Contracts:   []string{},
+			Credentials: []string{},
 			Selected:    pb.Type_NONE,
 		}
 	}
