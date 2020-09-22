@@ -6,8 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	hu "github.com/relab/ct-eth-dapp/benchmark/hexutil"
-	pb "github.com/relab/ct-eth-dapp/benchmark/proto"
+	"github.com/relab/ct-eth-dapp/benchmark/datastore"
 	"github.com/spf13/cobra"
 )
 
@@ -42,18 +41,17 @@ func generateGenesis(n int) error {
 	return createGenesisFile(NewGenesisData(accounts))
 }
 
-func NewGenesisData(accounts []*pb.Account) *GenesisData {
+func NewGenesisData(accounts datastore.Accounts) *GenesisData {
 	if len(accounts) == 0 {
 		log.Fatalln("Attempt to create genesis without accounts")
 		return nil
 	}
-	addresses := hu.HexAddresses(accounts)
 	return &GenesisData{
 		ChainID:        42,
 		GasLimit:       "6721975",
 		DefaultBalance: "10000000000000000000",
-		N:              len(addresses) - 1,
-		Accounts:       addresses,
+		N:              len(accounts) - 1,
+		Accounts:       accounts.ToHex(),
 	}
 }
 

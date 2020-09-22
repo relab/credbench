@@ -6,13 +6,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/relab/ct-eth-dapp/benchmark/database"
-	hu "github.com/relab/ct-eth-dapp/benchmark/hexutil"
 	pb "github.com/relab/ct-eth-dapp/benchmark/proto"
 )
 
 var (
-	ErrZeroAddress     = errors.New("zero address given")
-	ErrNoAccountsFound = errors.New("no accounts found")
+	errZeroAddress     = errors.New("zero address given")
+	errNoAccountsFound = errors.New("no accounts found")
 )
 
 // Bucket("accounts")
@@ -26,25 +25,17 @@ type EthAccountStore struct {
 }
 
 func CreateEthAccountStore(db database.Database) error {
-	return db.CreateBucketPath([]string{ethAccountsBucket})
+	return db.CreateBucketPath(ethAccountsBucket)
 }
 
 func NewEthAccountStore(db database.Database) *EthAccountStore {
-	return &EthAccountStore{ds: DataStore{db: db, sPath: []string{ethAccountsBucket}}}
-}
-
-func GetAddresses(accounts []*pb.Account) []common.Address {
-	addresses := make([]common.Address, len(accounts))
-	for i, a := range accounts {
-		addresses[i] = common.HexToAddress(a.Address)
-	}
-	return addresses
+	return &EthAccountStore{ds: DataStore{db: db, path: ethAccountsBucket}}
 }
 
 // PutAccount adds a new Account to the EthAccountStore
 func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 	if len(accounts) < 1 {
-		return ErrNoAccountsFound
+		return errNoAccountsFound
 	}
 
 	for _, account := range accounts {
@@ -52,11 +43,11 @@ func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 		if err != nil {
 			return err
 		}
-		address := common.HexToAddress(account.Address)
+		address := common.HexToAddress(account.HexAddress)
 		if address == (common.Address{}) {
-			return ErrZeroAddress
+			return errZeroAddress
 		}
-		err = as.ds.db.AddEntry(as.ds.sPath, address.Bytes(), value)
+		err = as.ds.db.AddEntry(as.ds.path, address.Bytes(), value)
 		if err != nil {
 			return err
 		}
@@ -64,10 +55,10 @@ func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 	return nil
 }
 
-// Get gets an account
-func (as *EthAccountStore) GetAccount(key []byte) (*pb.Account, error) {
+// GetAccount gets an account
+func (as EthAccountStore) GetAccount(key []byte) (*pb.Account, error) {
 	account := &pb.Account{}
-	buf, err := as.ds.db.GetEntry(as.ds.sPath, key)
+	buf, err := as.ds.db.GetEntry(as.ds.path, key)
 	if err != nil {
 		return account, err
 	}
@@ -80,11 +71,12 @@ func (as *EthAccountStore) GetAccount(key []byte) (*pb.Account, error) {
 	return account, err
 }
 
-func (as *EthAccountStore) GetUnusedAccounts(n int) ([]*pb.Account, error) {
-	var accounts []*pb.Account
+// GetUnusedAccounts return `n` free accounts
+func (as EthAccountStore) GetUnusedAccounts(n int) (Accounts, error) {
+	var accounts Accounts
 
 	//TODO keep the last used key
-	firstKey, firstValue, err := as.ds.db.GetFirstEntry(as.ds.sPath)
+	firstKey, firstValue, err := as.ds.db.GetFirstEntry(as.ds.path)
 	if err != nil {
 		return accounts, err
 	}
@@ -103,19 +95,20 @@ func (as *EthAccountStore) GetUnusedAccounts(n int) ([]*pb.Account, error) {
 		}
 
 		// Get next
-		key, value, err = as.ds.db.GetNextEntry(as.ds.sPath, key)
+		key, value, err = as.ds.db.GetNextEntry(as.ds.path, key)
 		if err != nil || key == nil {
 			return accounts, err
 		}
 	}
 	if len(accounts) == 0 {
-		return accounts, ErrNoAccountsFound
+		return accounts, errNoAccountsFound
 	}
 	return accounts, err
 }
 
-func (as *EthAccountStore) SelectAccounts(keys [][]byte, selectType pb.Type) ([]*pb.Account, error) {
-	var accounts []*pb.Account
+// SelectAccount selects n accounts of the same type
+func (as *EthAccountStore) SelectAccount(selectType pb.Type, keys ...[]byte) (Accounts, error) {
+	var accounts Accounts
 	var err error
 	for _, key := range keys {
 		account, err := as.GetAccount(key)
@@ -133,17 +126,17 @@ func (as *EthAccountStore) SelectAccounts(keys [][]byte, selectType pb.Type) ([]
 		accounts = append(accounts, account)
 	}
 	if len(accounts) == 0 {
-		return accounts, ErrNoAccountsFound
+		return accounts, errNoAccountsFound
 	}
 	return accounts, err
 }
 
-func (as EthAccountStore) GetAndSelect(n int, selectType pb.Type) ([]*pb.Account, error) {
+func (as EthAccountStore) GetAndSelect(n int, selectType pb.Type) (Accounts, error) {
 	accounts, err := as.GetUnusedAccounts(n)
 	if err != nil {
 		return nil, err
 	}
-	accounts, err = as.SelectAccounts(hu.ByteAddresses(accounts), selectType)
+	accounts, err = as.SelectAccount(selectType, accounts.ToBytes()...)
 	if err != nil {
 		return nil, err
 	}
@@ -151,9 +144,9 @@ func (as EthAccountStore) GetAndSelect(n int, selectType pb.Type) ([]*pb.Account
 }
 
 // All returns all accounts under the last bucket at path
-func (as *EthAccountStore) All() ([]*pb.Account, error) {
-	var accounts []*pb.Account
-	err := as.ds.db.MapValues(as.ds.sPath, func(value []byte) error {
+func (as EthAccountStore) All() (Accounts, error) {
+	var accounts Accounts
+	err := as.ds.db.MapValues(as.ds.path, func(value []byte) error {
 		account := &pb.Account{}
 		err := proto.Unmarshal(value, account)
 		if err != nil {
@@ -163,11 +156,17 @@ func (as *EthAccountStore) All() ([]*pb.Account, error) {
 		return nil
 	})
 	if len(accounts) == 0 {
-		return accounts, ErrNoAccountsFound
+		return accounts, errNoAccountsFound
 	}
 	return accounts, err
 }
 
-func (as *EthAccountStore) DeleteAccount(key []byte) error {
-	return as.ds.db.DeleteEntry(as.ds.sPath, key)
+func (as *EthAccountStore) DeleteAccount(keys ...[]byte) error {
+	for _, key := range keys {
+		err := as.ds.db.DeleteEntry(as.ds.path, key)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

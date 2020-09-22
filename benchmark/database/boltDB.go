@@ -2,20 +2,29 @@ package database
 
 import (
 	"errors"
+	"strings"
 
 	bolt "go.etcd.io/bbolt"
 )
 
 var (
-	errBucketNotFound = errors.New("bucket not found")
-	errNoBuckets      = errors.New("there is no buckets")
-	errEntryNotFound  = errors.New("entry not found")
+	errBucketNotFound    = errors.New("bucket not found")
+	errInvalidBucketPath = errors.New("invalid path")
+	errEntryNotFound     = errors.New("entry not found")
 )
 
 type boltDB struct {
 	db      *bolt.DB
 	options *bolt.Options
 	path    string
+}
+
+func normalizePath(s string) ([]string, error) {
+	path := strings.Split(strings.Trim(s, "/"), "/")
+	if len(path) < 1 {
+		return nil, errInvalidBucketPath
+	}
+	return path, nil
 }
 
 // NewDatabase returns a new database instance
@@ -43,7 +52,7 @@ func (d *boltDB) Close() error {
 //FIXME use string path
 func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 	if len(path) < 1 {
-		return nil, errNoBuckets
+		return nil, errInvalidBucketPath
 	}
 	b := tx.Bucket([]byte(path[0]))
 	if b == nil {
@@ -59,12 +68,13 @@ func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 }
 
 // DeleteBucket deletes the last bucket at path
-func (d *boltDB) DeleteBucket(path []string) error {
-	s := len(path)
-	if s < 1 {
-		return errNoBuckets
+func (d *boltDB) DeleteBucket(pathStr string) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
 	}
-	err := d.db.Update(func(tx *bolt.Tx) error {
+	s := len(path)
+	err = d.db.Update(func(tx *bolt.Tx) error {
 		if s == 1 { // root bucket
 			tx.DeleteBucket([]byte(path[0]))
 		}
@@ -82,12 +92,12 @@ func (d *boltDB) DeleteBucket(path []string) error {
 }
 
 // CreateBucketPath create a list of buckets
-func (d *boltDB) CreateBucketPath(path []string) error {
-	if len(path) < 1 {
-		return errNoBuckets
+func (d *boltDB) CreateBucketPath(pathStr string) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
 	}
-
-	err := d.db.Update(func(tx *bolt.Tx) error {
+	err = d.db.Update(func(tx *bolt.Tx) error {
 		var err error
 		b := tx.Bucket([]byte(path[0]))
 		if b == nil {
@@ -113,11 +123,11 @@ func (d *boltDB) CreateBucketPath(path []string) error {
 }
 
 // GetKeys returns the list of keys at a given path, encoded as string
-func (d *boltDB) GetKeys(path []string) (keys [][]byte, err error) {
-	if len(path) < 1 {
-		return keys, errNoBuckets
+func (d *boltDB) GetKeys(pathStr string) (keys [][]byte, err error) {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return keys, err
 	}
-
 	err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if b == nil {
@@ -135,8 +145,12 @@ func (d *boltDB) GetKeys(path []string) (keys [][]byte, err error) {
 	return keys, err
 }
 
-func (d *boltDB) AddEntry(path []string, key []byte, value []byte) error {
-	err := d.db.Update(func(tx *bolt.Tx) error {
+func (d *boltDB) AddEntry(pathStr string, key []byte, value []byte) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
+	}
+	err = d.db.Update(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
@@ -151,8 +165,12 @@ func (d *boltDB) AddEntry(path []string, key []byte, value []byte) error {
 }
 
 // DeleteEntry deletes the entry on the path
-func (d *boltDB) DeleteEntry(path []string, key []byte) error {
-	err := d.db.Update(func(tx *bolt.Tx) error {
+func (d *boltDB) DeleteEntry(pathStr string, key []byte) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
+	}
+	err = d.db.Update(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
@@ -162,9 +180,12 @@ func (d *boltDB) DeleteEntry(path []string, key []byte) error {
 	return err
 }
 
-func (d *boltDB) GetEntry(path []string, key []byte) ([]byte, error) {
-	var entry []byte
-	err := d.db.View(func(tx *bolt.Tx) error {
+func (d *boltDB) GetEntry(pathStr string, key []byte) (entry []byte, err error) {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return entry, err
+	}
+	err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
@@ -175,8 +196,12 @@ func (d *boltDB) GetEntry(path []string, key []byte) ([]byte, error) {
 	return entry, err
 }
 
-func (d *boltDB) MapValues(path []string, process func(value []byte) error) error {
-	err := d.db.View(func(tx *bolt.Tx) error {
+func (d *boltDB) MapValues(pathStr string, process func(value []byte) error) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
+	}
+	err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
@@ -192,9 +217,12 @@ func (d *boltDB) MapValues(path []string, process func(value []byte) error) erro
 	return err
 }
 
-func (d *boltDB) GetFirstEntry(path []string) ([]byte, []byte, error) {
-	var key, value []byte
-	err := d.db.View(func(tx *bolt.Tx) error {
+func (d *boltDB) GetFirstEntry(pathStr string) (key []byte, value []byte, err error) {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return key, value, err
+	}
+	err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
@@ -210,9 +238,12 @@ func (d *boltDB) GetFirstEntry(path []string) ([]byte, []byte, error) {
 
 // FIXME: not efficient, open a db tx every time...consider to
 // allow the datastore to access the boltdb methods.
-func (d *boltDB) GetNextEntry(path []string, key []byte) ([]byte, []byte, error) {
-	var next, value []byte
-	err := d.db.View(func(tx *bolt.Tx) error {
+func (d *boltDB) GetNextEntry(pathStr string, key []byte) (next []byte, value []byte, err error) {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return next, value, err
+	}
+	err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err

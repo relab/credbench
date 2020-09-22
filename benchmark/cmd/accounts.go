@@ -49,11 +49,11 @@ func generateAccounts(n int) []*pb.Account {
 		key, address := keyutils.NewKey()
 		hexkey := keyutils.KeyToHex(key)
 		accounts[i] = &pb.Account{
-			Address:     hexutil.Encode(address.Bytes()),
-			HexKey:      hexkey,
-			Contracts:   []string{},
-			Credentials: []string{},
-			Selected:    pb.Type_NONE,
+			HexAddress:        hexutil.Encode(address.Bytes()),
+			HexKey:            hexkey,
+			ContractAddresses: []string{},
+			CredentialDigests: [][]byte{},
+			Selected:          pb.Type_NONE,
 		}
 	}
 	return accounts

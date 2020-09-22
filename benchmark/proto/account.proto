@@ -12,9 +12,9 @@ enum Type {
 }
 
 message Account {
-    string address = 1;
+    string hex_address = 1;
     string hex_key = 2;
-    repeated string contracts = 3;
-    repeated string credentials = 4;
+    repeated string contract_addresses = 3;
+    repeated bytes credential_digests = 4;
     Type selected = 5;
 }

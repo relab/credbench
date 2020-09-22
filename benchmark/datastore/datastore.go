@@ -4,8 +4,7 @@ import (
 	"github.com/relab/ct-eth-dapp/benchmark/database"
 )
 
-// FIXME: use string path
 type DataStore struct {
-	db    database.Database
-	sPath []string
+	db   database.Database
+	path string
 }

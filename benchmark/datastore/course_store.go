@@ -19,12 +19,12 @@ type CourseStore struct {
 }
 
 func CreateCourseStore(db database.Database) error {
-	return db.CreateBucketPath([]string{courseBucket})
+	return db.CreateBucketPath(courseBucket)
 }
 
 func NewCourseStore(db database.Database, courseAddress common.Address) *CourseStore {
 	return &CourseStore{
-		course:  &DataStore{db: db, sPath: []string{courseBucket}},
+		course:  &DataStore{db: db, path: courseBucket},
 		address: courseAddress,
 	}
 }
@@ -39,14 +39,14 @@ func (cs CourseStore) PutCourse(course *pb.Course) error {
 	}
 	address := common.HexToAddress(course.ContractAddress)
 	if address == (common.Address{}) {
-		return ErrZeroAddress
+		return errZeroAddress
 	}
-	return cs.course.db.AddEntry(cs.course.sPath, address.Bytes(), value)
+	return cs.course.db.AddEntry(cs.course.path, address.Bytes(), value)
 }
 
 func (cs CourseStore) GetCourse() (*pb.Course, error) {
 	course := &pb.Course{}
-	buf, err := cs.course.db.GetEntry(cs.course.sPath, cs.address.Bytes())
+	buf, err := cs.course.db.GetEntry(cs.course.path, cs.address.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (cs CourseStore) GetCourse() (*pb.Course, error) {
 	return course, err
 }
 
-func (cs CourseStore) SetStudents(students []*pb.Account) error {
+func (cs CourseStore) SetStudents(students Accounts) error {
 	course, err := cs.GetCourse()
 	if err != nil {
 		return err
