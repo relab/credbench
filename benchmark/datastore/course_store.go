@@ -14,7 +14,7 @@ var (
 )
 
 type CourseStore struct {
-	course  *DataStore
+	store   *DataStore
 	address common.Address
 }
 
@@ -24,55 +24,55 @@ func CreateCourseStore(db database.Database) error {
 
 func NewCourseStore(db database.Database, courseAddress common.Address) *CourseStore {
 	return &CourseStore{
-		course:  &DataStore{db: db, path: courseBucket},
+		store:   &DataStore{db: db, path: courseBucket},
 		address: courseAddress,
 	}
 }
 
-func (cs CourseStore) PutCourse(course *pb.Course) error {
-	if course == nil {
+func (cs CourseStore) PutCourse(store *pb.Course) error {
+	if store == nil {
 		return ErrEmptyData
 	}
-	value, err := proto.Marshal(course)
+	value, err := proto.Marshal(store)
 	if err != nil {
 		return err
 	}
-	address := common.HexToAddress(course.ContractAddress)
+	address := common.HexToAddress(store.ContractAddress)
 	if address == (common.Address{}) {
 		return errZeroAddress
 	}
-	return cs.course.db.AddEntry(cs.course.path, address.Bytes(), value)
+	return cs.store.db.AddEntry(cs.store.path, address.Bytes(), value)
 }
 
 func (cs CourseStore) GetCourse() (*pb.Course, error) {
-	course := &pb.Course{}
-	buf, err := cs.course.db.GetEntry(cs.course.path, cs.address.Bytes())
+	store := &pb.Course{}
+	buf, err := cs.store.db.GetEntry(cs.store.path, cs.address.Bytes())
 	if err != nil {
 		return nil, err
 	}
 	if buf != nil {
-		err := proto.Unmarshal(buf, course)
+		err := proto.Unmarshal(buf, store)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return course, err
+	return store, err
 }
 
 func (cs CourseStore) SetStudents(students Accounts) error {
-	course, err := cs.GetCourse()
+	store, err := cs.GetCourse()
 	if err != nil {
 		return err
 	}
-	course.Students = students
-	return cs.PutCourse(course)
+	store.Students = students
+	return cs.PutCourse(store)
 }
 
 func (cs CourseStore) AddCredential(credential *pb.Credential) error {
-	course, err := cs.GetCourse()
+	store, err := cs.GetCourse()
 	if err != nil {
 		return err
 	}
-	course.Credentials = append(course.Credentials, credential)
-	return cs.PutCourse(course)
+	store.Credentials = append(store.Credentials, credential)
+	return cs.PutCourse(store)
 }

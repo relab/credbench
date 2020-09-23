@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	chainID        = 42
+	gasLimit       = "6721975"
+	defaultBalance = "10000000000000000000"
+)
+
 type GenesisData struct {
 	ChainID        int
 	GasLimit       string
@@ -38,18 +44,18 @@ func generateGenesis(n int) error {
 	if err != nil {
 		return err
 	}
-	return createGenesisFile(NewGenesisData(accounts))
+	return createGenesisFile(newGenesisData(accounts))
 }
 
-func NewGenesisData(accounts datastore.Accounts) *GenesisData {
+func newGenesisData(accounts datastore.Accounts) *GenesisData {
 	if len(accounts) == 0 {
 		log.Fatalln("Attempt to create genesis without accounts")
 		return nil
 	}
 	return &GenesisData{
-		ChainID:        42,
-		GasLimit:       "6721975",
-		DefaultBalance: "10000000000000000000",
+		ChainID:        chainID,
+		GasLimit:       gasLimit,
+		DefaultBalance: defaultBalance,
 		N:              len(accounts) - 1,
 		Accounts:       accounts.ToHex(),
 	}
