@@ -4,18 +4,23 @@
         "homesteadBlock": 0,
         "eip150Block": 0,
         "eip155Block": 0,
-        "eip158Block": 0
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        {{if .POA }}"clique": {
+            "period": 5,
+            "epoch": 30000
+        }{{ else }}"ethash": {}{{ end }}
     },
-    "coinbase": "0x0000000000000000000000000000000000000000",
-    "difficulty": "1",
+    "coinbase": "{{index .Accounts 0}}",
+    "difficulty": "{{ .Difficulty }}",
     "nonce": "0x0000000000000000",
-    "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "extraData": "0x",
+    "extradata": "{{ .ExtraData }}",
     "gasLimit": "{{ .GasLimit }}",
     "timestamp": "0x0",
-    "alloc": {
-        {{range $i, $address := .Accounts}}"{{ $address }}": { "balance": "{{ $.DefaultBalance }}" }{{if lt $i $.N}}, {{end}}
-        {{ end }}
+    "alloc": { {{range $i, $address := .Accounts}}
+        "{{ $address }}": { "balance": "{{ $.DefaultBalance }}" }{{if lt $i $.N}}, {{end}}{{ end }}
     }
 }

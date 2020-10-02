@@ -32,6 +32,8 @@ var (
 	dbPath              string
 	dbFile              string
 	waitPeers           bool
+	consensus           string
+	keystoreDir         string
 )
 
 var (
@@ -80,6 +82,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", defaultDatabasePath(), "Path to the database file")
 	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "bbchain.db", "File name of the database")
 	rootCmd.PersistentFlags().StringVar(&genesisFile, "genesisFile", "", "Path to the ethereum genesis file")
+	rootCmd.PersistentFlags().StringVar(&consensus, "consensus", "ethash", "Consensus engine: poa/ethash")
 	rootCmd.PersistentFlags().StringVar(&testFile, "testFile", "test-config.json", "test case config file")
 
 	pwd, _ := os.Getwd()
@@ -105,14 +108,18 @@ func initConfig() {
 }
 
 func parseConfigFile() {
+	// FIXME: conflict with parameters and config file
 	datadir = viper.GetString("datadir")
 	defaultAccount = viper.GetString("defaultAccount")
 	backendURL = "http://" + viper.GetString("backend.host") + ":" + viper.GetString("backend.port")
 	ipcFile = viper.GetString("backend.ipc")
 	waitPeers = viper.GetBool("backend.waitPeers")
 	genesisFile = viper.GetString("backend.genesis")
+	consensus = viper.GetString("backend.consensus")
 	dbPath = viper.GetString("database.path")
 	dbFile = viper.GetString("database.filename")
+	keystoreDir = filepath.Join(datadir, "keystore")
+	fmt.Printf("Using %s Consensus\n", consensus)
 }
 
 func createDatabase() (err error) {
