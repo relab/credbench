@@ -29,7 +29,7 @@ func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
 		Language:    "en",
 		Description: "This is an exam description",
 		Evaluators: []*Entity{
-			&Entity{
+			{
 				Id: teacherID,
 			},
 		},
@@ -108,7 +108,7 @@ func NewFakeCourseGradeCredential(creatorID string, cg *CourseGrade) *CourseGrad
 		CreatedBy: creatorID,
 		CreatedAt: &timestamp.Timestamp{Seconds: creationTime},
 		OfferedBy: []*Entity{
-			&Entity{
+			{
 				Id:   cg.GetId(),
 				Name: "Course Test Contract",
 			},
@@ -174,7 +174,7 @@ func NewFakeDiplomaCredential(creatorID string, d *Diploma) *DiplomaCredential {
 		CreatedBy: creatorID,
 		CreatedAt: &timestamp.Timestamp{Seconds: creationTime},
 		OfferedBy: []*Entity{
-			&Entity{
+			{
 				Id:   d.GetId(),
 				Name: "Faculty Test Contract",
 			},

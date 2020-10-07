@@ -7,7 +7,7 @@ import "../Course.sol";
 contract CourseMock is Course {
     constructor(
         address[] memory owners,
-        uint256 quorum
+        uint8 quorum
     ) Course(owners, quorum) {
         // solhint-disable-previous-line no-empty-blocks
     }

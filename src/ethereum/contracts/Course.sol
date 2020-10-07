@@ -2,12 +2,12 @@
 pragma solidity >=0.6.0 <0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "ct-eth/contracts/Issuer.sol";
+import "ct-eth/contracts/node/Node.sol";
 
 /**
  * @title Academic Course
  */
-contract Course is Issuer {
+contract Course is Node {
     // The teacher and the evaluator are owners of the contract
     mapping(address => bool) public enrolledStudents;
 
@@ -22,10 +22,9 @@ contract Course is Issuer {
     /**
     * @dev Constructor creates a Course contract
     */
-    constructor(
-        address[] memory owners,
-        uint256 quorum
-    ) Issuer(owners, quorum, true) {
+    constructor(address[] memory owners,uint8 quorum)
+        Node(Role.Leaf, owners, quorum)
+    {
         // solhint-disable-previous-line no-empty-blocks
     }
 
@@ -76,29 +75,5 @@ contract Course is Issuer {
      */
     function renounceCourse() public virtual {
         _removeStudent(msg.sender);
-    }
-
-    /**
-     * @dev issue a credential proof for enrolled students
-     */
-    function registerCredential(address student, bytes32 digest)
-        public
-        virtual
-        override
-        onlyOwner
-        registeredStudent(student)
-    {
-        super.registerCredential(student, digest);
-    }
-
-    function aggregateCredentials(address student)
-        public
-        virtual
-        override
-        onlyOwner
-        registeredStudent(student)
-        returns (bytes32)
-    {
-        return super.aggregateCredentials(student);
     }
 }
