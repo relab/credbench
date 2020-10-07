@@ -46,8 +46,19 @@ module.exports = {
             settings: {
                 optimizer: {
                     enabled: true,
-                    runs: 100
+                    runs: 1
                 },
+                outputSelection: {
+                    "*": {
+                        "*": [
+                            "metadata",
+                            "abi",
+                            "evm.bytecode",
+                            "evm.bytecode.sourceMap",
+                            "evm.gasEstimates"
+                        ]
+                    }
+                }
                 //  evmVersion: "byzantium"
             }
         }
