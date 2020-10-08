@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/relab/ct-eth-dapp/bemchmark/proto";
+
+import "account.proto";
+import "credential.proto";
+import "course.proto";
+import "google/protobuf/timestamp.proto";
+
+message Faculty {
+    string contract_address = 1;
+    repeated Course courses = 2;
+    repeated Account adms = 3;
+    repeated Credential diplomas = 4;
+    google.protobuf.Timestamp created_on = 5;
+}
+
