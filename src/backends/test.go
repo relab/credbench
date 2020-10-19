@@ -6,11 +6,14 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 
 	keyutils "github.com/relab/ct-eth-dapp/src/accounts"
+	"github.com/relab/ct-eth-dapp/src/ctree/aggregator"
+	"github.com/relab/ct-eth-dapp/src/ctree/notary"
 )
 
 // Account represents a test account
@@ -49,6 +52,7 @@ var defaultHexkeys = []string{
 // easily testing contracts.
 type TestBackend struct {
 	*backends.SimulatedBackend
+	Deployed map[string]common.Address // keep deployed address
 }
 
 func init() {
@@ -66,7 +70,7 @@ func NewTestBackend() *TestBackend {
 		ethAccounts[acc.Address] = core.GenesisAccount{Balance: big.NewInt(1000000000)}
 	}
 	backend := backends.NewSimulatedBackend(ethAccounts, 10000000)
-	return &TestBackend{backend}
+	return &TestBackend{backend, make(map[string]common.Address)}
 }
 
 // duration in seconds
@@ -86,4 +90,37 @@ func (b *TestBackend) IncreaseTime(duration time.Duration) error {
 	}
 	b.Commit()
 	return nil
+}
+
+func (b *TestBackend) DeployLibs(opts *bind.TransactOpts) (map[string]string, error) {
+	libs := make(map[string]string)
+
+	if _, ok := b.Deployed["CredentialSum"]; !ok {
+		aggregatorAddr, _, _, err := aggregator.DeployCredentialSum(opts, b)
+		if err != nil {
+			return libs, err
+		}
+		b.Deployed["CredentialSum"] = aggregatorAddr
+		b.Commit()
+	}
+
+	if _, ok := b.Deployed["Notary"]; !ok {
+		notaryAddr, _, _, err := notary.DeployNotaryContract(opts, b)
+		if err != nil {
+			return libs, err
+		}
+		b.Deployed["Notary"] = notaryAddr
+		b.Commit()
+	}
+	libs["CredentialSum"] = b.Deployed["CredentialSum"].Hex()
+	libs["Notary"] = b.Deployed["Notary"].Hex()
+
+	return libs, nil
+}
+
+func (b *TestBackend) GetLibs() map[string]string {
+	return map[string]string{
+		"CredentialSum": b.Deployed["CredentialSum"].Hex(),
+		"Notary":        b.Deployed["Notary"].Hex(),
+	}
 }
