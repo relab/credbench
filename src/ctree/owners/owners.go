@@ -24,17 +24,17 @@ func NewOwners(contractAddr common.Address, backend bind.ContractBackend) (*Owne
 }
 
 // IsOwner check if a given address is an Owner
-func (c *Owners) IsOwner(opts *bind.CallOpts, address common.Address) (bool, error) {
+func (c Owners) IsOwner(opts *bind.CallOpts, address common.Address) (bool, error) {
 	return c.contract.IsOwner(opts, address)
 }
 
 // GetOwners returns the list of owners
-func (c *Owners) GetOwners(opts *bind.CallOpts) ([]common.Address, error) {
+func (c Owners) GetOwners(opts *bind.CallOpts) ([]common.Address, error) {
 	return c.contract.Owners(opts)
 }
 
 // Quorum returns the list of owners
-func (c *Owners) Quorum(opts *bind.CallOpts) (uint8, error) {
+func (c Owners) Quorum(opts *bind.CallOpts) (uint8, error) {
 	return c.contract.Quorum(opts)
 }
 
