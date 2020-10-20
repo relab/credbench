@@ -116,7 +116,7 @@ func registerCredential(senderKey *ecdsa.PrivateKey, c *course.Course, studentAd
 		return nil, err
 	}
 
-	tx, err := c.RegisterCredential0(opts, studentAddress, digest, []common.Address{})
+	tx, err := c.RegisterCredential(opts, studentAddress, digest, []common.Address{})
 	if err != nil {
 		return nil, err
 	}

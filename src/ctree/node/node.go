@@ -41,22 +41,50 @@ func (n *Node) AddNode(opts *bind.TransactOpts, node common.Address) (*types.Tra
 	return n.contract.AddChild(opts, node)
 }
 
-// RegisterCredential collects all subject's credentials and issue a
-// new credential proof iff the aggregation of those credentials on
-// the sub-contracts match the given root (i.e. off-chain aggregation == on-chain aggregation)
-func (n *Node) RegisterCredential0(opts *bind.TransactOpts, subject common.Address, digest [32]byte, witnesses []common.Address) (*types.Transaction, error) {
+// GetRoot returns the aggregated proof of a subject
+func (n *Node) GetRoot(opts *bind.CallOpts, subject common.Address) ([32]byte, error) {
+	return n.contract.GetRoot(opts, subject)
+}
+
+// RegisterCredential issues a new credential proof ensuring append-only property
+func (n *Node) RegisterCredential(opts *bind.TransactOpts, subject common.Address, digest [32]byte, witnesses []common.Address) (*types.Transaction, error) {
 	return n.contract.RegisterCredential(opts, subject, digest, witnesses)
 }
 
-// VerifyCredentialRoot
-func (n *Node) VerifyCredentialRoot(opts *bind.CallOpts, subject common.Address, root [32]byte) (bool, error) {
+// ConfirmCredential confirms the emission of a quorum signed credential proof
+func (n *Node) ConfirmCredential(opts *bind.TransactOpts, digest [32]byte) (*types.Transaction, error) {
+	return n.contract.ConfirmCredential(opts, digest)
+}
+
+// Revoke revokes an issued credential proof
+func (n *Node) Revoke(opts *bind.TransactOpts, digest [32]byte, reason [32]byte) (*types.Transaction, error) {
+	return n.contract.RevokeCredential(opts, digest, reason)
+}
+
+// AggregateCredentials aggregateCredentials aggregates the digests of a given subject.
+func (n *Node) AggregateCredentials(opts *bind.TransactOpts, subject common.Address, digests [][32]byte) (*types.Transaction, error) {
+	return n.contract.AggregateCredentials(opts, subject, digests)
+}
+
+// OnVerifyCredentialRoot
+func (n *Node) OnVerifyCredentialRoot(opts *bind.CallOpts, subject common.Address, root [32]byte) (bool, error) {
 	return n.contract.VerifyCredentialRoot(opts, subject, root)
+}
+
+func (n *Node) OffVerifyCredentialRoot(opts *bind.CallOpts, subject common.Address, root [32]byte) (bool, error) {
+	// TODO: implement me
+	return false, nil
 }
 
 // VerifyCredentialTree performs a pre-order tree traversal over
 // the credential tree of a given subject and verifies if the given
 // root match with the current root on the root of the credential tree
 // and if all the sub-trees were correctly built.
-func (n *Node) VerifyCredentialTree(opts *bind.CallOpts, subject common.Address) (bool, error) {
+func (n *Node) OnVerifyCredentialTree(opts *bind.CallOpts, subject common.Address) (bool, error) {
 	return n.contract.VerifyCredentialTree(opts, subject)
+}
+
+func (n *Node) OffVerifyCredentialTree(opts *bind.CallOpts, subject common.Address) (bool, error) {
+	// TODO: implement me
+	return false, nil
 }

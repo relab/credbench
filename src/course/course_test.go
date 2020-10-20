@@ -72,7 +72,7 @@ func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [3
 	}()
 
 	opts, _ := accounts.GetTxOpts(tc.Evaluators[0].Key, tc.Backend)
-	_, err := tc.Course.RegisterCredential0(opts, to, digest, []common.Address{})
+	_, err := tc.Course.RegisterCredential(opts, to, digest, []common.Address{})
 	if err != nil {
 		t.Fatalf("RegisterCredential expected no error, got: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestIssuerAggregateCredential(t *testing.T) {
 	}
 	tc.Backend.Commit()
 
-	aggregatedDigest, err := tc.Course.GetRootProof(nil, studentAddress)
+	aggregatedDigest, err := tc.Course.GetRoot(nil, studentAddress)
 	if err != nil {
 		t.Error(err)
 	}
@@ -352,7 +352,7 @@ func VerifyCredentialTree(t *testing.T) {
 	}
 	assert.True(t, b)
 
-	b, err = tc.Course.VerifyCredentialTree(nil, studentAddress)
+	b, err = tc.Course.OnVerifyCredentialTree(nil, studentAddress)
 	if err != nil {
 		t.Error(err)
 	}

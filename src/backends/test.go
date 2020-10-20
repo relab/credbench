@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 
 	keyutils "github.com/relab/ct-eth-dapp/src/accounts"
 	"github.com/relab/ct-eth-dapp/src/ctree/aggregator"
@@ -52,7 +54,7 @@ var defaultHexkeys = []string{
 // easily testing contracts.
 type TestBackend struct {
 	*backends.SimulatedBackend
-	Deployed map[string]common.Address // keep deployed address
+	Deployed map[string]common.Address // keep deployed addresses
 }
 
 func init() {
@@ -123,4 +125,29 @@ func (b *TestBackend) GetLibs() map[string]string {
 		"CredentialSum": b.Deployed["CredentialSum"].Hex(),
 		"Notary":        b.Deployed["Notary"].Hex(),
 	}
+}
+
+// GetTransactionResponse helper function to get transaction response by
+// replaying the transaction doing a call. Useful to debug errors caused
+// by EVM revert.
+func (b *TestBackend) GetTransactionResponse(tx *types.Transaction) (string, error) {
+	from, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
+	if err != nil {
+		return "", err
+	}
+
+	call := ethereum.CallMsg{
+		From:     from,
+		To:       tx.To(),
+		Gas:      tx.Gas(),
+		GasPrice: tx.GasPrice(),
+		Value:    tx.Value(),
+		Data:     tx.Data(),
+	}
+
+	res, err := b.CallContract(context.Background(), call, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(res), nil
 }
