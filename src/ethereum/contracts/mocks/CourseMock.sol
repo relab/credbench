@@ -14,7 +14,13 @@ contract CourseMock is Course {
 
     function enrollStudents(address[] memory students) public {
         for (uint256 i; i < students.length; i++) {
-            enrolledStudents[students[i]] = true;
+            uint256 index = _students.length;
+            _enrolledStudents[students[i]] = Student(index, true);
+            _students.push(students[i]);
         }
+    }
+
+    function getStudent(address student) public view returns(Student memory) {
+        return _enrolledStudents[student];
     }
 }
