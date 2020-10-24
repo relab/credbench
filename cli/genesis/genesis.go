@@ -20,7 +20,7 @@ var (
 	chainID        = 42
 	difficulty     = "1"
 	gasLimit       = "12460000"
-	defaultBalance = "10000000000000000000"
+	defaultBalance = "100000000000000000000"
 )
 
 type GenesisData struct {
@@ -73,7 +73,7 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 		// same test password for all accounts
 		keystorePath := filepath.Join(datadirPath, "keystore")
 		signers := createSignersKeystore(keystorePath, signersAccounts, "123")
-		createTestPasswordFile(datadirPath, "123")
+		_ = createTestPasswordFile(datadirPath, "123")
 		// POA requires extradata to be the concatenation of 32 zero bytes,
 		// all signer addresses (without 0x prefix) and 65 further zero bytes.
 		// https://geth.ethereum.org/docs/interface/private-network
@@ -92,13 +92,16 @@ func createSignersKeystore(keystorePath string, accounts datastore.Accounts, pas
 	ks := keystore.NewKeyStore(keystorePath, keystore.StandardScryptN, keystore.StandardScryptP)
 	for _, account := range accounts {
 		key, _, _ := keyutils.GetKeys(account.HexKey)
-		ks.ImportECDSA(key, password)
+		_, _ = ks.ImportECDSA(key, password)
 	}
 	return accounts.ToHex()
 }
 
 func createTestPasswordFile(path string, password string) error {
 	f, err := os.Create(filepath.Join(path, "password.txt"))
+	if err != nil {
+		return err
+	}
 	defer f.Close()
 
 	_, err = f.WriteString(password)
