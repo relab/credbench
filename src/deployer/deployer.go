@@ -1,7 +1,6 @@
 package deployer
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -33,7 +32,6 @@ func LinkContract(contractCode string, libs map[string]string) string {
 	for name, address := range libs {
 		re := regexp.MustCompile("_*" + name + "_*_")
 		address = strings.ToLower(address)
-		fmt.Printf("Linking contract [%s] at %s\n", name, address)
 		code = re.ReplaceAll(code, []byte(address[2:]))
 	}
 	return string(code)

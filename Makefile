@@ -13,7 +13,7 @@ PKGPROTO_DIR = $(PKG_DIR)/schemes
 CONTRACTS = $(PKG_DIR)/ethereum
 NPM_COMPILE = npm run compile
 
-all: npm build binary
+all: build binary
 
 .PHONY: binary
 binary: dist benchproto

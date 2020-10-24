@@ -176,10 +176,6 @@ func TestAddStudent(t *testing.T) {
 	}
 
 	// Verify if a student was added
-	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || !ok {
-		t.Fatalf("EnrolledStudents expected student %v to be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-
 	if ok, err := tc.Course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || !ok {
 		t.Fatalf("IsEnrolled expected student %v to be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
 	}
@@ -206,10 +202,6 @@ func TestRemoveStudent(t *testing.T) {
 	}
 
 	// Verify if a student was removed
-	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
-		t.Fatalf("EnrolledStudents expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-
 	if ok, err := tc.Course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
 		t.Fatalf("IsEnrolled expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
 	}
@@ -236,10 +228,6 @@ func TestRenounceCourse(t *testing.T) {
 	}
 
 	// Verify if a student was removed
-	if ok, err := tc.Course.EnrolledStudents(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
-		t.Fatalf("EnrolledStudents expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
-	}
-
 	if ok, err := tc.Course.IsEnrolled(&bind.CallOpts{Pending: true}, studentAddress); err != nil || ok {
 		t.Fatalf("IsEnrolled expected student %v to NOT be enrolled but return: %t, %v", studentAddress.Hex(), ok, err)
 	}

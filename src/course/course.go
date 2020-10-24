@@ -70,12 +70,16 @@ func (c *Course) RenounceCourse(opts *bind.TransactOpts) (*types.Transaction, er
 	return c.contract.RenounceCourse(opts)
 }
 
-// EnrolledStudents
-func (c Course) EnrolledStudents(opts *bind.CallOpts, student common.Address) (bool, error) {
-	return c.contract.EnrolledStudents(opts, student)
+// GetStudents
+func (c Course) GetStudents(opts *bind.CallOpts) ([]common.Address, error) {
+	return c.contract.GetStudents(opts)
 }
 
 // IsEnrolled
 func (c *Course) IsEnrolled(opts *bind.CallOpts, student common.Address) (bool, error) {
 	return c.contract.IsEnrolled(opts, student)
+}
+
+func (c *Course) RegisterExam(opts *bind.TransactOpts, student common.Address, examDigest [32]byte) (*types.Transaction, error) {
+	return c.contract.RegisterExam(opts, student, examDigest)
 }

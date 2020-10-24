@@ -73,6 +73,9 @@ func ImportKey(hexkey string, keyStore *keystore.KeyStore) (CTETHWallet, error) 
 
 	password, _ := getPassword(true)
 	account, err := keyStore.ImportECDSA(key, password)
+	if err != nil {
+		return nil, fmt.Errorf("Error importing the private key: %v", err)
+	}
 
 	fmt.Printf("Account address %v successfully imported\n", account.Address.Hex())
 	return &wallet{
@@ -115,6 +118,10 @@ func (w *wallet) Unlock(password string) (err error) {
 		fmt.Printf("Please enter the password to unlock Ethereum account %v:", w.account.Address.Hex())
 
 		password, err = getPassword(false)
+		if err != nil {
+			return err
+		}
+
 		err = w.keyStore.Unlock(w.account, password)
 		if err != nil {
 			return err
