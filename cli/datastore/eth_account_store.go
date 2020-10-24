@@ -4,9 +4,9 @@ import (
 	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
-	proto "github.com/golang/protobuf/proto"
 	"github.com/relab/ct-eth-dapp/cli/database"
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	proto "google.golang.org/protobuf/proto"
 )
 
 var (

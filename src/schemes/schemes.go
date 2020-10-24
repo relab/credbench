@@ -1,13 +1,12 @@
 package schemes
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"io/ioutil"
 	"log"
 
-	"github.com/golang/protobuf/jsonpb"
-	proto "github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func Hash(pb proto.Message) [32]byte {
@@ -21,7 +20,7 @@ func ParseJSON(path string, m proto.Message) {
 		log.Fatalln("Error reading file:", err)
 	}
 
-	err = jsonpb.Unmarshal(bytes.NewReader(data), m)
+	err = protojson.Unmarshal(data, m)
 	if err != nil {
 		log.Fatalf("unexpected error when unmarshaling json: %v", err)
 	}

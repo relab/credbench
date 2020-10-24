@@ -2,9 +2,9 @@ package datastore
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	proto "github.com/golang/protobuf/proto"
 	"github.com/relab/ct-eth-dapp/cli/database"
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	proto "google.golang.org/protobuf/proto"
 )
 
 // Bucket("faculties")
@@ -30,15 +30,15 @@ func NewFacultyStore(db *database.BoltDB, facultyAddress common.Address) *Facult
 	}
 }
 
-func (cs FacultyStore) AddFaculty(store *pb.Faculty) error {
-	if store == nil {
+func (cs *FacultyStore) AddFaculty(faculty *pb.Faculty) error {
+	if faculty == nil {
 		return ErrEmptyData
 	}
-	value, err := proto.Marshal(store)
+	value, err := proto.Marshal(faculty)
 	if err != nil {
 		return err
 	}
-	address := common.HexToAddress(store.ContractAddress)
+	address := common.HexToAddress(faculty.ContractAddress)
 	if address == (common.Address{}) {
 		return errZeroAddress
 	}
@@ -46,25 +46,25 @@ func (cs FacultyStore) AddFaculty(store *pb.Faculty) error {
 }
 
 func (fs FacultyStore) GetFaculty() (*pb.Faculty, error) {
-	store := &pb.Faculty{}
+	faculty := &pb.Faculty{}
 	buf, err := fs.store.db.GetEntry(fs.store.path, fs.address.Bytes())
 	if err != nil {
 		return nil, err
 	}
 	if buf != nil {
-		err := proto.Unmarshal(buf, store)
+		err := proto.Unmarshal(buf, faculty)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return store, err
+	return faculty, err
 }
 
-func (fs FacultyStore) SetCourses(courses []*pb.Course) error {
-	store, err := fs.GetFaculty()
+func (fs *FacultyStore) SetCourses(courses []*pb.Course) error {
+	faculty, err := fs.GetFaculty()
 	if err != nil {
 		return err
 	}
-	store.Courses = courses
-	return fs.AddFaculty(store)
+	faculty.Courses = courses
+	return fs.AddFaculty(faculty)
 }

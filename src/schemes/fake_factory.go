@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func init() {
@@ -46,7 +46,7 @@ func NewFakeAssignmentGradeCredential(creatorID string, courseEntity *Entity, ag
 	return &AssignmentGradeCredential{
 		Assignment:       ag,
 		CreatedBy:        creatorID,
-		CreatedAt:        &timestamp.Timestamp{Seconds: creationTime},
+		CreatedAt:        &timestamppb.Timestamp{Seconds: creationTime},
 		OfferedBy:        []*Entity{courseEntity},
 		EvidenceDocument: "use swarm hash here",
 		DocumentPresence: "Physical",
@@ -77,7 +77,7 @@ func generateFakeAssignmentGradeCredentials(creatorID string, courseID string, a
 func NewFakeCourseGrade(courseID string, credentials []*AssignmentGradeCredential) *CourseGrade {
 	firstTimestamp := credentials[0].CreatedAt
 	lastTimestamp := credentials[len(credentials)-1].CreatedAt
-	var d duration.Duration
+	var d durationpb.Duration
 	d.Seconds = lastTimestamp.Seconds - firstTimestamp.Seconds
 	d.Nanos = lastTimestamp.Nanos - firstTimestamp.Nanos
 	cgrade := &CourseGrade{
@@ -106,7 +106,7 @@ func NewFakeCourseGradeCredential(creatorID string, cg *CourseGrade) *CourseGrad
 	return &CourseGradeCredential{
 		Course:    cg,
 		CreatedBy: creatorID,
-		CreatedAt: &timestamp.Timestamp{Seconds: creationTime},
+		CreatedAt: &timestamppb.Timestamp{Seconds: creationTime},
 		OfferedBy: []*Entity{
 			{
 				Id:   cg.GetId(),
@@ -118,7 +118,7 @@ func NewFakeCourseGradeCredential(creatorID string, cg *CourseGrade) *CourseGrad
 	}
 }
 
-func generateFakeCoursesGrade(teacherID, studentID string, coursesIDS []string) (courses []*CourseGrade) {
+func GenerateFakeCoursesGrade(teacherID, studentID string, coursesIDS []string) (courses []*CourseGrade) {
 	for _, courseID := range coursesIDS {
 		assignments := generateFakeAssignmentGrades(teacherID, studentID, 4) // 4 assignments per course
 		credentials := generateFakeAssignmentGradeCredentials(teacherID, courseID, assignments)
@@ -128,7 +128,7 @@ func generateFakeCoursesGrade(teacherID, studentID string, coursesIDS []string) 
 	return courses
 }
 
-func generateFakeCoursesGradeCredentials(creatorID string, courses []*CourseGrade) (credentials []*CourseGradeCredential) {
+func GenerateFakeCoursesGradeCredentials(creatorID string, courses []*CourseGrade) (credentials []*CourseGradeCredential) {
 	for _, c := range courses {
 		c := NewFakeCourseGradeCredential(creatorID, c)
 		credentials = append(credentials, c)
@@ -140,7 +140,7 @@ func generateFakeCoursesGradeCredentials(creatorID string, courses []*CourseGrad
 func NewFakeDiploma(facultyID string, credentials []*CourseGradeCredential) *Diploma {
 	firstTimestamp := credentials[0].CreatedAt
 	lastTimestamp := credentials[len(credentials)-1].CreatedAt
-	var d duration.Duration
+	var d durationpb.Duration
 	d.Seconds = lastTimestamp.Seconds - firstTimestamp.Seconds
 	d.Nanos = lastTimestamp.Nanos - firstTimestamp.Nanos
 	diploma := &Diploma{
@@ -172,7 +172,7 @@ func NewFakeDiplomaCredential(creatorID string, d *Diploma) *DiplomaCredential {
 	return &DiplomaCredential{
 		Diploma:   d,
 		CreatedBy: creatorID,
-		CreatedAt: &timestamp.Timestamp{Seconds: creationTime},
+		CreatedAt: &timestamppb.Timestamp{Seconds: creationTime},
 		OfferedBy: []*Entity{
 			{
 				Id:   d.GetId(),
@@ -185,7 +185,7 @@ func NewFakeDiplomaCredential(creatorID string, d *Diploma) *DiplomaCredential {
 }
 
 func GenerateFakeDiploma(facultyID, teacherID, studentID string, coursesIDS []string) (diploma *Diploma) {
-	courses := generateFakeCoursesGrade(teacherID, studentID, coursesIDS)
-	credentials := generateFakeCoursesGradeCredentials(teacherID, courses)
+	courses := GenerateFakeCoursesGrade(teacherID, studentID, coursesIDS)
+	credentials := GenerateFakeCoursesGradeCredentials(teacherID, courses)
 	return NewFakeDiploma(facultyID, credentials)
 }

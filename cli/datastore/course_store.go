@@ -2,7 +2,8 @@ package datastore
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	proto "github.com/golang/protobuf/proto"
+	proto "google.golang.org/protobuf/proto"
+
 	"github.com/relab/ct-eth-dapp/cli/database"
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
 )
@@ -29,15 +30,15 @@ func NewCourseStore(db *database.BoltDB, courseAddress common.Address) *CourseSt
 	}
 }
 
-func (cs CourseStore) PutCourse(store *pb.Course) error {
-	if store == nil {
+func (cs *CourseStore) PutCourse(course *pb.Course) error {
+	if course == nil {
 		return ErrEmptyData
 	}
-	value, err := proto.Marshal(store)
+	value, err := proto.Marshal(course)
 	if err != nil {
 		return err
 	}
-	address := common.HexToAddress(store.ContractAddress)
+	address := common.HexToAddress(course.ContractAddress)
 	if address == (common.Address{}) {
 		return errZeroAddress
 	}
@@ -45,34 +46,34 @@ func (cs CourseStore) PutCourse(store *pb.Course) error {
 }
 
 func (cs CourseStore) GetCourse() (*pb.Course, error) {
-	store := &pb.Course{}
+	course := &pb.Course{}
 	buf, err := cs.store.db.GetEntry(cs.store.path, cs.address.Bytes())
 	if err != nil {
 		return nil, err
 	}
 	if buf != nil {
-		err := proto.Unmarshal(buf, store)
+		err := proto.Unmarshal(buf, course)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return store, err
+	return course, err
 }
 
-func (cs CourseStore) SetStudents(students Accounts) error {
-	store, err := cs.GetCourse()
+func (cs *CourseStore) SetStudents(students Accounts) error {
+	course, err := cs.GetCourse()
 	if err != nil {
 		return err
 	}
-	store.Students = students
-	return cs.PutCourse(store)
+	course.Students = students
+	return cs.PutCourse(course)
 }
 
-func (cs CourseStore) AddCredential(credential *pb.Credential) error {
-	store, err := cs.GetCourse()
+func (cs *CourseStore) AddCredential(credential *pb.Credential) error {
+	course, err := cs.GetCourse()
 	if err != nil {
 		return err
 	}
-	store.Credentials = append(store.Credentials, credential)
-	return cs.PutCourse(store)
+	course.Credentials = append(course.Credentials, credential)
+	return cs.PutCourse(course)
 }
