@@ -19,7 +19,7 @@ import (
 var (
 	chainID        = 42
 	difficulty     = "1"
-	gasLimit       = "12460000"
+	gasLimit       = "6721975"
 	defaultBalance = "100000000000000000000"
 )
 
@@ -39,14 +39,14 @@ func GenerateGenesis(datadirPath string, consensus string, accountStore *datasto
 	if err != nil {
 		return err
 	}
-	//Select one deployer (first account on the genesis)
-	//We are also using it as a signer on the poa
+	// Select one deployer (first account on the genesis)
+	// We are also using it as a signer on the poa
 	deployer := common.HexToAddress(accounts[0].GetHexAddress()).Bytes()
-	_, err = accountStore.SelectAccount(pb.Type_DEPLOYER, deployer)
+	_, err = accountStore.SelectAccount(pb.Type_SEALER, deployer)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Configured deployer: %s\n", accounts[0].GetHexAddress())
+	fmt.Printf("Configured POA Sealer: %s\n", accounts[0].GetHexAddress())
 	genesisFile := filepath.Join(datadirPath, "genesis.json")
 	return createGenesisFile(genesisFile, newGenesisData(datadirPath, consensus, accounts))
 }
@@ -66,8 +66,8 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 		Accounts:       accounts.ToHex(),
 	}
 
-	//TODO select n signers accounts
-	//FIXME assign the first account as the deployer
+	// TODO select n signers accounts
+	// FIXME assign the first account as the deployer
 	signersAccounts := datastore.Accounts{accounts[0]}
 	if consensus == "poa" {
 		// same test password for all accounts
@@ -162,7 +162,7 @@ const genesisTmpl = `
         "constantinopleBlock": 0,
         "petersburgBlock": 0,
         {{if .POA }}"clique": {
-            "period": 5,
+            "period": 0,
             "epoch": 30000
         }{{ else }}"ethash": {}{{ end }}
     },
