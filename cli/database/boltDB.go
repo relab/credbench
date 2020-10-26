@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"strings"
+	"sync"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -14,6 +15,7 @@ var (
 )
 
 type BoltDB struct {
+	lock    sync.Mutex
 	db      *bolt.DB
 	options *bolt.Options
 	path    string
@@ -38,6 +40,9 @@ func NewDatabase(path string, opts *bolt.Options) (*BoltDB, error) {
 
 // OpenDB open the BoltDB instance
 func (d *BoltDB) OpenDB() (err error) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	if d.db, err = bolt.Open(d.path, 0644, d.options); err != nil {
 		return err
 	}
@@ -45,6 +50,9 @@ func (d *BoltDB) OpenDB() (err error) {
 }
 
 func (d *BoltDB) Close() error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	return d.db.Close()
 }
 
@@ -69,6 +77,9 @@ func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 
 // DeleteBucket deletes the last bucket at path
 func (d *BoltDB) DeleteBucket(pathStr string) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -76,10 +87,14 @@ func (d *BoltDB) DeleteBucket(pathStr string) error {
 	s := len(path)
 	err = d.db.Update(func(tx *bolt.Tx) error {
 		if s == 1 { // root bucket
-			tx.DeleteBucket([]byte(path[0]))
+			err = tx.DeleteBucket([]byte(path[0]))
+			if err != nil {
+				return err
+			}
 		}
 		key := []byte(path[s-1])
-		b, err := getBucket(tx, path[:s-1])
+		var b *bolt.Bucket
+		b, err = getBucket(tx, path[:s-1])
 		if b == nil {
 			return err
 		}
@@ -110,6 +125,9 @@ func (d *BoltDB) BucketExists(pathStr string) bool {
 
 // CreateBucketPath create a list of buckets
 func (d *BoltDB) CreateBucketPath(pathStr string) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -163,6 +181,9 @@ func (d *BoltDB) GetKeys(pathStr string) (keys [][]byte, err error) {
 }
 
 func (d *BoltDB) AddEntry(pathStr string, key []byte, value []byte) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -183,6 +204,9 @@ func (d *BoltDB) AddEntry(pathStr string, key []byte, value []byte) error {
 
 // DeleteEntry deletes the entry on the path
 func (d *BoltDB) DeleteEntry(pathStr string, key []byte) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -213,7 +237,7 @@ func (d *BoltDB) GetEntry(pathStr string, key []byte) (entry []byte, err error) 
 	return entry, err
 }
 
-func (d *BoltDB) MapValues(pathStr string, process func(value []byte) error) error {
+func (d *BoltDB) IterValues(pathStr string, process func(value []byte) error) error {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -226,7 +250,10 @@ func (d *BoltDB) MapValues(pathStr string, process func(value []byte) error) err
 		c := b.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			if v != nil {
-				process(v)
+				err = process(v)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return nil

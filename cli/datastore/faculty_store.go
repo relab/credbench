@@ -40,7 +40,7 @@ func (cs *FacultyStore) AddFaculty(faculty *pb.Faculty) error {
 	}
 	address := common.HexToAddress(faculty.ContractAddress)
 	if address == (common.Address{}) {
-		return errZeroAddress
+		return ErrZeroAddress
 	}
 	return cs.store.db.AddEntry(cs.store.path, address.Bytes(), value)
 }

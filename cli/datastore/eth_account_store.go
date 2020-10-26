@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	errZeroAddress     = errors.New("zero address given")
-	errNoAccountsFound = errors.New("no accounts found")
+	ErrZeroAddress     = errors.New("zero address given")
+	ErrNoAccountsFound = errors.New("no accounts found")
 )
 
 // Bucket("accounts")
@@ -34,7 +34,7 @@ func NewEthAccountStore(db *database.BoltDB) *EthAccountStore {
 // PutAccount adds a new Account to the EthAccountStore
 func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 	if len(accounts) < 1 {
-		return errNoAccountsFound
+		return ErrNoAccountsFound
 	}
 
 	for _, account := range accounts {
@@ -44,7 +44,7 @@ func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 		}
 		address := common.HexToAddress(account.HexAddress)
 		if address == (common.Address{}) {
-			return errZeroAddress
+			return ErrZeroAddress
 		}
 		err = as.ds.db.AddEntry(as.ds.path, address.Bytes(), value)
 		if err != nil {
@@ -100,7 +100,7 @@ func (as EthAccountStore) GetUnusedAccounts(n int) (Accounts, error) {
 		}
 	}
 	if len(accounts) == 0 || len(accounts) < n {
-		return accounts, errNoAccountsFound
+		return accounts, ErrNoAccountsFound
 	}
 	return accounts, err
 }
@@ -125,7 +125,7 @@ func (as *EthAccountStore) SelectAccount(selectType pb.Type, keys ...[]byte) (Ac
 		accounts = append(accounts, account)
 	}
 	if len(accounts) != len(keys) {
-		return accounts, errNoAccountsFound
+		return accounts, ErrNoAccountsFound
 	}
 	return accounts, err
 }
@@ -165,11 +165,11 @@ func (as EthAccountStore) GetByType(n int, selectType pb.Type) (Accounts, error)
 		// Get next
 		key, value, err = as.ds.db.GetNextEntry(as.ds.path, key)
 		if err != nil || key == nil {
-			return accounts, err
+			break
 		}
 	}
 	if len(accounts) == 0 || len(accounts) < n {
-		return accounts, errNoAccountsFound
+		return accounts, ErrNoAccountsFound
 	}
 	return accounts, err
 }
@@ -177,7 +177,7 @@ func (as EthAccountStore) GetByType(n int, selectType pb.Type) (Accounts, error)
 // All returns all accounts under the last bucket at path
 func (as EthAccountStore) All() (Accounts, error) {
 	var accounts Accounts
-	err := as.ds.db.MapValues(as.ds.path, func(value []byte) error {
+	err := as.ds.db.IterValues(as.ds.path, func(value []byte) error {
 		account := &pb.Account{}
 		err := proto.Unmarshal(value, account)
 		if err != nil {
@@ -187,7 +187,7 @@ func (as EthAccountStore) All() (Accounts, error) {
 		return nil
 	})
 	if len(accounts) == 0 {
-		return accounts, errNoAccountsFound
+		return accounts, ErrNoAccountsFound
 	}
 	return accounts, err
 }

@@ -40,7 +40,7 @@ func (cs *CourseStore) PutCourse(course *pb.Course) error {
 	}
 	address := common.HexToAddress(course.ContractAddress)
 	if address == (common.Address{}) {
-		return errZeroAddress
+		return ErrZeroAddress
 	}
 	return cs.store.db.AddEntry(cs.store.path, address.Bytes(), value)
 }
