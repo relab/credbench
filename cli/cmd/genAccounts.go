@@ -8,11 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var accountsCmd = &cobra.Command{
-	Use:   "accounts",
-	Short: "Generate accounts",
-}
-
 var createAccountsCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create N accounts",
@@ -30,7 +25,12 @@ var createAccountsCmd = &cobra.Command{
 	},
 }
 
-func newAccountsCmd() *cobra.Command {
-	accountsCmd.AddCommand(createAccountsCmd)
-	return accountsCmd
+func newGenAccountsCmd() *cobra.Command {
+	genAccountsCmd := &cobra.Command{
+		Use:   "accounts",
+		Short: "Generate accounts",
+	}
+
+	genAccountsCmd.AddCommand(createAccountsCmd)
+	return genAccountsCmd
 }
