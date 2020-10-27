@@ -10,6 +10,7 @@ enum Type {
     ADM = 2;
     EVALUATOR = 3;
     DEPLOYER = 4;
+    SEALER = 5;
 }
 
 message Account {

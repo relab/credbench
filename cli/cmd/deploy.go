@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
@@ -15,11 +16,13 @@ import (
 
 	"github.com/relab/ct-eth-dapp/cli/transactor"
 	"github.com/relab/ct-eth-dapp/src/accounts"
-	course "github.com/relab/ct-eth-dapp/src/course"
 	"github.com/relab/ct-eth-dapp/src/ctree/aggregator"
 	"github.com/relab/ct-eth-dapp/src/ctree/notary"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 	"github.com/relab/ct-eth-dapp/src/faculty"
+
+	keyutils "github.com/relab/ct-eth-dapp/src/accounts"
+	course "github.com/relab/ct-eth-dapp/src/course"
 )
 
 func deployNotaryCmd() *cobra.Command {
@@ -27,8 +30,8 @@ func deployNotaryCmd() *cobra.Command {
 		Use:   "notary",
 		Short: "Deploy notary library",
 		Run: func(cmd *cobra.Command, args []string) {
-			key := wallet.PrivateKey()
-			err := DeployNotary(backend, key)
+			key, _, _ := keyutils.GetKeys(senderHexKey)
+			err := deployNotary(backend, key)
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
@@ -36,13 +39,17 @@ func deployNotaryCmd() *cobra.Command {
 	}
 }
 
-func DeployNotary(backend *ethclient.Client, key *ecdsa.PrivateKey) error {
+func deployNotary(backend *ethclient.Client, key *ecdsa.PrivateKey) error {
+	fmt.Println("Deploying Notary...")
 	addr, tx, _, err := LinkAndDeploy(backend, key, notary.NotaryContractABI, notary.NotaryContractBin, nil)
 	if err != nil {
 		return fmt.Errorf("failed to deploy the contract: %v", err)
 	}
 	viper.Set("deployed_libs.notary", addr.Hex())
-	viper.WriteConfig() //FIXME: this currently override the config
+	err = viper.WriteConfig() // FIXME: this currently override the config
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Transaction ID: %x\n", tx.Hash())
 	return nil
 }
@@ -52,8 +59,8 @@ func deployAggregatorCmd() *cobra.Command {
 		Use:   "aggregator",
 		Short: "Deploy aggregator library",
 		Run: func(cmd *cobra.Command, args []string) {
-			key := wallet.PrivateKey()
-			err := DeployAggregator(backend, key)
+			key, _, _ := keyutils.GetKeys(senderHexKey)
+			err := deployAggregator(backend, key)
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
@@ -61,13 +68,17 @@ func deployAggregatorCmd() *cobra.Command {
 	}
 }
 
-func DeployAggregator(backend *ethclient.Client, key *ecdsa.PrivateKey) error {
+func deployAggregator(backend *ethclient.Client, key *ecdsa.PrivateKey) error {
+	fmt.Println("Deploying Aggregator...")
 	addr, tx, _, err := LinkAndDeploy(backend, key, aggregator.CredentialSumABI, aggregator.CredentialSumBin, nil)
 	if err != nil {
 		return fmt.Errorf("failed to deploy the contract: %v", err)
 	}
 	viper.Set("deployed_libs.aggregator", addr.Hex())
-	viper.WriteConfig()
+	err = viper.WriteConfig()
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Transaction ID: %x\n", tx.Hash())
 	return nil
 }
@@ -76,13 +87,13 @@ var deployAllLibsCmd = &cobra.Command{
 	Use:   "libs",
 	Short: "Deploy all libraries",
 	Run: func(cmd *cobra.Command, args []string) {
-		key := wallet.PrivateKey()
+		key, _, _ := keyutils.GetKeys(senderHexKey)
 
-		err := DeployNotary(backend, key)
+		err := deployNotary(backend, key)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-		err = DeployAggregator(backend, key)
+		err = deployAggregator(backend, key)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
@@ -97,8 +108,7 @@ func deployCourseCmd() *cobra.Command {
 		Use:   "course",
 		Short: "Deploy course contract",
 		Run: func(cmd *cobra.Command, args []string) {
-			key := wallet.PrivateKey()
-
+			key, _, _ := keyutils.GetKeys(senderHexKey)
 			var ownersAddr []common.Address
 			for _, addr := range owners {
 				ownersAddr = append(ownersAddr, common.HexToAddress(addr))
@@ -121,6 +131,7 @@ func deployCourseCmd() *cobra.Command {
 }
 
 func DeployCourse(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, error) {
+	fmt.Println("Deploying Course...")
 	aggregatorAddr := viper.GetString("deployed_libs.aggregator")
 	if aggregatorAddr == "" {
 		log.Fatalln(fmt.Errorf("Aggregator contract not deployed. Please, deploy it first"))
@@ -145,6 +156,7 @@ func DeployCourse(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []com
 }
 
 func DeployFaculty(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, error) {
+	fmt.Println("Deploying Faculty...")
 	aggregatorAddr := viper.GetString("deployed_libs.aggregator")
 	if aggregatorAddr == "" {
 		log.Fatalln(fmt.Errorf("Aggregator contract not deployed. Please, deploy it first"))
@@ -170,6 +182,7 @@ func DeployFaculty(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []co
 
 // LinkAndDeploy links a contract with the given libraries and deploy it
 // using the default account
+// TODO: pass a flag to wait tx confirmations
 func LinkAndDeploy(backend *ethclient.Client, key *ecdsa.PrivateKey, contractABI, contractBin string, libs map[string]string, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
 	accAddress := accounts.GetAddress(key).Hex()
 
@@ -188,9 +201,12 @@ func LinkAndDeploy(backend *ethclient.Client, key *ecdsa.PrivateKey, contractABI
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	fmt.Printf("Contract %s successfully deployed\n", address.Hex())
 
-	fmt.Printf("Deployer: %s balance: %v\n", accAddress, transactor.GetBalance(accAddress, backend))
+	err = deployer.WaitForTxConfirmation(context.TODO(), backend, tx, 0)
+	if err != nil {
+		return address, tx, nil, fmt.Errorf("Transaction not confirmed due to error: %v", err)
+	}
+	fmt.Printf("Contract %s successfully deployed\n", address.Hex())
 	return address, tx, contract, nil
 }
 
