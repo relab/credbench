@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/relab/ct-eth-dapp/src/accounts"
 	"github.com/relab/ct-eth-dapp/src/backends"
 	"github.com/relab/ct-eth-dapp/src/course"
 	"github.com/relab/ct-eth-dapp/src/ctree/node"
@@ -48,7 +47,7 @@ func NewTestFaculty(t *testing.T, adms backends.Accounts, quorum uint8) *TestFac
 }
 
 func deployFaculty(backend *backends.TestBackend, prvKey *ecdsa.PrivateKey, adms []common.Address, quorum uint8) (common.Address, *Faculty, error) {
-	opts, _ := accounts.GetTxOpts(prvKey, backend)
+	opts := bind.NewKeyedTransactor(prvKey)
 
 	libs, err := backend.DeployLibs(opts)
 	if err != nil {
@@ -85,7 +84,7 @@ func TestFacultyAddCourse(t *testing.T) {
 	tf := NewTestFaculty(t, adms, uint8(len(adms)))
 	defer tf.Backend.Close()
 
-	opts, _ := accounts.GetTxOpts(adms[0].Key, tf.Backend)
+	opts := bind.NewKeyedTransactor(adms[0].Key)
 	courseAddr, _, _, err := course.DeployCourse(opts, tf.Backend, tf.Backend.GetLibs(), evaluators.Addresses(), uint8(len(evaluators)))
 	if err != nil {
 		t.Fatalf("Failed to deploy course: %v", err)
@@ -131,7 +130,7 @@ func TestCreateDiploma(t *testing.T) {
 	var coursesAddresses []common.Address
 	for i := 0; i < 4; i++ {
 		// adm creates course
-		opts, _ := accounts.GetTxOpts(adms[0].Key, tf.Backend)
+		opts := bind.NewKeyedTransactor(adms[0].Key)
 		courseAddr, _, _, err := course.DeployCourse(opts, tf.Backend, tf.Backend.GetLibs(), evaluators.Addresses(), uint8(len(evaluators)))
 		if err != nil {
 			t.Fatalf("Failed to deploy course: %v", err)
@@ -154,7 +153,7 @@ func TestCreateDiploma(t *testing.T) {
 		}
 
 		// Adding a student
-		opts, _ = accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
+		opts = bind.NewKeyedTransactor(evaluators[0].Key)
 		_, err = courseInstance.AddStudent(opts, student.Address)
 		if err != nil {
 			t.Fatalf("Failed to add student to course %s: %v", courseInstance.Address().Hex(), err)
@@ -184,7 +183,7 @@ func TestCreateDiploma(t *testing.T) {
 			// Publish digest of assignment credential
 			digest := pb.Hash(a)
 			courseDigests[caddr] = append(courseDigests[caddr], digest)
-			opts, _ := accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
+			opts := bind.NewKeyedTransactor(evaluators[0].Key)
 			_, err := courseInstance.RegisterCredential(opts, student.Address, digest, []common.Address{})
 			if err != nil {
 				t.Fatalf("RegisterCredential expected no error, got: %v", err)
@@ -194,14 +193,14 @@ func TestCreateDiploma(t *testing.T) {
 			assert.Equal(t, digest, proof.Digest)
 
 			// Second evaluator confirms
-			opts, _ = accounts.GetTxOpts(evaluators[1].Key, tf.Backend)
+			opts = bind.NewKeyedTransactor(evaluators[1].Key)
 			_, err = courseInstance.RegisterCredential(opts, student.Address, digest, []common.Address{})
 			if err != nil {
 				t.Fatalf("RegisterCredential expected no error, got: %v", err)
 			}
 			tf.Backend.Commit()
 
-			opts, _ = accounts.GetTxOpts(student.Key, tf.Backend)
+			opts = bind.NewKeyedTransactor(student.Key)
 			_, err = courseInstance.ConfirmCredential(opts, digest)
 			if err != nil {
 				t.Fatalf("ConfirmCredential expected no error, got: %v", err)
@@ -212,7 +211,7 @@ func TestCreateDiploma(t *testing.T) {
 		// issue final course certificate
 		digest := pb.Hash(c)
 		courseDigests[caddr] = append(courseDigests[caddr], digest)
-		opts, _ := accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
+		opts := bind.NewKeyedTransactor(evaluators[0].Key)
 		_, err := courseInstance.RegisterCredential(opts, student.Address, digest, []common.Address{})
 		if err != nil {
 			t.Fatalf("RegisterCredential expected no error, got: %v", err)
@@ -222,14 +221,14 @@ func TestCreateDiploma(t *testing.T) {
 		assert.Equal(t, digest, proof.Digest)
 
 		// Second evaluator also signs the credential
-		opts, _ = accounts.GetTxOpts(evaluators[1].Key, tf.Backend)
+		opts = bind.NewKeyedTransactor(evaluators[1].Key)
 		_, err = courseInstance.RegisterCredential(opts, student.Address, digest, []common.Address{})
 		if err != nil {
 			t.Fatalf("RegisterCredential expected no error, got: %v", err)
 		}
 		tf.Backend.Commit()
 
-		opts, _ = accounts.GetTxOpts(student.Key, tf.Backend)
+		opts = bind.NewKeyedTransactor(student.Key)
 		_, err = courseInstance.ConfirmCredential(opts, digest)
 		if err != nil {
 			t.Fatalf("ConfirmCredential expected no error, got: %v", err)
@@ -247,7 +246,7 @@ func TestCreateDiploma(t *testing.T) {
 		caddr := common.HexToAddress(c.Course.GetId())
 		courseInstance, _ := course.NewCourse(caddr, tf.Backend)
 
-		opts, _ := accounts.GetTxOpts(evaluators[0].Key, tf.Backend)
+		opts := bind.NewKeyedTransactor(evaluators[0].Key)
 		_, err := courseInstance.AggregateCredentials(opts, student.Address, courseDigests[caddr])
 		if err != nil {
 			t.Fatalf("Failed to aggregate course credentials: %v", err)
@@ -265,7 +264,7 @@ func TestCreateDiploma(t *testing.T) {
 	diplomaCredential := pb.NewFakeDiplomaCredential(adms[0].Address.Hex(), diploma)
 	digest := pb.Hash(diplomaCredential)
 
-	opts, _ := accounts.GetTxOpts(adms[0].Key, tf.Backend)
+	opts := bind.NewKeyedTransactor(adms[0].Key)
 	_, err := tf.Faculty.RegisterCredential(opts, student.Address, digest, coursesAddresses)
 	if err != nil {
 		t.Fatalf("RegisterRootCredential expected no error, got: %v", err)
@@ -285,15 +284,15 @@ func TestCreateDiploma(t *testing.T) {
 	d := tf.Faculty.GetCredentialProof(nil, digest)
 	assert.Equal(t, digest, d.Digest)
 
-	// Second evaluator confirm the diploma credentail
-	opts, _ = accounts.GetTxOpts(adms[1].Key, tf.Backend)
+	// Second administration staff confirm the diploma credentail
+	opts = bind.NewKeyedTransactor(adms[1].Key)
 	_, err = tf.Faculty.RegisterCredential(opts, student.Address, digest, coursesAddresses)
 	if err != nil {
 		t.Fatalf("Failed to register diploma credential: %v", err)
 	}
 	tf.Backend.Commit()
 
-	opts, _ = accounts.GetTxOpts(student.Key, tf.Backend)
+	opts = bind.NewKeyedTransactor(student.Key)
 	_, err = tf.Faculty.ConfirmCredential(opts, digest)
 	if err != nil {
 		t.Fatalf("failed to confirm issued credential: %v", err)

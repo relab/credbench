@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 
 	ethAccounts "github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -14,13 +15,13 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type CTETHWallet interface {
+type Wallet interface {
 	Account() ethAccounts.Account
 	PrivateKey() *ecdsa.PrivateKey
 	Unlock(password string) error
 	Lock() error
 	Address() common.Address
-	HexAddress() string
+	GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error)
 }
 
 type wallet struct {
@@ -30,7 +31,7 @@ type wallet struct {
 	unlocked   bool
 }
 
-func NewWallet(accountAddr common.Address, keystoreDir string) (CTETHWallet, error) {
+func NewWallet(accountAddr common.Address, keystoreDir string) (Wallet, error) {
 	var account ethAccounts.Account
 	var err error
 
@@ -65,7 +66,7 @@ func NewWallet(accountAddr common.Address, keystoreDir string) (CTETHWallet, err
 	}, nil
 }
 
-func ImportKey(hexkey string, keyStore *keystore.KeyStore) (CTETHWallet, error) {
+func ImportKey(hexkey string, keyStore *keystore.KeyStore) (Wallet, error) {
 	key, err := crypto.HexToECDSA(hexkey)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing the private key: %v", err)
@@ -98,14 +99,22 @@ func NewAccount(keystoreDir string) (err error) {
 	return nil
 }
 
-func GetTxOpts(key *ecdsa.PrivateKey, backend bind.ContractBackend) (*bind.TransactOpts, error) {
-	gasPrice, err := backend.SuggestGasPrice(context.Background())
+func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error) {
+	gasPrice, err := backend.SuggestGasPrice(context.TODO())
 	if err != nil {
-		return nil, fmt.Errorf("Failed to estimate the gas price: %v", err)
+		return nil, err
 	}
-	transactOpts := bind.NewKeyedTransactor(key)
-	transactOpts.GasLimit = uint64(6721975) //TODO: get from config file
+
+	nonce, err := backend.PendingNonceAt(context.TODO(), w.account.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	transactOpts := bind.NewKeyedTransactor(w.privateKey)
+	transactOpts.GasLimit = uint64(6721975) // FIXME: get from config file
 	transactOpts.GasPrice = gasPrice
+	// Note: overflow may happen when converting uint64 to int64
+	transactOpts.Nonce = new(big.Int).SetUint64(nonce)
 	return transactOpts, nil
 }
 
@@ -191,7 +200,7 @@ func getAccount(accountAddr common.Address, keyStore *keystore.KeyStore) (ethAcc
 
 		return ethAccounts.Account{}, fmt.Errorf("Ethereum account not found")
 	}
-	//Return the first existent account
+	// Return the first existent account
 	return accounts[0], nil
 }
 
