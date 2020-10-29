@@ -1,22 +1,24 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/relab/ct-eth-dapp/src/accounts"
 	"github.com/spf13/cobra"
+
+	"github.com/relab/ct-eth-dapp/cli/transactor"
+	"github.com/relab/ct-eth-dapp/src/accounts"
 )
 
 var (
-	keyStore   *keystore.KeyStore
-	wallet     accounts.CTETHWallet
-	senderAddr common.Address
+	keyStore *keystore.KeyStore
+	wallet   accounts.Wallet
 )
 
 func loadWallet() (err error) {
-	senderAddr = accounts.GetAccountAddress(defaultAccount, keystoreDir)
+	senderAddr := accounts.GetAccountAddress(defaultAccount, keystoreDir)
 	wallet, err = accounts.NewWallet(senderAddr, keystoreDir)
 	return err
 }
@@ -53,6 +55,20 @@ var importAccountCmd = &cobra.Command{
 	},
 }
 
+var getBalanceCmd = &cobra.Command{
+	Use:   "balance",
+	Short: "Get balance of an account",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadKeystore()
+	},
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		address := common.HexToAddress(args[0])
+		balance := transactor.GetBalance(address, backend)
+		fmt.Printf("Balance of account %s: %v\n", args[0], balance)
+	},
+}
+
 func newAccountCmd() *cobra.Command {
 	accountCmd := &cobra.Command{
 		Use:   "account",
@@ -61,6 +77,7 @@ func newAccountCmd() *cobra.Command {
 	accountCmd.AddCommand(
 		createAccountCmd,
 		importAccountCmd,
+		getBalanceCmd,
 	)
 	return accountCmd
 }
