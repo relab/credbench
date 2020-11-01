@@ -163,7 +163,7 @@ const genesisTmpl = `
         "petersburgBlock": 0,
         {{if .POA }}"clique": {
             "period": 0,
-            "epoch": 30000
+            "epoch": 2000
         }{{ else }}"ethash": {}{{ end }}
     },
     "coinbase": "{{index .Accounts 0}}",
