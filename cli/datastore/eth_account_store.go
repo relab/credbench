@@ -2,9 +2,12 @@ package datastore
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/relab/ct-eth-dapp/cli/database"
+
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
 	proto "google.golang.org/protobuf/proto"
 )
@@ -20,7 +23,8 @@ var ethAccountsBucket = "eth_accounts"
 
 // EthAccountStore implements account store for ethereum accounts
 type EthAccountStore struct {
-	ds DataStore
+	lock sync.Mutex
+	ds   DataStore
 }
 
 func CreateEthAccountStore(db *database.BoltDB) error {
@@ -55,7 +59,7 @@ func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 }
 
 // GetAccount gets an account
-func (as EthAccountStore) GetAccount(key []byte) (*pb.Account, error) {
+func (as *EthAccountStore) GetAccount(key []byte) (*pb.Account, error) {
 	account := &pb.Account{}
 	buf, err := as.ds.db.GetEntry(as.ds.path, key)
 	if err != nil {
@@ -70,59 +74,59 @@ func (as EthAccountStore) GetAccount(key []byte) (*pb.Account, error) {
 	return account, err
 }
 
-// GetUnusedAccounts return `n` free accounts
-func (as EthAccountStore) GetUnusedAccounts(n int) (Accounts, error) {
-	var accounts Accounts
+func (as *EthAccountStore) GetUnusedAccounts(n int) (Accounts, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
 
-	//TODO keep the last used key
-	firstKey, firstValue, err := as.ds.db.GetFirstEntry(as.ds.path)
-	if err != nil {
-		return accounts, err
-	}
-	i := 0
-	key, value := firstKey, firstValue
-	for i < n {
+	var accounts Accounts
+	if err := as.ds.db.Iterator(as.ds.path, n, func(value []byte) (bool, error) {
 		account := &pb.Account{}
-		err = proto.Unmarshal(value, account)
+		err := proto.Unmarshal(value, account)
 		if err != nil {
-			return accounts, err
+			return false, err
 		}
 
 		if account.GetSelected() == pb.Type_NONE {
 			accounts = append(accounts, account)
-			i++
+			return true, nil
 		}
-
-		// Get next
-		key, value, err = as.ds.db.GetNextEntry(as.ds.path, key)
-		if err != nil || key == nil {
-			return accounts, err
-		}
+		return false, nil
+	}); err != nil {
+		return accounts, err
 	}
 	if len(accounts) == 0 || len(accounts) < n {
 		return accounts, ErrNoAccountsFound
 	}
-	return accounts, err
+	return accounts, nil
 }
 
-// SelectAccount selects n accounts of the same type
 func (as *EthAccountStore) SelectAccount(selectType pb.Type, keys ...[]byte) (Accounts, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
 	var accounts Accounts
 	var err error
 	for _, key := range keys {
-		account, err := as.GetAccount(key)
-		if err != nil {
-			return accounts, err
+		account := &pb.Account{}
+		err = as.ds.db.UpdateEntry(as.ds.path, key, func(value []byte) ([]byte, error) {
+			if value == nil {
+				return nil, nil // value does not exists or is bucket
+			}
+			err := proto.Unmarshal(value, account)
+			if err != nil {
+				return nil, err
+			}
+			account.Selected = selectType
+
+			value, err = proto.Marshal(account)
+			if err != nil {
+				return nil, err
+			}
+			return value, nil
+		})
+		if err == nil && account.Selected != pb.Type_NONE {
+			accounts = append(accounts, account)
 		}
-
-		account.Selected = selectType
-
-		err = as.PutAccount(account)
-		if err != nil {
-			return accounts, err
-		}
-
-		accounts = append(accounts, account)
 	}
 	if len(accounts) != len(keys) {
 		return accounts, ErrNoAccountsFound
@@ -130,19 +134,39 @@ func (as *EthAccountStore) SelectAccount(selectType pb.Type, keys ...[]byte) (Ac
 	return accounts, err
 }
 
-func (as EthAccountStore) GetAndSelect(n int, selectType pb.Type) (Accounts, error) {
-	accounts, err := as.GetUnusedAccounts(n)
-	if err != nil {
-		return nil, err
+func (as *EthAccountStore) GetAndSelect(n int, selectType pb.Type) (Accounts, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
+	var accounts Accounts
+	if err := as.ds.db.Map(as.ds.path, n, func(value []byte) (bool, []byte, error) {
+		account := &pb.Account{}
+		err := proto.Unmarshal(value, account)
+		if err != nil {
+			return false, nil, err
+		}
+
+		if account.GetSelected() == pb.Type_NONE {
+			// Select and update account
+			account.Selected = selectType
+			value, err = proto.Marshal(account)
+			if err != nil {
+				return false, nil, err
+			}
+			accounts = append(accounts, account)
+			return true, value, nil
+		}
+		return false, nil, nil
+	}); err != nil {
+		return accounts, err
 	}
-	accounts, err = as.SelectAccount(selectType, accounts.ToBytes()...)
-	if err != nil {
-		return nil, err
+	if len(accounts) == 0 || len(accounts) < n {
+		return accounts, ErrNoAccountsFound
 	}
 	return accounts, nil
 }
 
-func (as EthAccountStore) GetByType(n int, selectType pb.Type) (Accounts, error) {
+func (as *EthAccountStore) GetByType(n int, selectType pb.Type) (Accounts, error) {
 	var accounts Accounts
 	firstKey, firstValue, err := as.ds.db.GetFirstEntry(as.ds.path)
 	if err != nil {
@@ -174,8 +198,11 @@ func (as EthAccountStore) GetByType(n int, selectType pb.Type) (Accounts, error)
 	return accounts, err
 }
 
-// All returns all accounts under the last bucket at path
-func (as EthAccountStore) All() (Accounts, error) {
+// All returns all accounts under the last bucket in the datastore path
+func (as *EthAccountStore) All() (Accounts, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
 	var accounts Accounts
 	err := as.ds.db.IterValues(as.ds.path, func(value []byte) error {
 		account := &pb.Account{}

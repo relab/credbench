@@ -3,7 +3,6 @@ package database
 import (
 	"errors"
 	"strings"
-	"sync"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -15,7 +14,6 @@ var (
 )
 
 type BoltDB struct {
-	lock    sync.Mutex
 	db      *bolt.DB
 	options *bolt.Options
 	path    string
@@ -40,9 +38,6 @@ func NewDatabase(path string, opts *bolt.Options) (*BoltDB, error) {
 
 // OpenDB open the BoltDB instance
 func (d *BoltDB) OpenDB() (err error) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	if d.db, err = bolt.Open(d.path, 0644, d.options); err != nil {
 		return err
 	}
@@ -50,14 +45,11 @@ func (d *BoltDB) OpenDB() (err error) {
 }
 
 func (d *BoltDB) Close() error {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	return d.db.Close()
 }
 
 // getBucket returns the last bucket from the given path
-//FIXME use string path
+// FIXME use string path
 func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 	if len(path) < 1 {
 		return nil, errInvalidBucketPath
@@ -77,9 +69,6 @@ func getBucket(tx *bolt.Tx, path []string) (*bolt.Bucket, error) {
 
 // DeleteBucket deletes the last bucket at path
 func (d *BoltDB) DeleteBucket(pathStr string) error {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -125,9 +114,6 @@ func (d *BoltDB) BucketExists(pathStr string) bool {
 
 // CreateBucketPath create a list of buckets
 func (d *BoltDB) CreateBucketPath(pathStr string) error {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -171,7 +157,9 @@ func (d *BoltDB) GetKeys(pathStr string) (keys [][]byte, err error) {
 
 		err = b.ForEach(func(k, v []byte) error {
 			if v != nil { // buckets have nil value
-				keys = append(keys, k)
+				key := make([]byte, len(k))
+				copy(key, k)
+				keys = append(keys, key)
 			}
 			return nil
 		})
@@ -181,9 +169,6 @@ func (d *BoltDB) GetKeys(pathStr string) (keys [][]byte, err error) {
 }
 
 func (d *BoltDB) AddEntry(pathStr string, key []byte, value []byte) error {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -204,9 +189,6 @@ func (d *BoltDB) AddEntry(pathStr string, key []byte, value []byte) error {
 
 // DeleteEntry deletes the entry on the path
 func (d *BoltDB) DeleteEntry(pathStr string, key []byte) error {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -224,16 +206,18 @@ func (d *BoltDB) DeleteEntry(pathStr string, key []byte) error {
 func (d *BoltDB) GetEntry(pathStr string, key []byte) (entry []byte, err error) {
 	path, err := normalizePath(pathStr)
 	if err != nil {
-		return entry, err
+		return nil, err
 	}
-	err = d.db.View(func(tx *bolt.Tx) error {
+	if err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
 		}
 		entry = b.Get(key)
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
 	return entry, err
 }
 
@@ -264,9 +248,9 @@ func (d *BoltDB) IterValues(pathStr string, process func(value []byte) error) er
 func (d *BoltDB) GetFirstEntry(pathStr string) (key []byte, value []byte, err error) {
 	path, err := normalizePath(pathStr)
 	if err != nil {
-		return key, value, err
+		return nil, nil, err
 	}
-	err = d.db.View(func(tx *bolt.Tx) error {
+	if err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
@@ -276,7 +260,9 @@ func (d *BoltDB) GetFirstEntry(pathStr string) (key []byte, value []byte, err er
 			key, value = c.First()
 		}
 		return nil
-	})
+	}); err != nil {
+		return nil, nil, err
+	}
 	return key, value, err
 }
 
@@ -285,9 +271,9 @@ func (d *BoltDB) GetFirstEntry(pathStr string) (key []byte, value []byte, err er
 func (d *BoltDB) GetNextEntry(pathStr string, key []byte) (next []byte, value []byte, err error) {
 	path, err := normalizePath(pathStr)
 	if err != nil {
-		return next, value, err
+		return nil, nil, err
 	}
-	err = d.db.View(func(tx *bolt.Tx) error {
+	if err = d.db.View(func(tx *bolt.Tx) error {
 		b, err := getBucket(tx, path)
 		if err != nil {
 			return err
@@ -296,10 +282,135 @@ func (d *BoltDB) GetNextEntry(pathStr string, key []byte) (next []byte, value []
 		k, _ := c.Seek(key)
 		if k != nil {
 			next, value = c.Next()
-		} else {
-			return errEntryNotFound
+			return nil
 		}
-		return nil
-	})
+		return errEntryNotFound
+	}); err != nil {
+		return nil, nil, err
+	}
 	return next, value, err
+}
+
+func (d *BoltDB) Batch(fn func(tx *bolt.Tx) error) error {
+	return d.db.Batch(fn)
+}
+
+func (d *BoltDB) Iterator(pathStr string, n int, conditionFn func(v []byte) (bool, error)) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
+	}
+	err = d.db.Batch(func(tx *bolt.Tx) error {
+		b, err := getBucket(tx, path)
+		if err != nil {
+			return err
+		}
+		return iterate(b, n, conditionFn)
+	})
+	return err
+}
+
+func iterate(b *bolt.Bucket, n int, conditionFn func(v []byte) (bool, error)) error {
+	var key, value []byte
+	c := b.Cursor()
+	if c != nil {
+		key, value = c.First()
+	}
+
+	i := 0
+	for i < n {
+		ok, err := conditionFn(value)
+		if ok {
+			i++
+		}
+		if err != nil {
+			return err
+		}
+
+		// Get next entry
+		k, _ := c.Seek(key)
+		if k != nil {
+			key, value = c.Next()
+		}
+		if err != nil || key == nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *BoltDB) UpdateEntry(pathStr string, key []byte, updateFn func(v []byte) ([]byte, error)) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
+	}
+	err = d.db.Batch(func(tx *bolt.Tx) error {
+		b, err := getBucket(tx, path)
+		if err != nil {
+			return err
+		}
+		return update(b, key, b.Get(key), updateFn)
+	})
+	return err
+}
+
+func update(b *bolt.Bucket, key []byte, value []byte, updateFn func(v []byte) ([]byte, error)) error {
+	updatedValue, err := updateFn(value)
+	if err != nil {
+		return err
+	}
+
+	err = b.Put(key, updatedValue)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *BoltDB) Map(pathStr string, n int, applyIfFn func(v []byte) (bool, []byte, error)) error {
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return err
+	}
+	err = d.db.Batch(func(tx *bolt.Tx) error {
+		b, err := getBucket(tx, path)
+		if err != nil {
+			return err
+		}
+		return mapFn(b, n, applyIfFn)
+	})
+	return err
+}
+
+func mapFn(b *bolt.Bucket, n int, applyIfFn func(v []byte) (bool, []byte, error)) error {
+	var key, value []byte
+	c := b.Cursor()
+	if c != nil {
+		key, value = c.First()
+	}
+
+	i := 0
+	for i < n {
+		ok, updatedValue, err := applyIfFn(value)
+		if ok {
+			err = b.Put(key, updatedValue)
+			if err != nil {
+				return err
+			}
+			i++
+		}
+		if err != nil {
+			return err
+		}
+
+		// Get next entry
+		k, _ := c.Seek(key)
+		if k != nil {
+			key, value = c.Next()
+		}
+		if err != nil || key == nil {
+			return err
+		}
+	}
+	return nil
 }
