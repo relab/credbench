@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"log"
@@ -21,7 +20,6 @@ import (
 	"github.com/relab/ct-eth-dapp/src/deployer"
 	"github.com/relab/ct-eth-dapp/src/faculty"
 
-	keyutils "github.com/relab/ct-eth-dapp/src/accounts"
 	course "github.com/relab/ct-eth-dapp/src/course"
 )
 
@@ -30,8 +28,12 @@ func deployNotaryCmd() *cobra.Command {
 		Use:   "notary",
 		Short: "Deploy notary library",
 		Run: func(cmd *cobra.Command, args []string) {
-			key, _, _ := keyutils.GetKeys(senderHexKey)
-			err := deployNotary(backend, key)
+			opts, err := wallet.GetTxOpts(backend)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			err = deployNotary(opts, backend)
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
@@ -39,9 +41,9 @@ func deployNotaryCmd() *cobra.Command {
 	}
 }
 
-func deployNotary(backend *ethclient.Client, key *ecdsa.PrivateKey) error {
+func deployNotary(opts *bind.TransactOpts, backend *ethclient.Client) error {
 	fmt.Println("Deploying Notary...")
-	addr, tx, _, err := LinkAndDeploy(backend, key, notary.NotaryContractABI, notary.NotaryContractBin, nil)
+	addr, tx, _, err := LinkAndDeploy(opts, backend, notary.NotaryContractABI, notary.NotaryContractBin, nil, true)
 	if err != nil {
 		return fmt.Errorf("failed to deploy the contract: %v", err)
 	}
@@ -59,8 +61,12 @@ func deployAggregatorCmd() *cobra.Command {
 		Use:   "aggregator",
 		Short: "Deploy aggregator library",
 		Run: func(cmd *cobra.Command, args []string) {
-			key, _, _ := keyutils.GetKeys(senderHexKey)
-			err := deployAggregator(backend, key)
+			opts, err := wallet.GetTxOpts(backend)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			err = deployAggregator(opts, backend)
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
@@ -68,9 +74,9 @@ func deployAggregatorCmd() *cobra.Command {
 	}
 }
 
-func deployAggregator(backend *ethclient.Client, key *ecdsa.PrivateKey) error {
+func deployAggregator(opts *bind.TransactOpts, backend *ethclient.Client) error {
 	fmt.Println("Deploying Aggregator...")
-	addr, tx, _, err := LinkAndDeploy(backend, key, aggregator.CredentialSumABI, aggregator.CredentialSumBin, nil)
+	addr, tx, _, err := LinkAndDeploy(opts, backend, aggregator.CredentialSumABI, aggregator.CredentialSumBin, nil, true)
 	if err != nil {
 		return fmt.Errorf("failed to deploy the contract: %v", err)
 	}
@@ -87,13 +93,16 @@ var deployAllLibsCmd = &cobra.Command{
 	Use:   "libs",
 	Short: "Deploy all libraries",
 	Run: func(cmd *cobra.Command, args []string) {
-		key, _, _ := keyutils.GetKeys(senderHexKey)
-
-		err := deployNotary(backend, key)
+		opts, err := wallet.GetTxOpts(backend)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
-		err = deployAggregator(backend, key)
+
+		err = deployNotary(opts, backend)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		err = deployAggregator(opts, backend)
 		if err != nil {
 			log.Fatalln(err.Error())
 		}
@@ -108,12 +117,17 @@ func deployCourseCmd() *cobra.Command {
 		Use:   "course",
 		Short: "Deploy course contract",
 		Run: func(cmd *cobra.Command, args []string) {
-			key, _, _ := keyutils.GetKeys(senderHexKey)
 			var ownersAddr []common.Address
 			for _, addr := range owners {
 				ownersAddr = append(ownersAddr, common.HexToAddress(addr))
 			}
-			_, tx, err := DeployCourse(backend, key, ownersAddr, quorum)
+
+			opts, err := wallet.GetTxOpts(backend)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
+
+			_, tx, err := DeployCourse(opts, backend, ownersAddr, quorum)
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
@@ -130,7 +144,7 @@ func deployCourseCmd() *cobra.Command {
 	return c
 }
 
-func DeployCourse(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, error) {
+func DeployCourse(opts *bind.TransactOpts, backend *ethclient.Client, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, error) {
 	fmt.Println("Deploying Course...")
 	aggregatorAddr := viper.GetString("deployed_libs.aggregator")
 	if aggregatorAddr == "" {
@@ -145,7 +159,7 @@ func DeployCourse(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []com
 		"Notary":        notaryAddr,
 	}
 
-	cAddr, tx, _, err := LinkAndDeploy(backend, key, course.CourseContractABI, course.CourseContractBin, libs, owners, quorum)
+	cAddr, tx, _, err := LinkAndDeploy(opts, backend, course.CourseContractABI, course.CourseContractBin, libs, false, owners, quorum)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
@@ -155,7 +169,7 @@ func DeployCourse(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []com
 	return cAddr, tx, nil
 }
 
-func DeployFaculty(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, error) {
+func DeployFaculty(opts *bind.TransactOpts, backend *ethclient.Client, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, error) {
 	fmt.Println("Deploying Faculty...")
 	aggregatorAddr := viper.GetString("deployed_libs.aggregator")
 	if aggregatorAddr == "" {
@@ -170,7 +184,7 @@ func DeployFaculty(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []co
 		"Notary":        notaryAddr,
 	}
 
-	cAddr, tx, _, err := LinkAndDeploy(backend, key, faculty.FacultyContractABI, faculty.FacultyContractBin, libs, owners, quorum)
+	cAddr, tx, _, err := LinkAndDeploy(opts, backend, faculty.FacultyContractABI, faculty.FacultyContractBin, libs, false, owners, quorum)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
@@ -183,15 +197,8 @@ func DeployFaculty(backend *ethclient.Client, key *ecdsa.PrivateKey, owners []co
 // LinkAndDeploy links a contract with the given libraries and deploy it
 // using the default account
 // TODO: pass a flag to wait tx confirmations
-func LinkAndDeploy(backend *ethclient.Client, key *ecdsa.PrivateKey, contractABI, contractBin string, libs map[string]string, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
-	accAddress := accounts.GetAddress(key).Hex()
-
-	fmt.Printf("Deployer: %s balance: %v\n", accAddress, transactor.GetBalance(accAddress, backend))
-
-	opts, err := accounts.GetTxOpts(key, backend)
-	if err != nil {
-		return common.Address{}, nil, nil, err
-	}
+func LinkAndDeploy(opts *bind.TransactOpts, backend *ethclient.Client, contractABI, contractBin string, libs map[string]string, waitConfirmation bool, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
+	fmt.Printf("Deployer: %s balance: %v\n", opts.From.Hex(), transactor.GetBalance(opts.From, backend))
 
 	if len(libs) > 0 {
 		contractBin = deployer.LinkContract(contractBin, libs)
@@ -202,9 +209,11 @@ func LinkAndDeploy(backend *ethclient.Client, key *ecdsa.PrivateKey, contractABI
 		return common.Address{}, nil, nil, err
 	}
 
-	err = deployer.WaitForTxConfirmation(context.TODO(), backend, tx, 0)
-	if err != nil {
-		return address, tx, nil, fmt.Errorf("Transaction not confirmed due to error: %v", err)
+	if waitConfirmation {
+		err = deployer.WaitTxConfirmation(context.TODO(), backend, tx, 0)
+		if err != nil {
+			return address, tx, nil, fmt.Errorf("Transaction not confirmed due to error: %v", err)
+		}
 	}
 	fmt.Printf("Contract %s successfully deployed\n", address.Hex())
 	return address, tx, contract, nil
