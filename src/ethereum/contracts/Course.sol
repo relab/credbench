@@ -34,6 +34,9 @@ contract Course is Node {
         // solhint-disable-previous-line no-empty-blocks
     }
 
+    /**
+     * @return the list of enrolled students
+     */
     function getStudents() public view returns (address[] memory) {
         return _students;
     }

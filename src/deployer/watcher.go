@@ -1,4 +1,4 @@
-// License
+// License Notice
 // The waiting methods:
 // - WaitTxReceipt
 // - WaitTxConfirmation

@@ -55,6 +55,8 @@ func GetKeys(hexkey string) (*ecdsa.PrivateKey, common.Address, error) {
 }
 
 // IsZeroAddress checks whether an address is 0
+// Copied from:
+// https://github.com/miguelmota/go-ethutil/blob/master/ethutil.go#L43
 func IsZeroAddress(iaddress interface{}) bool {
 	var address common.Address
 	switch v := iaddress.(type) {

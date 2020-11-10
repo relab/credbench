@@ -29,10 +29,7 @@ func NewGenWallet(accountAddr common.Address, accountHexKey string) Wallet {
 
 func (w *genWallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error) {
 	w.lock.Lock()
-	defer func() {
-		w.IncNonce()
-		w.lock.Unlock()
-	}()
+	defer w.lock.Unlock()
 
 	gasPrice, err := backend.SuggestGasPrice(context.TODO())
 	if err != nil {
@@ -53,6 +50,7 @@ func (w *genWallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts,
 	// Note: overflow may happen when converting uint64 to int64
 	transactOpts.Nonce = new(big.Int).SetUint64(w.nonce)
 
+	w.IncNonce()
 	return transactOpts, nil
 }
 
