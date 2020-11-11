@@ -13,6 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console/prompt"
 	"github.com/ethereum/go-ethereum/crypto"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Wallet interface {
@@ -56,7 +58,7 @@ func NewWallet(accountAddr common.Address, keystoreDir string) (Wallet, error) {
 		return nil, err
 	}
 
-	fmt.Printf("Using Ethereum account: %v\n", account.Address.Hex())
+	log.Infof("Using Ethereum account: %v\n", account.Address.Hex())
 
 	return &wallet{
 		account:    account,
@@ -78,7 +80,7 @@ func ImportKey(hexkey string, keyStore *keystore.KeyStore) (Wallet, error) {
 		return nil, fmt.Errorf("Error importing the private key: %v", err)
 	}
 
-	fmt.Printf("Account address %v successfully imported\n", account.Address.Hex())
+	log.Infof("Account address %v successfully imported\n", account.Address.Hex())
 	return &wallet{
 		account:    account,
 		privateKey: key,
@@ -95,7 +97,7 @@ func NewAccount(keystoreDir string) (err error) {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Account created: %v\n", account.Address.Hex())
+	log.Infof("Account created: %v\n", account.Address.Hex())
 	return nil
 }
 
@@ -124,7 +126,7 @@ func (w *wallet) Unlock(password string) (err error) {
 		if password != "" {
 			return err
 		}
-		fmt.Printf("Please enter the password to unlock Ethereum account %v:", w.account.Address.Hex())
+		log.Infof("Please enter the password to unlock Ethereum account %v:", w.account.Address.Hex())
 
 		password, err = getPassword(false)
 		if err != nil {
@@ -138,7 +140,7 @@ func (w *wallet) Unlock(password string) (err error) {
 	}
 	w.unlocked = true
 
-	fmt.Printf("Unlocked ETH account: %v\n", w.account.Address.Hex())
+	log.Infof("Unlocked ETH account: %v\n", w.account.Address.Hex())
 	return nil
 }
 
@@ -205,7 +207,7 @@ func getAccount(accountAddr common.Address, keyStore *keystore.KeyStore) (ethAcc
 }
 
 func createAccount(keyStore *keystore.KeyStore) (ethAccounts.Account, error) {
-	fmt.Println("Creating a new Ethereum account")
+	log.Infoln("Creating a new Ethereum account")
 	password, err := getPassword(true)
 	if err != nil {
 		return ethAccounts.Account{}, err

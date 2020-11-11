@@ -3,8 +3,9 @@ package client
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/p2p"
@@ -53,7 +54,7 @@ func (c *client) CheckConnectPeers(timeout time.Duration) error {
 	c.rpc.Call(&peers, "admin_peers")
 
 	start := time.Now()
-	for len(peers) < 1 { //TODO: get number of peers as parameter
+	for len(peers) < 1 { // TODO: get number of peers as parameter
 		log.Printf("%v peers connected. Waiting for peers...\n", len(peers))
 		t := time.Now()
 		elapsed := t.Sub(start)

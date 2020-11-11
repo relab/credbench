@@ -3,10 +3,11 @@ package schemes
 import (
 	"crypto/sha256"
 	"io/ioutil"
-	"log"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func Hash(pb proto.Message) [32]byte {

@@ -1,19 +1,24 @@
 package cmd
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"time"
 
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/relab/ct-eth-dapp/src/client"
-	"github.com/relab/ct-eth-dapp/src/fileutils"
+	log "github.com/sirupsen/logrus"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	bolt "go.etcd.io/bbolt"
+
+	"github.com/relab/ct-eth-dapp/cli/database"
+	"github.com/relab/ct-eth-dapp/cli/datastore"
+	"github.com/relab/ct-eth-dapp/src/client"
+	"github.com/relab/ct-eth-dapp/src/fileutils"
 )
 
 var (
@@ -24,26 +29,35 @@ var (
 	datadir        string
 	ipcFile        string
 	waitPeers      bool
+	testFile       string
+	dbPath         string
+	dbFile         string
+	consensus      string
 )
 
-var backend *ethclient.Client
+var (
+	backend      *ethclient.Client
+	db           *database.BoltDB
+	accountStore *datastore.EthAccountStore
+)
 
 var rootCmd = &cobra.Command{
-	Use:   "ctethapp",
+	Use:   "cli",
 	Short: "Ethereum Credential Transparency System",
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
-		err := loadWallet()
+		err := setupDB(dbPath, dbFile)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatalln(err)
 		}
 
 		clientConn, err := setupClient()
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatalln(err)
 		}
 		backend, _ = clientConn.Backend()
 	},
 	PersistentPostRun: func(_ *cobra.Command, _ []string) {
+		db.Close()
 		backend.Close()
 	},
 }
@@ -51,14 +65,16 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	rootCmd.AddCommand(
 		listenCmd,
-		newDeployCmd(),
+		genesisCmd,
+		newTestCmd(),
 		newAccountCmd(),
+		newDeployCmd(),
 		newCourseCmd(),
-		newBenchCmd(),
+		newVerifyCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err.Error())
+		log.Fatalln(err)
 	}
 }
 
@@ -71,8 +87,20 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&ipcFile, "ipc",
 		defaultIPC(), "Ethereum Inter-process Communication file")
 	rootCmd.PersistentFlags().BoolVar(&waitPeers, "wait_peers", false, "Minimum number of peers connected")
+	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", "./database", "Path to the database file")
+	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "cteth.db", "File name of the database")
+	rootCmd.PersistentFlags().StringVar(&consensus, "consensus", "ethash", "Consensus engine: poa/ethash")
+	rootCmd.PersistentFlags().StringVar(&testFile, "testFile", "test-config.json", "test case config file")
 
 	cobra.OnInitialize(initConfig)
+
+	log.SetOutput(os.Stderr)
+	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp:          true,
+		TimestampFormat:        time.RFC3339,
+		DisableLevelTruncation: true,
+	})
 }
 
 func initConfig() {
@@ -87,10 +115,13 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		log.Infoln("Using config file:", viper.ConfigFileUsed())
 		parseConfigFile()
 	}
-	initSetup()
+	err := initSetup()
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func initSetup() (err error) {
@@ -116,6 +147,45 @@ func setupClient() (client.EthClient, error) {
 	return c, nil
 }
 
+func createDatabase() (err error) {
+	err = fileutils.CreateDir(dbPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setupDB(dbpath, dbfile string) (err error) {
+	err = createDatabase()
+	if err != nil {
+		return err
+	}
+
+	db, err = database.NewDatabase(path.Join(dbpath, dbfile), &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		return err
+	}
+
+	err = datastore.CreateEthAccountStore(db)
+	if err != nil {
+		return err
+	}
+	accountStore = datastore.NewEthAccountStore(db)
+
+	err = datastore.CreateCourseStore(db)
+	if err != nil {
+		return err
+	}
+
+	err = datastore.CreateFacultyStore(db)
+	if err != nil {
+		return err
+	}
+	// TODO: initialize credential store
+	return nil
+}
+
 func parseConfigFile() {
 	datadir = viper.GetString("datadir")
 	defaultAccount = viper.GetString("default_account")
@@ -123,14 +193,15 @@ func parseConfigFile() {
 	backendURL = "http://" + viper.GetString("backend.host") + ":" + viper.GetString("backend.port")
 	ipcFile = viper.GetString("backend.ipc")
 	waitPeers = viper.GetBool("backend.wait_peers")
-
-	fmt.Println("ROOT DATADIR: ", datadir)
+	consensus = viper.GetString("chain.consensus")
+	dbPath = viper.GetString("database.path")
+	dbFile = viper.GetString("database.filename")
 }
 
 func defaultConfigPath() string {
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalln(err.Error())
+		log.Fatalln(err)
 	}
 	return pwd
 }

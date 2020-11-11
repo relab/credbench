@@ -25,33 +25,41 @@ import (
 
 var ErrTxFailed = errors.New("transaction failed")
 
-// WaitTxReceipt waits for a tx to be confirmed.
-// It stops waiting if the context is canceled.
-func WaitTxReceipt(ctx context.Context, client *ethclient.Client, tx *types.Transaction) (*types.Receipt, error) {
-	ticker := time.NewTicker(time.Second)
+// WaitTxReceipt waits for a tx to be mined.
+// It stops waiting if the context is canceled or the tx hasn't been confirmed after the specified timeout.
+func WaitTxReceipt(ctx context.Context, client *ethclient.Client, tx *types.Transaction, timeout time.Duration) (*types.Receipt, error) {
+	if timeout == 0 {
+		timeout = 1 * time.Minute
+	}
+	interval := 15 * time.Second
+
+	timer := time.NewTimer(timeout)
+	ticker := time.NewTicker(interval)
+
+	defer timer.Stop()
 	defer ticker.Stop()
 
 	for {
 		receipt, err := client.TransactionReceipt(ctx, tx.Hash())
+		if err != nil && err != ethereum.NotFound {
+			return nil, errors.Wrap(err, "failed to retrieve tx receipt")
+		}
 		if receipt != nil {
 			return receipt, nil
-		}
-		if err != nil {
-			fmt.Printf("failed to retrieve tx receipt %v\n", err)
-		} else {
-			fmt.Println("transaction not mined yet")
 		}
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
+		case <-timer.C:
+			return nil, errors.New("timed out waiting for tx receipt")
 		case <-ticker.C:
 		}
 	}
 }
 
 // WaitTxConfirmation waits for a tx to be confirmed.
-func WaitTxConfirmation(ctx context.Context, client *ethclient.Client, tx *types.Transaction) error {
-	r, err := WaitTxReceipt(ctx, client, tx)
+func WaitTxConfirmation(ctx context.Context, client *ethclient.Client, tx *types.Transaction, timeout time.Duration) error {
+	r, err := WaitTxReceipt(ctx, client, tx, timeout)
 	if err != nil {
 		gasPrice := new(big.Int)
 		if tx.GasPrice() != nil {
@@ -75,8 +83,8 @@ func WaitTxConfirmation(ctx context.Context, client *ethclient.Client, tx *types
 }
 
 // WaitTxConfirmationAndFee waits for a tx to be confirmed as successful, and returns the fee paid for the tx.
-func WaitTxConfirmationAndFee(ctx context.Context, client *ethclient.Client, tx *types.Transaction) (*big.Int, error) {
-	r, err := WaitTxReceipt(ctx, client, tx)
+func WaitTxConfirmationAndFee(ctx context.Context, client *ethclient.Client, tx *types.Transaction, timeout time.Duration) (*big.Int, error) {
+	r, err := WaitTxReceipt(ctx, client, tx, timeout)
 	if err != nil {
 		return nil, err
 	}

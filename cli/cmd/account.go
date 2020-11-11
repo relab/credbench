@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -34,7 +33,7 @@ var createAccountCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := accounts.NewAccount(keystoreDir)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatalln(err)
 		}
 	},
 }
@@ -50,7 +49,7 @@ var importAccountCmd = &cobra.Command{
 		var err error
 		wallet, err = accounts.ImportKey(args[0], keyStore)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatalln(err)
 		}
 	},
 }
@@ -65,7 +64,7 @@ var getBalanceCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		address := common.HexToAddress(args[0])
 		balance := transactor.GetBalance(address, backend)
-		fmt.Printf("Balance of account %s: %v\n", args[0], balance)
+		log.Infof("Balance of account %s: %v\n", args[0], balance)
 	},
 }
 
