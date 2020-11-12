@@ -1,11 +1,11 @@
 package genesis
 
 import (
-	"fmt"
 	"html/template"
-	"log"
 	"os"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	chainID        = 42
-	difficulty     = "1"
-	gasLimit       = "6721975"
-	defaultBalance = "100000000000000000000"
+	ChainID        = 42
+	Difficulty     = "1"
+	GasLimit       = "6721975"
+	DefaultBalance = "100000000000000000000"
 )
 
 type GenesisData struct {
@@ -46,7 +46,7 @@ func GenerateGenesis(datadirPath string, consensus string, accountStore *datasto
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Configured POA Sealer: %s\n", accounts[0].GetHexAddress())
+	log.Infof("Configured POA Sealer: %s\n", accounts[0].GetHexAddress())
 	genesisFile := filepath.Join(datadirPath, "genesis.json")
 	return createGenesisFile(genesisFile, newGenesisData(datadirPath, consensus, accounts))
 }
@@ -58,10 +58,10 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 	}
 
 	genesis := &GenesisData{
-		ChainID:        chainID,
-		Difficulty:     difficulty,
-		GasLimit:       gasLimit,
-		DefaultBalance: defaultBalance,
+		ChainID:        ChainID,
+		Difficulty:     Difficulty,
+		GasLimit:       GasLimit,
+		DefaultBalance: DefaultBalance,
 		N:              len(accounts) - 1,
 		Accounts:       accounts.ToHex(),
 	}
@@ -130,7 +130,7 @@ func CreateAccounts(accountStore *datastore.EthAccountStore, n int) ([]*pb.Accou
 	if err != nil {
 		return []*pb.Account{}, err
 	}
-	fmt.Printf("%d accounts successfully created\n", n)
+	log.Infof("%d accounts successfully created\n", n)
 	return accounts, nil
 }
 
