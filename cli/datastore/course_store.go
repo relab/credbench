@@ -42,12 +42,12 @@ func (cs *CourseStore) PutCourse(course *pb.Course) error {
 	if address == (common.Address{}) {
 		return ErrZeroAddress
 	}
-	return cs.store.db.AddEntry(cs.store.path, address.Bytes(), value)
+	return cs.store.db.Put(cs.store.path, address.Bytes(), value)
 }
 
 func (cs CourseStore) GetCourse() (*pb.Course, error) {
 	course := &pb.Course{}
-	buf, err := cs.store.db.GetEntry(cs.store.path, cs.address.Bytes())
+	buf, err := cs.store.db.Get(cs.store.path, cs.address.Bytes())
 	if err != nil {
 		return nil, err
 	}

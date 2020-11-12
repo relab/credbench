@@ -42,12 +42,12 @@ func (cs *FacultyStore) AddFaculty(faculty *pb.Faculty) error {
 	if address == (common.Address{}) {
 		return ErrZeroAddress
 	}
-	return cs.store.db.AddEntry(cs.store.path, address.Bytes(), value)
+	return cs.store.db.Put(cs.store.path, address.Bytes(), value)
 }
 
 func (fs FacultyStore) GetFaculty() (*pb.Faculty, error) {
 	faculty := &pb.Faculty{}
-	buf, err := fs.store.db.GetEntry(fs.store.path, fs.address.Bytes())
+	buf, err := fs.store.db.Get(fs.store.path, fs.address.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +61,15 @@ func (fs FacultyStore) GetFaculty() (*pb.Faculty, error) {
 }
 
 func (fs *FacultyStore) SetCourses(courses []*pb.Course) error {
+	if len(courses) == 0 {
+		return nil
+	}
+
 	faculty, err := fs.GetFaculty()
 	if err != nil {
 		return err
 	}
+
 	faculty.Courses = courses
 	return fs.AddFaculty(faculty)
 }

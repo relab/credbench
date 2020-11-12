@@ -143,8 +143,8 @@ func (d *BoltDB) CreateBucketPath(pathStr string) error {
 	return err
 }
 
-// GetKeys returns the list of keys at a given path, encoded as string
-func (d *BoltDB) GetKeys(pathStr string) (keys [][]byte, err error) {
+// Keys returns the list of keys at a given path, encoded as string
+func (d *BoltDB) Keys(pathStr string) (keys [][]byte, err error) {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return keys, err
@@ -168,7 +168,7 @@ func (d *BoltDB) GetKeys(pathStr string) (keys [][]byte, err error) {
 	return keys, err
 }
 
-func (d *BoltDB) AddEntry(pathStr string, key []byte, value []byte) error {
+func (d *BoltDB) Put(pathStr string, key []byte, value []byte) error {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -187,8 +187,8 @@ func (d *BoltDB) AddEntry(pathStr string, key []byte, value []byte) error {
 	return err
 }
 
-// DeleteEntry deletes the entry on the path
-func (d *BoltDB) DeleteEntry(pathStr string, key []byte) error {
+// Delete deletes the entry on the path
+func (d *BoltDB) Delete(pathStr string, key []byte) error {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -203,7 +203,7 @@ func (d *BoltDB) DeleteEntry(pathStr string, key []byte) error {
 	return err
 }
 
-func (d *BoltDB) GetEntry(pathStr string, key []byte) (entry []byte, err error) {
+func (d *BoltDB) Get(pathStr string, key []byte) (entry []byte, err error) {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return nil, err
@@ -295,7 +295,7 @@ func (d *BoltDB) Batch(fn func(tx *bolt.Tx) error) error {
 	return d.db.Batch(fn)
 }
 
-func (d *BoltDB) Iterator(pathStr string, n int, conditionFn func(v []byte) (bool, error)) error {
+func (d *BoltDB) Iterate(pathStr string, n int, conditionFn func(v []byte) (bool, error)) error {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err
@@ -339,7 +339,7 @@ func iterate(b *bolt.Bucket, n int, conditionFn func(v []byte) (bool, error)) er
 	return nil
 }
 
-func (d *BoltDB) UpdateEntry(pathStr string, key []byte, updateFn func(v []byte) ([]byte, error)) error {
+func (d *BoltDB) Update(pathStr string, key []byte, updateFn func(v []byte) ([]byte, error)) error {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return err

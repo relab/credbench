@@ -50,7 +50,7 @@ func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 		if address == (common.Address{}) {
 			return ErrZeroAddress
 		}
-		err = as.ds.db.AddEntry(as.ds.path, address.Bytes(), value)
+		err = as.ds.db.Put(as.ds.path, address.Bytes(), value)
 		if err != nil {
 			return err
 		}
@@ -61,7 +61,7 @@ func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 // GetAccount gets an account
 func (as *EthAccountStore) GetAccount(key []byte) (*pb.Account, error) {
 	account := &pb.Account{}
-	buf, err := as.ds.db.GetEntry(as.ds.path, key)
+	buf, err := as.ds.db.Get(as.ds.path, key)
 	if err != nil {
 		return account, err
 	}
@@ -79,7 +79,7 @@ func (as *EthAccountStore) GetUnusedAccounts(n int) (Accounts, error) {
 	defer as.lock.Unlock()
 
 	var accounts Accounts
-	if err := as.ds.db.Iterator(as.ds.path, n, func(value []byte) (bool, error) {
+	if err := as.ds.db.Iterate(as.ds.path, n, func(value []byte) (bool, error) {
 		account := &pb.Account{}
 		err := proto.Unmarshal(value, account)
 		if err != nil {
@@ -108,7 +108,7 @@ func (as *EthAccountStore) SelectAccount(selectType pb.Type, keys ...[]byte) (Ac
 	var err error
 	for _, key := range keys {
 		account := &pb.Account{}
-		err = as.ds.db.UpdateEntry(as.ds.path, key, func(value []byte) ([]byte, error) {
+		err = as.ds.db.Update(as.ds.path, key, func(value []byte) ([]byte, error) {
 			if value == nil {
 				return nil, nil // value does not exists or is bucket
 			}
@@ -221,7 +221,7 @@ func (as *EthAccountStore) All() (Accounts, error) {
 
 func (as *EthAccountStore) DeleteAccount(keys ...[]byte) error {
 	for _, key := range keys {
-		err := as.ds.db.DeleteEntry(as.ds.path, key)
+		err := as.ds.db.Delete(as.ds.path, key)
 		if err != nil {
 			return err
 		}
