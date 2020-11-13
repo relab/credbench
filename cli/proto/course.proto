@@ -4,14 +4,11 @@ package proto;
 
 option go_package = "github.com/relab/ct-eth-dapp/bemchmark/proto";
 
-import "account.proto";
-import "credential.proto";
 import "google/protobuf/timestamp.proto";
 
 message Course {
-    string contract_address = 1;
-    repeated Account evaluators = 2;
-    repeated Account students = 3;
-    repeated Credential credentials = 4;
-    google.protobuf.Timestamp created_on = 5;
+    bytes address = 1;
+    repeated bytes evaluators = 2;
+    repeated bytes students = 3;
+    google.protobuf.Timestamp created_on = 4;
 }

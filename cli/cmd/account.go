@@ -33,7 +33,7 @@ var createAccountCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := accounts.NewAccount(keystoreDir)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 	},
 }
@@ -49,7 +49,7 @@ var importAccountCmd = &cobra.Command{
 		var err error
 		wallet, err = accounts.ImportKey(args[0], keyStore)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 	},
 }

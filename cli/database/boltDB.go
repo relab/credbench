@@ -291,10 +291,6 @@ func (d *BoltDB) GetNextEntry(pathStr string, key []byte) (next []byte, value []
 	return next, value, err
 }
 
-func (d *BoltDB) Batch(fn func(tx *bolt.Tx) error) error {
-	return d.db.Batch(fn)
-}
-
 func (d *BoltDB) Iterate(pathStr string, n int, conditionFn func(v []byte) (bool, error)) error {
 	path, err := normalizePath(pathStr)
 	if err != nil {

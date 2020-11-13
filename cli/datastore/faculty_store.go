@@ -30,22 +30,22 @@ func NewFacultyStore(db *database.BoltDB, facultyAddress common.Address) *Facult
 	}
 }
 
-func (cs *FacultyStore) AddFaculty(faculty *pb.Faculty) error {
+func (fs *FacultyStore) AddFaculty(faculty *pb.Faculty) error {
 	if faculty == nil {
 		return ErrEmptyData
+	}
+	address := common.BytesToAddress(faculty.Address)
+	if address == (common.Address{}) {
+		return ErrZeroAddress
 	}
 	value, err := proto.Marshal(faculty)
 	if err != nil {
 		return err
 	}
-	address := common.HexToAddress(faculty.ContractAddress)
-	if address == (common.Address{}) {
-		return ErrZeroAddress
-	}
-	return cs.store.db.Put(cs.store.path, address.Bytes(), value)
+	return fs.store.db.Put(fs.store.path, address.Bytes(), value)
 }
 
-func (fs FacultyStore) GetFaculty() (*pb.Faculty, error) {
+func (fs *FacultyStore) GetFaculty() (*pb.Faculty, error) {
 	faculty := &pb.Faculty{}
 	buf, err := fs.store.db.Get(fs.store.path, fs.address.Bytes())
 	if err != nil {
@@ -60,7 +60,7 @@ func (fs FacultyStore) GetFaculty() (*pb.Faculty, error) {
 	return faculty, err
 }
 
-func (fs *FacultyStore) SetCourses(courses []*pb.Course) error {
+func (fs *FacultyStore) SetCourses(courses []common.Address) error {
 	if len(courses) == 0 {
 		return nil
 	}
@@ -70,6 +70,22 @@ func (fs *FacultyStore) SetCourses(courses []*pb.Course) error {
 		return err
 	}
 
-	faculty.Courses = courses
+	faculty.Courses = AddressToBytes(courses)
+	return fs.AddFaculty(faculty)
+}
+
+func (fs *FacultyStore) AddCourse(courses ...common.Address) error {
+	if len(courses) == 0 {
+		return nil
+	}
+
+	faculty, err := fs.GetFaculty()
+	if err != nil {
+		return err
+	}
+
+	newCourses := AddressToBytes(courses)
+	faculty.Courses = append(faculty.Courses, newCourses...)
+
 	return fs.AddFaculty(faculty)
 }

@@ -16,12 +16,12 @@ var createAccountsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		n, err := strconv.Atoi(args[0])
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 
 		_, err = genesis.CreateAccounts(accountStore, n)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 	},
 }

@@ -42,13 +42,13 @@ func (as *EthAccountStore) PutAccount(accounts ...*pb.Account) error {
 	}
 
 	for _, account := range accounts {
+		address := common.BytesToAddress(account.Address)
+		if address == (common.Address{}) {
+			return ErrZeroAddress
+		}
 		value, err := proto.Marshal(account)
 		if err != nil {
 			return err
-		}
-		address := common.HexToAddress(account.HexAddress)
-		if address == (common.Address{}) {
-			return ErrZeroAddress
 		}
 		err = as.ds.db.Put(as.ds.path, address.Bytes(), value)
 		if err != nil {
@@ -125,6 +125,21 @@ func (as *EthAccountStore) SelectAccount(selectType pb.Type, keys ...[]byte) (Ac
 			return value, nil
 		})
 		if err == nil && account.Selected != pb.Type_NONE {
+			accounts = append(accounts, account)
+		}
+	}
+	if len(accounts) != len(keys) {
+		return accounts, ErrNoAccountsFound
+	}
+	return accounts, err
+}
+
+func (as *EthAccountStore) GetAccounts(keys ...[]byte) (Accounts, error) {
+	var accounts Accounts
+	var err error
+	for _, key := range keys {
+		account, err := as.GetAccount(key)
+		if err == nil {
 			accounts = append(accounts, account)
 		}
 	}

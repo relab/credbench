@@ -34,13 +34,13 @@ func (cs *CourseStore) PutCourse(course *pb.Course) error {
 	if course == nil {
 		return ErrEmptyData
 	}
+	address := common.BytesToAddress(course.Address)
+	if address == (common.Address{}) {
+		return ErrZeroAddress
+	}
 	value, err := proto.Marshal(course)
 	if err != nil {
 		return err
-	}
-	address := common.HexToAddress(course.ContractAddress)
-	if address == (common.Address{}) {
-		return ErrZeroAddress
 	}
 	return cs.store.db.Put(cs.store.path, address.Bytes(), value)
 }
@@ -60,20 +60,12 @@ func (cs CourseStore) GetCourse() (*pb.Course, error) {
 	return course, err
 }
 
+// SetStudents override the current students of the course
 func (cs *CourseStore) SetStudents(students Accounts) error {
 	course, err := cs.GetCourse()
 	if err != nil {
 		return err
 	}
-	course.Students = students
-	return cs.PutCourse(course)
-}
-
-func (cs *CourseStore) AddCredential(credential *pb.Credential) error {
-	course, err := cs.GetCourse()
-	if err != nil {
-		return err
-	}
-	course.Credentials = append(course.Credentials, credential)
+	course.Students = students.ToBytes()
 	return cs.PutCourse(course)
 }

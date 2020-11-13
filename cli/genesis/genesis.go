@@ -41,19 +41,20 @@ func GenerateGenesis(datadirPath string, consensus string, accountStore *datasto
 	}
 	// Select one deployer (first account on the genesis)
 	// We are also using it as a signer on the poa
-	deployer := common.HexToAddress(accounts[0].GetHexAddress()).Bytes()
+	deployer := accounts[0].Address
 	_, err = accountStore.SelectAccount(pb.Type_SEALER, deployer)
 	if err != nil {
 		return err
 	}
-	log.Infof("Configured POA Sealer: %s\n", accounts[0].GetHexAddress())
+
+	log.Infof("Configured POA Sealer: %s\n", common.BytesToAddress(accounts[0].Address).Hex())
 	genesisFile := filepath.Join(datadirPath, "genesis.json")
 	return createGenesisFile(genesisFile, newGenesisData(datadirPath, consensus, accounts))
 }
 
 func newGenesisData(datadirPath string, consensus string, accounts datastore.Accounts) *GenesisData {
 	if len(accounts) == 0 {
-		log.Fatalln("Attempt to create genesis without accounts")
+		log.Fatal("Attempt to create genesis without accounts")
 		return nil
 	}
 
@@ -83,6 +84,7 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 			byteAddr := common.HexToAddress(signer).Bytes()
 			copy(extraData[32+i*common.AddressLength:], byteAddr[:])
 		}
+
 		genesis.ExtraData = hexutil.Bytes(extraData) //default: 0x
 	}
 	return genesis
@@ -140,11 +142,10 @@ func generateAccounts(n int) []*pb.Account {
 		key, address := keyutils.NewKey()
 		hexkey := keyutils.KeyToHex(key)
 		accounts[i] = &pb.Account{
-			HexAddress:        hexutil.Encode(address.Bytes()),
-			HexKey:            hexkey,
-			ContractAddresses: []string{},
-			CredentialDigests: [][]byte{},
-			Selected:          pb.Type_NONE,
+			Address:   hexutil.MustDecode(address.Hex()),
+			HexKey:    hexkey,
+			Contracts: [][]byte{},
+			Selected:  pb.Type_NONE,
 		}
 	}
 	return accounts
