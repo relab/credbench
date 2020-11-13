@@ -46,14 +46,15 @@ func (n *Node) GetRoot(opts *bind.CallOpts, subject common.Address) ([32]byte, e
 	return n.contract.GetRoot(opts, subject)
 }
 
-// RegisterCredential issues a new credential proof ensuring append-only property
+// RegisterCredential issues a new credential proof ensuring append-only property.
+// If the credential already exist, this function register the consentiment to // the given digest by the caller, if he is one of the contract's owners
 func (n *Node) RegisterCredential(opts *bind.TransactOpts, subject common.Address, digest [32]byte, witnesses []common.Address) (*types.Transaction, error) {
 	return n.contract.RegisterCredential(opts, subject, digest, witnesses)
 }
 
-// ConfirmCredential confirms the emission of a quorum signed credential proof
-func (n *Node) ConfirmCredential(opts *bind.TransactOpts, digest [32]byte) (*types.Transaction, error) {
-	return n.contract.ConfirmCredential(opts, digest)
+// ApproveCredential approves the emission of a quorum signed credential proof
+func (n *Node) ApproveCredential(opts *bind.TransactOpts, digest [32]byte) (*types.Transaction, error) {
+	return n.contract.ApproveCredential(opts, digest)
 }
 
 // Revoke revokes an issued credential proof

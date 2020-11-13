@@ -17,7 +17,7 @@ type genWallet struct {
 	lock    sync.Mutex
 	key     *ecdsa.PrivateKey
 	address common.Address
-	nonce   uint64 // nonce is a local transaction counter
+	nonce   uint64 // nonce is a local atomic transaction counter
 }
 
 func NewGenWallet(accountAddr common.Address, accountHexKey string) Wallet {

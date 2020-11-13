@@ -201,9 +201,9 @@ func TestCreateDiploma(t *testing.T) {
 			tf.Backend.Commit()
 
 			opts = bind.NewKeyedTransactor(student.Key)
-			_, err = courseInstance.ConfirmCredential(opts, digest)
+			_, err = courseInstance.ApproveCredential(opts, digest)
 			if err != nil {
-				t.Fatalf("ConfirmCredential expected no error, got: %v", err)
+				t.Fatalf("ApproveCredential expected no error, got: %v", err)
 			}
 			tf.Backend.Commit()
 		}
@@ -229,9 +229,9 @@ func TestCreateDiploma(t *testing.T) {
 		tf.Backend.Commit()
 
 		opts = bind.NewKeyedTransactor(student.Key)
-		_, err = courseInstance.ConfirmCredential(opts, digest)
+		_, err = courseInstance.ApproveCredential(opts, digest)
 		if err != nil {
-			t.Fatalf("ConfirmCredential expected no error, got: %v", err)
+			t.Fatalf("ApproveCredential expected no error, got: %v", err)
 		}
 		tf.Backend.Commit()
 
@@ -293,7 +293,7 @@ func TestCreateDiploma(t *testing.T) {
 	tf.Backend.Commit()
 
 	opts = bind.NewKeyedTransactor(student.Key)
-	_, err = tf.Faculty.ConfirmCredential(opts, digest)
+	_, err = tf.Faculty.ApproveCredential(opts, digest)
 	if err != nil {
 		t.Fatalf("failed to confirm issued credential: %v", err)
 	}

@@ -95,9 +95,9 @@ func (tc *TestCourse) ConfirmTestCredential(t *testing.T, from *ecdsa.PrivateKey
 	}()
 
 	opts := bind.NewKeyedTransactor(from)
-	_, err := tc.Course.ConfirmCredential(opts, digest)
+	_, err := tc.Course.ApproveCredential(opts, digest)
 	if err != nil {
-		t.Fatalf("ConfirmCredential expected no error, got: %v", err)
+		t.Fatalf("ApproveCredential expected no error, got: %v", err)
 	}
 	tc.Backend.Commit()
 

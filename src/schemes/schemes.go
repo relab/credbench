@@ -18,7 +18,7 @@ func Hash(pb proto.Message) [32]byte {
 func ParseJSON(path string, m proto.Message) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalln("Error reading file:", err)
+		log.Fatal("Error reading file:", err)
 	}
 
 	err = protojson.Unmarshal(data, m)
