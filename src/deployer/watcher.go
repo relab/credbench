@@ -31,10 +31,9 @@ func WaitTxReceipt(ctx context.Context, client *ethclient.Client, tx *types.Tran
 	if timeout == 0 {
 		timeout = 1 * time.Minute
 	}
-	interval := 15 * time.Second
 
 	timer := time.NewTimer(timeout)
-	ticker := time.NewTicker(interval)
+	ticker := time.NewTicker(time.Second)
 
 	defer timer.Stop()
 	defer ticker.Stop()

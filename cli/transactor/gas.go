@@ -13,8 +13,7 @@ import (
 
 // CalculateGasCost given gas limit (units) and gas price (wei)
 func CalculateGasCost(gasLimit uint64, gasPrice *big.Int) *big.Int {
-	gasLimitBig := big.NewInt(int64(gasLimit))
-	return gasLimitBig.Mul(gasLimitBig, gasPrice)
+	return new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasLimit))
 }
 
 // WeiToEther converts wei unit to ether

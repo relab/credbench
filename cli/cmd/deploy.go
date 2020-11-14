@@ -31,12 +31,12 @@ func deployNotaryCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			opts, err := wallet.GetTxOpts(backend)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatal(err)
 			}
 
 			err = deployNotary(opts, backend)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatal(err)
 			}
 		},
 	}
@@ -64,12 +64,12 @@ func deployAggregatorCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			opts, err := wallet.GetTxOpts(backend)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatal(err)
 			}
 
 			err = deployAggregator(opts, backend)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatal(err)
 			}
 		},
 	}
@@ -96,16 +96,16 @@ var deployAllLibsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		opts, err := wallet.GetTxOpts(backend)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 
 		err = deployNotary(opts, backend)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 		err = deployAggregator(opts, backend)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 	},
 }
@@ -125,12 +125,12 @@ func deployCourseCmd() *cobra.Command {
 
 			opts, err := wallet.GetTxOpts(backend)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatal(err)
 			}
 
 			_, tx, err := DeployCourse(opts, backend, ownersAddr, quorum)
 			if err != nil {
-				log.Fatalln(err)
+				log.Fatal(err)
 			}
 			log.Infof("Transaction ID: %x\n", tx.Hash())
 		},
@@ -149,11 +149,11 @@ func DeployCourse(opts *bind.TransactOpts, backend *ethclient.Client, owners []c
 	log.Infoln("Deploying Course...")
 	aggregatorAddr := viper.GetString("deployed_libs.aggregator")
 	if aggregatorAddr == "" {
-		log.Fatalln(fmt.Errorf("Aggregator contract not deployed. Please, deploy it first"))
+		log.Fatal(fmt.Errorf("Aggregator contract not deployed. Please, deploy it first"))
 	}
 	notaryAddr := viper.GetString("deployed_libs.notary")
 	if notaryAddr == "" {
-		log.Fatalln(fmt.Errorf("Notary contract not deployed. Please, deploy it first"))
+		log.Fatal(fmt.Errorf("Notary contract not deployed. Please, deploy it first"))
 	}
 	libs := map[string]string{
 		"CredentialSum": aggregatorAddr,
@@ -174,11 +174,11 @@ func DeployFaculty(opts *bind.TransactOpts, backend *ethclient.Client, owners []
 	log.Infoln("Deploying Faculty...")
 	aggregatorAddr := viper.GetString("deployed_libs.aggregator")
 	if aggregatorAddr == "" {
-		log.Fatalln(fmt.Errorf("Aggregator contract not deployed. Please, deploy it first"))
+		log.Fatal(fmt.Errorf("Aggregator contract not deployed. Please, deploy it first"))
 	}
 	notaryAddr := viper.GetString("deployed_libs.notary")
 	if notaryAddr == "" {
-		log.Fatalln(fmt.Errorf("Notary contract not deployed. Please, deploy it first"))
+		log.Fatal(fmt.Errorf("Notary contract not deployed. Please, deploy it first"))
 	}
 	libs := map[string]string{
 		"CredentialSum": aggregatorAddr,

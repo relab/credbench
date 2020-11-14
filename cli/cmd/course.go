@@ -3,7 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,20 +23,20 @@ var addStudentCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := getCourseContract(common.HexToAddress(args[0]))
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 		studentAddress := common.HexToAddress(args[1])
 
 		opts, err := wallet.GetTxOpts(backend)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 
 		tx, err := addStudent(opts, c, studentAddress)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
-		fmt.Printf("Transaction ID: %x\n", tx.Hash())
+		log.Infof("Transaction ID: %x\n", tx.Hash())
 	},
 }
 
@@ -54,20 +55,20 @@ var rmStudentCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := getCourseContract(common.HexToAddress(args[0]))
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 		studentAddress := common.HexToAddress(args[1])
 
 		opts, err := wallet.GetTxOpts(backend)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 
 		tx, err := rmStudent(opts, c, studentAddress)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
-		fmt.Printf("Transaction ID: %x\n", tx.Hash())
+		log.Infof("Transaction ID: %x\n", tx.Hash())
 	},
 }
 
@@ -86,20 +87,20 @@ var renounceCourseCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := getCourseContract(common.HexToAddress(args[0]))
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 
 		// Student is using the default wallet
 		opts, err := wallet.GetTxOpts(backend)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 
 		tx, err := renounce(opts, c, opts.From)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
-		fmt.Printf("Transaction ID: %x\n", tx.Hash())
+		log.Infof("Transaction ID: %x\n", tx.Hash())
 	},
 }
 
@@ -123,7 +124,7 @@ var issueCourseCredentialCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := getCourseContract(common.HexToAddress(args[0]))
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 		studentAddress := common.HexToAddress(args[1])
 		a := &pb.AssignmentGradeCredential{}
@@ -132,19 +133,65 @@ var issueCourseCredentialCmd = &cobra.Command{
 
 		opts, err := wallet.GetTxOpts(backend)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 
 		tx, err := registerCredential(opts, c, studentAddress, digest)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
-		fmt.Printf("Transaction ID: %x\n", tx.Hash())
+		log.Infof("Transaction ID: %x\n", tx.Hash())
 	},
 }
 
 func registerCredential(opts *bind.TransactOpts, c *course.Course, studentAddress common.Address, digest [32]byte) (*types.Transaction, error) {
 	tx, err := executor.SendTX(opts, c.Address(), course.CourseContractABI, "registerCredential", studentAddress, digest, []common.Address{})
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+var approveCourseCredentialCmd = &cobra.Command{
+	Use:   "approve",
+	Short: "Approve a credential using its hash",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 2 {
+			return errors.New("Missing arguments. Please specify: course_address digest_hash")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		c, err := getCourseContract(common.HexToAddress(args[0]))
+		if err != nil {
+			log.Fatal(err)
+		}
+		digest := common.HexToHash(args[1]) // 0x?
+		// FIXME: Validate inputs
+
+		opts, err := wallet.GetTxOpts(backend)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tx, err := approveCredential(opts, c, digest)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("Transaction ID: %x\n", tx.Hash())
+	},
+}
+
+func approveCredential(opts *bind.TransactOpts, c *course.Course, digest [32]byte) (*types.Transaction, error) {
+	tx, err := executor.SendTX(opts, c.Address(), course.CourseContractABI, "approveCredential", digest)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func aggregateCredentials(opts *bind.TransactOpts, c *course.Course, student common.Address, digests [][32]byte) (*types.Transaction, error) {
+	tx, err := executor.SendTX(opts, c.Address(), course.CourseContractABI, "aggregateCredentials", student, digests)
 	if err != nil {
 		return nil, err
 	}
@@ -166,15 +213,15 @@ var getStudentsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := getCourseContract(common.HexToAddress(args[0]))
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 		students, err := c.GetStudents(&bind.CallOpts{Pending: false})
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
-		fmt.Printf("Registered students:\n")
+		log.Infof("Registered students:\n")
 		for _, s := range students {
-			fmt.Printf("%s\n", s.Hex())
+			log.Infof("%s\n", s.Hex())
 		}
 	},
 }
@@ -186,17 +233,17 @@ var isEnrolledCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := getCourseContract(common.HexToAddress(args[0]))
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 		student := common.HexToAddress(args[1])
 		ok, err := c.IsEnrolled(&bind.CallOpts{Pending: false}, student)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Fatal(err)
 		}
 		if ok {
-			fmt.Printf("Student %s is enrolled\n", student.Hex())
+			log.Infof("Student %s is enrolled\n", student.Hex())
 		} else {
-			fmt.Printf("Student %s not found in course %s\n", student.Hex(), c.Address().Hex())
+			log.Infof("Student %s not found in course %s\n", student.Hex(), c.Address().Hex())
 		}
 	},
 }
@@ -213,6 +260,7 @@ func newCourseCmd() *cobra.Command {
 		getStudentsCmd,
 		isEnrolledCmd,
 		issueCourseCredentialCmd,
+		approveCourseCredentialCmd,
 	)
 	return courseCmd
 }
