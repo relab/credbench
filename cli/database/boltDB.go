@@ -1,6 +1,7 @@
 package database
 
 import (
+	"bytes"
 	"errors"
 	"strings"
 
@@ -143,8 +144,12 @@ func (d *BoltDB) CreateBucketPath(pathStr string) error {
 	return err
 }
 
-// Keys returns the list of keys at a given path, encoded as string
 func (d *BoltDB) Keys(pathStr string) (keys [][]byte, err error) {
+	return d.GetKeysWith(pathStr, func(v []byte) bool { return true })
+}
+
+// Keys returns the list of keys at a given path, encoded as string
+func (d *BoltDB) GetKeysWith(pathStr string, filter func(value []byte) bool) (keys [][]byte, err error) {
 	path, err := normalizePath(pathStr)
 	if err != nil {
 		return keys, err
@@ -156,7 +161,7 @@ func (d *BoltDB) Keys(pathStr string) (keys [][]byte, err error) {
 		}
 
 		err = b.ForEach(func(k, v []byte) error {
-			if v != nil { // buckets have nil value
+			if v != nil && filter(v) { // buckets have nil value
 				key := make([]byte, len(k))
 				copy(key, k)
 				keys = append(keys, key)
@@ -291,6 +296,39 @@ func (d *BoltDB) GetNextEntry(pathStr string, key []byte) (next []byte, value []
 	return next, value, err
 }
 
+func (d *BoltDB) IndexRead(pathStr string, prefix []byte, n int) ([][]byte, error) {
+	var keys [][]byte
+
+	path, err := normalizePath(pathStr)
+	if err != nil {
+		return keys, err
+	}
+
+	err = d.db.View(func(tx *bolt.Tx) error {
+		b, err := getBucket(tx, path)
+		if err != nil {
+			return err
+		}
+		c := b.Cursor()
+		i := 0
+		for k, v := c.Seek(prefix); k != nil && bytes.Contains(k, prefix); k, v = c.Next() {
+			if i == n {
+				break
+			}
+
+			if v != nil {
+				key := make([]byte, len(k))
+				copy(key, k)
+				keys = append(keys, key)
+				i++
+			}
+		}
+
+		return nil
+	})
+	return keys, err
+}
+
 func (d *BoltDB) Iterate(pathStr string, n int, conditionFn func(v []byte) (bool, error)) error {
 	path, err := normalizePath(pathStr)
 	if err != nil {
@@ -388,7 +426,7 @@ func mapFn(b *bolt.Bucket, n int, applyIfFn func(v []byte) (bool, []byte, error)
 	i := 0
 	for i < n {
 		ok, updatedValue, err := applyIfFn(value)
-		if ok {
+		if ok && len(updatedValue) != 0 {
 			err = b.Put(key, updatedValue)
 			if err != nil {
 				return err
