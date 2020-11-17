@@ -1,14 +1,19 @@
 package datastore
 
 import (
+	"context"
 	"errors"
+	"math/big"
 	"sync"
+	"sync/atomic"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/relab/ct-eth-dapp/cli/database"
 
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
 	proto "google.golang.org/protobuf/proto"
 )
 
@@ -33,6 +38,53 @@ func CreateEthAccountStore(db *database.BoltDB) error {
 
 func NewEthAccountStore(db *database.BoltDB) *EthAccountStore {
 	return &EthAccountStore{ds: DataStore{db: db, path: ethAccountsBucket}}
+}
+
+func (as *EthAccountStore) GetTxOpts(key []byte, backend bind.ContractBackend) (*bind.TransactOpts, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
+	gasPrice, err := backend.SuggestGasPrice(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := as.GetAccount(key)
+	if err != nil {
+		return nil, err
+	}
+
+	address := common.BytesToAddress(account.Address)
+	nonce, err := backend.PendingNonceAt(context.TODO(), address)
+	if err != nil {
+		return nil, err
+	}
+	if account.Nonce < nonce {
+		account.Nonce = nonce
+	}
+
+	pk := ctaccounts.HexToKey(account.HexKey)
+	transactOpts := bind.NewKeyedTransactor(pk)
+	transactOpts.GasLimit = uint64(6721975) // FIXME: get from config file
+	transactOpts.GasPrice = gasPrice
+	// Note: overflow may happen when converting uint64 to int64
+	transactOpts.Nonce = new(big.Int).SetUint64(account.Nonce)
+
+	err = as.incNonce(account)
+	if err != nil {
+		return nil, err
+	}
+
+	return transactOpts, nil
+}
+
+func (as *EthAccountStore) incNonce(account *pb.Account) error {
+	atomic.AddUint64(&account.Nonce, 1)
+	err := as.PutAccount(account)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // PutAccount adds a new Account to the EthAccountStore
@@ -135,6 +187,9 @@ func (as *EthAccountStore) SelectAccount(selectType pb.Type, keys ...[]byte) (Ac
 }
 
 func (as *EthAccountStore) GetAccounts(keys ...[]byte) (Accounts, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
 	var accounts Accounts
 	var err error
 	for _, key := range keys {
@@ -147,6 +202,54 @@ func (as *EthAccountStore) GetAccounts(keys ...[]byte) (Accounts, error) {
 		return accounts, ErrNoAccountsFound
 	}
 	return accounts, err
+}
+
+func (as *EthAccountStore) GetAllKeys(selectType pb.Type) ([][]byte, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
+	keys, err := as.ds.db.GetKeysWith(as.ds.path, func(value []byte) bool {
+		if value == nil {
+			return false // value does not exists or is bucket
+		}
+		account := &pb.Account{}
+		err := proto.Unmarshal(value, account)
+		if err != nil {
+			return false
+		}
+		if account.Selected == selectType {
+			return true
+		}
+		return false
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(keys) == 0 {
+		return nil, ErrNoAccountsFound
+	}
+	return keys, nil
+}
+
+func (as *EthAccountStore) GetAccountsWithPrefix(n int, prefix []byte, selectType pb.Type) (Accounts, error) {
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
+	keys, err := as.ds.db.IndexRead(as.ds.path, prefix, n)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts, err := as.GetAccounts(keys...)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(accounts) == 0 || len(accounts) < n {
+		return nil, ErrNoAccountsFound
+	}
+	return accounts, nil
 }
 
 func (as *EthAccountStore) GetAndSelect(n int, selectType pb.Type) (Accounts, error) {
