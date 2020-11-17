@@ -60,32 +60,12 @@ func (fs *FacultyStore) GetFaculty() (*pb.Faculty, error) {
 	return faculty, err
 }
 
-func (fs *FacultyStore) SetCourses(courses []common.Address) error {
-	if len(courses) == 0 {
-		return nil
-	}
-
+func (fs *FacultyStore) AddSemester(semester [32]byte) error {
 	faculty, err := fs.GetFaculty()
 	if err != nil {
 		return err
 	}
 
-	faculty.Courses = AddressToBytes(courses)
-	return fs.AddFaculty(faculty)
-}
-
-func (fs *FacultyStore) AddCourse(courses ...common.Address) error {
-	if len(courses) == 0 {
-		return nil
-	}
-
-	faculty, err := fs.GetFaculty()
-	if err != nil {
-		return err
-	}
-
-	newCourses := AddressToBytes(courses)
-	faculty.Courses = append(faculty.Courses, newCourses...)
-
+	faculty.Semesters = append(faculty.Semesters, semester[:])
 	return fs.AddFaculty(faculty)
 }
