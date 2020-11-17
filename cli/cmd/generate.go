@@ -24,11 +24,11 @@ import (
 	"github.com/relab/ct-eth-dapp/cli/transactor"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 	"github.com/relab/ct-eth-dapp/src/faculty"
+	"github.com/relab/ct-eth-dapp/src/schemes"
 
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
 	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
 	course "github.com/relab/ct-eth-dapp/src/course"
-	schemes "github.com/relab/ct-eth-dapp/src/schemes"
 )
 
 var (
@@ -71,24 +71,6 @@ var generateTestCmd = &cobra.Command{
 		}
 
 		err = setupTestCase()
-		if err != nil {
-			log.Fatal(err)
-		}
-	},
-}
-
-// Run the test case by enrolling students and producing a credential tree
-// for them for the specified period.
-var runTestCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Run test case",
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		testConfig, err = testconfig.LoadConfig(testFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = runTestCase()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -166,6 +148,39 @@ func setupFaculties() error {
 	return nil
 }
 
+func createFaculty(admsAccounts datastore.Accounts) (common.Address, error) {
+	opts, err := wallet.GetTxOpts(backend) // default deployer
+	// opts, err := accountStore.GetTxOpts(admsAccounts[0].Address, backend)
+	if err != nil {
+		return common.Address{}, err
+	}
+	fAddr, _, err := DeployFaculty(opts, backend, admsAccounts.ToETHAddress(), uint8(len(admsAccounts)))
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	for _, adms := range admsAccounts {
+		adms.Contracts = append(adms.Contracts, fAddr.Bytes())
+	}
+	err = accountStore.PutAccount(admsAccounts...)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	f := &pb.Faculty{
+		Address:   fAddr.Bytes(),
+		Adms:      admsAccounts.ToBytes(),
+		CreatedOn: timestamppb.Now(),
+	}
+
+	fs := datastore.NewFacultyStore(db, fAddr)
+	err = fs.PutFaculty(f)
+	if err != nil {
+		return common.Address{}, err
+	}
+	return fAddr, nil
+}
+
 func createSemester(fAddr common.Address, semester [32]byte) ([]common.Address, error) {
 	courseCh := make(chan common.Address)
 	quit := make(chan struct{}, 1)
@@ -235,6 +250,59 @@ func registerCourse(courseCh chan common.Address) error {
 	}
 
 	courseCh <- cAddr
+	return nil
+}
+
+func createCourse(evaluatorsAccounts datastore.Accounts) (common.Address, error) {
+	evaluatorsAddresses := evaluatorsAccounts.ToETHAddress()
+	opts, err := wallet.GetTxOpts(backend) // default deployer
+	// opts, err := accountStore.GetTxOpts(evaluatorsAccounts[0].Address, backend)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	cAddr, _, err := DeployCourse(opts, backend, evaluatorsAddresses, uint8(len(evaluatorsAccounts)))
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	// Append contract address for all evaluators
+	for _, ev := range evaluatorsAccounts {
+		ev.Contracts = append(ev.Contracts, cAddr.Bytes())
+	}
+	err = accountStore.PutAccount(evaluatorsAccounts...)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	// Append contract address for all evaluators
+	c := &pb.Course{
+		Address:    cAddr.Bytes(),
+		Evaluators: evaluatorsAccounts.ToBytes(),
+		CreatedOn:  timestamppb.Now(),
+	}
+	cs := datastore.NewCourseStore(db, cAddr)
+	err = cs.PutCourse(c)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return cAddr, nil
+}
+
+func registerStudents(cs *datastore.CourseStore, courseAddress common.Address, studAccounts datastore.Accounts) error {
+	for _, std := range studAccounts {
+		std.Contracts = append(std.Contracts, courseAddress.Bytes())
+	}
+	err := accountStore.PutAccount(studAccounts...)
+	if err != nil {
+		return err
+	}
+
+	err = cs.SetStudents(studAccounts)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -309,104 +377,22 @@ func selectAccounts(method string, n int, selectType pb.Type) (datastore.Account
 	return accounts, nil
 }
 
-func createCourse(evaluatorsAccounts datastore.Accounts) (common.Address, error) {
-	evaluatorsAddresses := evaluatorsAccounts.ToETHAddress()
-	opts, err := wallet.GetTxOpts(backend) // default deployer
-	// opts, err := accountStore.GetTxOpts(evaluatorsAccounts[0].Address, backend)
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	cAddr, _, err := DeployCourse(opts, backend, evaluatorsAddresses, uint8(len(evaluatorsAccounts)))
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	// Append contract address for all evaluators
-	for _, ev := range evaluatorsAccounts {
-		ev.Contracts = append(ev.Contracts, cAddr.Bytes())
-	}
-
-	// Append contract address for all evaluators
-	c := &pb.Course{
-		Address:    cAddr.Bytes(),
-		Evaluators: evaluatorsAccounts.ToBytes(),
-		CreatedOn:  timestamppb.Now(),
-	}
-	cs := datastore.NewCourseStore(db, cAddr)
-	err = cs.PutCourse(c)
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	return cAddr, nil
-}
-
-func registerStudents(cs *datastore.CourseStore, courseAddress common.Address, studAccounts datastore.Accounts) error {
-	for _, std := range studAccounts {
-		std.Contracts = append(std.Contracts, courseAddress.Bytes())
-		err := accountStore.PutAccount(std)
+// Run the test case by enrolling students and producing a credential tree
+// for them for the specified period.
+var runTestCmd = &cobra.Command{
+	Use:   "run",
+	Short: "Run test case",
+	Run: func(cmd *cobra.Command, args []string) {
+		var err error
+		testConfig, err = testconfig.LoadConfig(testFile)
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
-	}
-
-	err := cs.SetStudents(studAccounts)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func enrollStudent(contract *course.Course, evaluator *proto.Account, student common.Address) (*types.Transaction, error) {
-	opts, err := accountStore.GetTxOpts(evaluator.Address, backend)
-	if err != nil {
-		return nil, err
-	}
-	return addStudent(opts, contract, student)
-}
-
-func generateExamCredential(registrar common.Address, student common.Address, course common.Address) [32]byte {
-	courseEntity := &schemes.Entity{
-		Id:   course.Hex(),
-		Name: "Course Test Contract",
-	}
-	ag := schemes.NewFakeAssignmentGrade(registrar.Hex(), student.Hex())
-	credential := schemes.NewFakeAssignmentGradeCredential(registrar.Hex(), courseEntity, ag)
-	return schemes.Hash(credential)
-}
-
-func createFaculty(admsAccounts datastore.Accounts) (common.Address, error) {
-	opts, err := wallet.GetTxOpts(backend) // default deployer
-	// opts, err := accountStore.GetTxOpts(admsAccounts[0].Address, backend)
-	if err != nil {
-		return common.Address{}, err
-	}
-	fAddr, _, err := DeployFaculty(opts, backend, admsAccounts.ToETHAddress(), uint8(len(admsAccounts)))
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	for _, adms := range admsAccounts {
-		adms.Contracts = append(adms.Contracts, fAddr.Bytes())
-	}
-	err = accountStore.PutAccount(admsAccounts...)
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	f := &pb.Faculty{
-		Address:   fAddr.Bytes(),
-		Adms:      admsAccounts.ToBytes(),
-		CreatedOn: timestamppb.Now(),
-	}
-
-	fs := datastore.NewFacultyStore(db, fAddr)
-	err = fs.AddFaculty(f)
-	if err != nil {
-		return common.Address{}, err
-	}
-	return fAddr, nil
+		err = runTestCase()
+		if err != nil {
+			log.Fatal(err)
+		}
+	},
 }
 
 // Running test case
@@ -532,6 +518,14 @@ func runSemester(semester []byte, facultyContract *faculty.Faculty) error {
 	return nil
 }
 
+func enrollStudent(contract *course.Course, evaluator *proto.Account, student common.Address) (*types.Transaction, error) {
+	opts, err := accountStore.GetTxOpts(evaluator.Address, backend)
+	if err != nil {
+		return nil, err
+	}
+	return addStudent(opts, contract, student)
+}
+
 func enrollStudents(contract *course.Course, evaluator *proto.Account, students []common.Address) error {
 	for i, student := range students {
 		tx, err := enrollStudent(contract, evaluator, student)
@@ -547,6 +541,16 @@ func enrollStudents(contract *course.Course, evaluator *proto.Account, students 
 		}
 	}
 	return nil
+}
+
+func generateExamCredential(registrar common.Address, student common.Address, course common.Address) [32]byte {
+	courseEntity := &schemes.Entity{
+		Id:   course.Hex(),
+		Name: "Course Test Contract",
+	}
+	ag := schemes.NewFakeAssignmentGrade(registrar.Hex(), student.Hex())
+	credential := schemes.NewFakeAssignmentGradeCredential(registrar.Hex(), courseEntity, ag)
+	return schemes.Hash(credential)
 }
 
 func issueExams(contract *course.Course, evaluators datastore.Accounts, students datastore.Accounts) {

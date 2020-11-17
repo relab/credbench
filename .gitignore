@@ -5,7 +5,6 @@
 # development files
 dev_datadir/
 dev-config.json
-test-config.json
 
 # truffle build directory
 build/

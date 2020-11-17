@@ -30,7 +30,7 @@ func NewFacultyStore(db *database.BoltDB, facultyAddress common.Address) *Facult
 	}
 }
 
-func (fs *FacultyStore) AddFaculty(faculty *pb.Faculty) error {
+func (fs *FacultyStore) PutFaculty(faculty *pb.Faculty) error {
 	if faculty == nil {
 		return ErrEmptyData
 	}
@@ -67,5 +67,5 @@ func (fs *FacultyStore) AddSemester(semester [32]byte) error {
 	}
 
 	faculty.Semesters = append(faculty.Semesters, semester[:])
-	return fs.AddFaculty(faculty)
+	return fs.PutFaculty(faculty)
 }
