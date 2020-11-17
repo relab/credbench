@@ -10,8 +10,29 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const hexDigits = "abcdef0123456789"
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+func RandomHexString(n int) string {
+	return string(RandomHexBytes(n))
+}
+
+func RandomHexBytes(n int) []byte {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = hexDigits[rand.Intn(len(hexDigits))]
+	}
+	return b
+}
+
+func GenerateRandomDigest(prefix []byte, size int) [32]byte {
+	data := make([]byte, len(prefix)+size)
+	copy(data, prefix)
+	copy(data[len(prefix):], RandomHexBytes(size))
+	return sha256.Sum256(data)
 }
 
 func hashString(s string) string {
@@ -19,11 +40,11 @@ func hashString(s string) string {
 }
 
 func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
-	c := rand.Intn(10000) //FIXME: if the same number is chosen twice, two assignments will have the same hash in the test case and some tests will fail since isn't possible to issue two assignments with the same hash
+	r := rand.Int63()
 	return &AssignmentGrade{
-		Id:          hashString(fmt.Sprintf("%s%d", "AssignmentFile-", c)),
-		Name:        fmt.Sprintf("%s%d", "Exam ", c),
-		Code:        fmt.Sprintf("%s%d", "EX-", c),
+		Id:          hashString(studentID + RandomHexString(32)),
+		Name:        fmt.Sprintf("%s%d", "Exam ", r),
+		Code:        fmt.Sprintf("%s%d", "EX-", r),
 		Category:    "InternalActivity",
 		Type:        []string{"MandatoryActivity"},
 		Language:    "en",
@@ -36,7 +57,7 @@ func NewFakeAssignmentGrade(teacherID, studentID string) *AssignmentGrade {
 		Student: &Entity{
 			Id: studentID,
 		},
-		Grade:           int64(c),
+		Grade:           r % 100,
 		StudentPresence: "Physical",
 	}
 }
@@ -96,7 +117,7 @@ func NewFakeCourseGrade(courseID string, credentials []*AssignmentGradeCredentia
 		TotalCredits:    20,
 		FinalGrade:      int64(rand.Intn(100)), // TODO: compute base on assignments' grades
 		StudentPresence: "Physical",
-		Assignments:     credentials, //TODO: store only map with ids and grades
+		Assignments:     credentials, // TODO: store only map with ids and grades
 	}
 	return cgrade
 }
@@ -162,7 +183,7 @@ func NewFakeDiploma(facultyID string, credentials []*CourseGradeCredential) *Dip
 			"gpa": int64(rand.Intn(100)), // TODO: compute base on courses' grades
 		},
 		StudentPresence: "Physical",
-		Courses:         credentials, //TODO: store only map with ids and grades
+		Courses:         credentials, // TODO: store only map with ids and grades
 	}
 	return diploma
 }
