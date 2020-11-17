@@ -56,7 +56,7 @@ func (p *TXProfiler) SaveMetric(metrics chan UsageMetric) error {
 	logger := golog.New(f, "", 0)
 	n := 0
 	for m := range metrics {
-		logger.Printf("sender:%s;method:%s;gasUsed:%s;gasCost:%s", m.Sender, m.Method, m.Gas.GasUsed.String(), m.Gas.GasCostWei.String())
+		logger.Printf("contract:%s;address:%s;sender:%s;method:%s;gasUsed:%s;gasCost:%s", m.Contract, m.CAddress, m.Sender, m.Method, m.Gas.GasUsed.String(), m.Gas.GasCostWei.String())
 		n++
 	}
 	logger.Printf("totalEntries:%d;gasPrice:%s;gasLimit:%s", n, p.gasPrice, p.gasLimit)
@@ -64,9 +64,11 @@ func (p *TXProfiler) SaveMetric(metrics chan UsageMetric) error {
 }
 
 type UsageMetric struct {
-	Sender string
-	Method string
-	Gas    GasMetric
+	Contract string
+	CAddress string
+	Sender   string
+	Method   string
+	Gas      GasMetric
 }
 
 func (u UsageMetric) String() string {
@@ -95,12 +97,11 @@ func (t *Transactor) Close() {
 }
 
 // SendTX performs a transaction and collect gas metrics
-func (t *Transactor) SendTX(opts *bind.TransactOpts, contractAddress common.Address, contractABI string, method string, params ...interface{}) (*types.Transaction, error) {
+func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contractAddress common.Address, contractABI string, method string, params ...interface{}) (*types.Transaction, error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contractABI))
 	if err != nil {
 		return nil, err
 	}
-
 	input, err := parsedABI.Pack(method, params...)
 	if err != nil {
 		return nil, err
@@ -130,8 +131,10 @@ func (t *Transactor) SendTX(opts *bind.TransactOpts, contractAddress common.Addr
 	// TODO: Estimate Fiat value (USD and NOK)
 
 	t.Metrics <- UsageMetric{
-		Sender: opts.From.Hex(),
-		Method: method,
+		Contract: contractName,
+		CAddress: contractAddress.Hex(),
+		Sender:   opts.From.Hex(),
+		Method:   method,
 		Gas: GasMetric{
 			GasUsed:    new(big.Int).SetUint64(gas),
 			GasPrice:   tx.GasPrice(),

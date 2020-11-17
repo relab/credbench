@@ -134,6 +134,20 @@ func setupFaculties() error {
 		if err != nil {
 			return err
 		}
+
+		// Add courses to faculty contract
+		for _, c := range courses {
+			opts, err := accountStore.GetTxOpts(admsAccounts[0].Address, backend)
+			if err != nil {
+				return err
+			}
+
+			_, err = contract.AddNode(opts, c)
+			if err != nil {
+				return err
+			}
+		}
+
 		opts, err := accountStore.GetTxOpts(admsAccounts[0].Address, backend)
 		if err != nil {
 			return err
@@ -441,80 +455,182 @@ func run_faculty(key []byte, results chan transactor.UsageMetric, done chan stru
 		log.Fatal(err)
 	}
 
-	faculty, err := getFacultyContract(common.BytesToAddress(f.Address))
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	for _, s := range f.Semesters {
-		err = runSemester(s, faculty)
+		err = runSemester(s, f)
 		if err != nil {
 			log.Fatal(err)
 		}
-		// TODO: create semesters credentials
-		// use aggregation as witness to issue a credential on the faculty for each subject.
 	}
-	// TODO call register diploma with root
 	done <- struct{}{}
 }
 
-func runSemester(semester []byte, facultyContract *faculty.Faculty) error {
-	fmt.Printf("SEMESTER: %x - %s\n", semester, facultyContract.Address().Hex())
+func runSemester(semester []byte, faculty *pb.Faculty) error {
+	facultyContract, err := getFacultyContract(common.BytesToAddress(faculty.Address))
+	if err != nil {
+		return err
+	}
 
 	courses, err := facultyContract.GetCoursesBySemester(&bind.CallOpts{Pending: false}, semester)
 	if err != nil {
 		return err
 	}
 
-	wgc := sync.WaitGroup{}
-	wgc.Add(len(courses))
+	g := new(errgroup.Group)
 	for _, cAddr := range courses {
 		cs := datastore.NewCourseStore(db, cAddr)
 		c, err := cs.GetCourse()
 		if err != nil {
 			return err
 		}
-
-		go func(cc *pb.Course) {
-			defer wgc.Done()
-			if len(cc.Evaluators) == 0 {
-				log.Error("No evaluators found")
-				return
-			}
-
-			students, err := accountStore.GetAccounts(cc.Students...)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-			if len(students) == 0 {
-				log.Error("No student found")
-				return
-			}
-
-			contract, err := getCourseContract(common.BytesToAddress(cc.Address))
-			if err != nil {
-				log.Error("No course contract found")
-				return
-			}
-
-			evaluators, err := accountStore.GetAccounts(cc.Evaluators...)
-			if err != nil {
-				log.Error(err)
-			}
-
-			// Enroll all students to the course contract
-			err = enrollStudents(contract, evaluators[0], students.ToETHAddress())
-			if err != nil {
-				log.Error(err)
-			}
-			// Issue all exams for all students
-			issueExams(contract, evaluators, students)
-			// Aggregate all exams for all students
-			aggregateExams(contract, evaluators[0], students.ToETHAddress())
-		}(c)
+		g.Go(func() error {
+			return runCourse(c)
+		})
 	}
-	wgc.Wait()
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	adms, err := accountStore.GetAccounts(faculty.Adms...)
+	if err != nil {
+		return err
+	}
+
+	students, err := issueSemesterCredential(facultyContract, adms, courses)
+	if err != nil {
+		return err
+	}
+	aggregateSemesters(facultyContract, faculty.Adms[0], students)
+
+	return nil
+}
+
+func issueSemesterCredential(contract *faculty.Faculty, adms datastore.Accounts, courses []common.Address) ([]common.Address, error) {
+	// Collect all students courses
+	studentPerCourse := make(map[common.Address][]common.Address)
+	for _, c := range courses {
+		cc, err := getCourseContract(c)
+		if err != nil {
+			return []common.Address{}, err
+		}
+		students, err := cc.GetStudents(nil)
+		if err != nil {
+			return []common.Address{}, err
+		}
+		for _, s := range students {
+			studentPerCourse[s] = append(studentPerCourse[s], c)
+		}
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(studentPerCourse))
+	students := make([]common.Address, 0, len(studentPerCourse))
+	for s, w := range studentPerCourse {
+		students = append(students, s)
+
+		go func(student common.Address, witnesses []common.Address) {
+			defer wg.Done()
+
+			var digest [32]byte
+			for i, adm := range adms {
+				if i == 0 {
+					digest = schemes.GenerateRandomDigest(student.Bytes(), 32)
+				}
+
+				opts, err := accountStore.GetTxOpts(adm.Address, backend)
+				if err != nil {
+					log.Error(err)
+				}
+
+				tx, err := registerSemesterCredential(opts, contract, student, digest, witnesses)
+				if err != nil {
+					log.Error(err)
+				}
+
+				err = deployer.WaitTxConfirmation(context.Background(), backend, tx, 0)
+				if err != nil {
+					log.Error(err)
+				}
+			}
+			opts, err := accountStore.GetTxOpts(student.Bytes(), backend)
+			if err != nil {
+				log.Error(err)
+			}
+
+			tx, err := approveSemesterCredential(opts, contract, digest)
+			if err != nil {
+				log.Error(err)
+			}
+
+			err = deployer.WaitTxConfirmation(context.TODO(), backend, tx, 0)
+			if err != nil {
+				log.Error(err)
+			}
+		}(s, w)
+	}
+	wg.Wait()
+	return students, nil
+}
+
+// FIXME: DRY (courses/faculties)
+func aggregateSemesters(contract *faculty.Faculty, adm []byte, students []common.Address) {
+	wgs := sync.WaitGroup{}
+	wgs.Add(len(students))
+	for _, student := range students {
+		student := student
+		go func() {
+			defer wgs.Done()
+
+			digests, err := contract.GetDigests(nil, student)
+			if err != nil {
+				log.Error(err)
+			}
+
+			opts, err := accountStore.GetTxOpts(adm, backend)
+			if err != nil {
+				log.Error(err)
+			}
+
+			_, err = aggregateSemesterCredentials(opts, contract, student, digests)
+			if err != nil {
+				log.Error(err)
+			}
+		}()
+	}
+	wgs.Wait()
+}
+
+func runCourse(cc *pb.Course) error {
+	if len(cc.Evaluators) == 0 {
+		return fmt.Errorf("No evaluators found")
+	}
+
+	students, err := accountStore.GetAccounts(cc.Students...)
+	if err != nil {
+		return err
+	}
+	if len(students) == 0 {
+		return fmt.Errorf("No student found")
+	}
+
+	contract, err := getCourseContract(common.BytesToAddress(cc.Address))
+	if err != nil {
+		return fmt.Errorf("No course contract found")
+	}
+
+	evaluators, err := accountStore.GetAccounts(cc.Evaluators...)
+	if err != nil {
+		return err
+	}
+
+	// Enroll all students to the course contract
+	err = enrollStudents(contract, evaluators[0], students.ToETHAddress())
+	if err != nil {
+		return err
+	}
+	// Issue all exams for all students
+	issueExams(contract, evaluators, students)
+	// Aggregate all exams for all students
+	aggregateExams(contract, evaluators[0], students.ToETHAddress())
 	return nil
 }
 
@@ -543,15 +659,16 @@ func enrollStudents(contract *course.Course, evaluator *proto.Account, students 
 	return nil
 }
 
-func generateExamCredential(registrar common.Address, student common.Address, course common.Address) [32]byte {
-	courseEntity := &schemes.Entity{
-		Id:   course.Hex(),
-		Name: "Course Test Contract",
-	}
-	ag := schemes.NewFakeAssignmentGrade(registrar.Hex(), student.Hex())
-	credential := schemes.NewFakeAssignmentGradeCredential(registrar.Hex(), courseEntity, ag)
-	return schemes.Hash(credential)
-}
+// FIXME: ignored for now
+// func generateExamCredential(registrar common.Address, student common.Address, course common.Address) [32]byte {
+// 	courseEntity := &schemes.Entity{
+// 		Id:   course.Hex(),
+// 		Name: "Course Test Contract",
+// 	}
+// 	ag := schemes.NewFakeAssignmentGrade(registrar.Hex(), student.Hex())
+// 	credential := schemes.NewFakeAssignmentGradeCredential(registrar.Hex(), courseEntity, ag)
+// 	return schemes.Hash(credential)
+// }
 
 func issueExams(contract *course.Course, evaluators datastore.Accounts, students datastore.Accounts) {
 	wgs := sync.WaitGroup{}
@@ -563,9 +680,10 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 			for e := 0; e < testConfig.Exams; e++ {
 				var digest [32]byte
 				for i, evaluator := range evaluators {
-					eAddress := common.BytesToAddress(evaluator.Address)
+					// eAddress := common.BytesToAddress(evaluator.Address)
 					if i == 0 {
-						digest = generateExamCredential(eAddress, studentAddress, contract.Address())
+						digest = schemes.GenerateRandomDigest(studentAddress.Bytes(), 32)
+						// digest = generateExamCredential(eAddress, studentAddress, contract.Address())
 					}
 
 					opts, err := accountStore.GetTxOpts(evaluator.Address, backend)
@@ -573,30 +691,27 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 						log.Fatal(err)
 					}
 
-					tx, err := registerCredential(opts, contract, studentAddress, digest)
+					tx, err := registerCourseCredential(opts, contract, studentAddress, digest)
 					if err != nil {
 						log.Error(err)
 					}
 
-					// Wait tx confirmation
 					err = deployer.WaitTxConfirmation(context.Background(), backend, tx, 0)
 					if err != nil {
 						log.Error(err)
 					}
-				}
-				if len(digest) == 0 {
-					log.Fatal("zero digest on approval")
 				}
 
 				opts, err := accountStore.GetTxOpts(student.Address, backend)
 				if err != nil {
 					log.Error(err)
 				}
-				tx, err := approveCredential(opts, contract, digest)
+
+				tx, err := approveCourseCredential(opts, contract, digest)
 				if err != nil {
 					log.Error(err)
 				}
-				// Wait tx confirmation
+
 				err = deployer.WaitTxConfirmation(context.TODO(), backend, tx, 0)
 				if err != nil {
 					log.Error(err)
@@ -625,7 +740,7 @@ func aggregateExams(contract *course.Course, evaluator *pb.Account, students []c
 				log.Error(err)
 			}
 
-			_, err = aggregateCredentials(opts, contract, student, digests)
+			_, err = aggregateCourseCredentials(opts, contract, student, digests)
 			if err != nil {
 				log.Error(err)
 			}
