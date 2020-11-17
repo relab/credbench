@@ -93,7 +93,7 @@ func WaitTxConfirmationAndFee(ctx context.Context, client *ethclient.Client, tx 
 	return new(big.Int).Mul(tx.GasPrice(), big.NewInt(0).SetUint64(r.GasUsed)), nil
 }
 
-// GetCallResponse returns the revert message after calling a method
+// GetCallResponse returns the response message after calling a method
 func GetCallResponse(client *ethclient.Client, hash common.Hash) (string, error) {
 	tx, _, err := client.TransactionByHash(context.TODO(), hash)
 	if err != nil {

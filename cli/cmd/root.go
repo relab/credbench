@@ -47,12 +47,12 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
 		err := setupDB(dbPath, dbFile)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 
 		clientConn, err := setupClient()
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 		backend, _ = clientConn.Backend()
 	},
@@ -74,7 +74,7 @@ func Execute() {
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 }
 
@@ -84,8 +84,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&defaultAccount, "default_account", "", "Ethereum default account address")
 	rootCmd.PersistentFlags().StringVar(&backendURL, "backendURL", "http://127.0.0.1:8545", "Blockchain backend host:port")
 	rootCmd.PersistentFlags().StringVar(&keystoreDir, "keystore", defaultKeyStore(), "Keystore root directory")
-	rootCmd.PersistentFlags().StringVar(&ipcFile, "ipc",
-		defaultIPC(), "Ethereum Inter-process Communication file")
+	rootCmd.PersistentFlags().StringVar(&ipcFile, "ipc", defaultIPC(), "Ethereum Inter-process Communication file")
 	rootCmd.PersistentFlags().BoolVar(&waitPeers, "wait_peers", false, "Minimum number of peers connected")
 	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", "./database", "Path to the database file")
 	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "cteth.db", "File name of the database")
@@ -120,7 +119,7 @@ func initConfig() {
 	}
 	err := initSetup()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 }
 
@@ -201,7 +200,7 @@ func parseConfigFile() {
 func defaultConfigPath() string {
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 	return pwd
 }

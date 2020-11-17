@@ -197,7 +197,6 @@ func DeployFaculty(opts *bind.TransactOpts, backend *ethclient.Client, owners []
 
 // LinkAndDeploy links a contract with the given libraries and deploy it
 // using the default account
-// TODO: pass a flag to wait tx confirmations
 func LinkAndDeploy(opts *bind.TransactOpts, backend *ethclient.Client, contractABI, contractBin string, libs map[string]string, waitConfirmation bool, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
 	log.Infof("Deployer: %s balance: %v\n", opts.From.Hex(), transactor.GetBalance(opts.From, backend))
 
