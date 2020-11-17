@@ -94,7 +94,6 @@ func (t *Transactor) Close() {
 	close(t.Metrics)
 }
 
-// TODO implement caller
 // SendTX performs a transaction and collect gas metrics
 func (t *Transactor) SendTX(opts *bind.TransactOpts, contractAddress common.Address, contractABI string, method string, params ...interface{}) (*types.Transaction, error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contractABI))
@@ -121,7 +120,7 @@ func (t *Transactor) SendTX(opts *bind.TransactOpts, contractAddress common.Addr
 	contract := bind.NewBoundContract(contractAddress, parsedABI, t.backend, t.backend, t.backend)
 	tx, err := contract.Transact(opts, method, params...)
 	if err != nil {
-		return nil, fmt.Errorf("Transact error %v - from: %s to %s\n", err, opts.From.Hex(), params[0].(common.Address).Hex())
+		return nil, err
 	}
 
 	// https://ethereum.github.io/yellowpaper/paper.pdf
