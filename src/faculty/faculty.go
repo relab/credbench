@@ -54,3 +54,17 @@ func DeployFaculty(auth *bind.TransactOpts, backend bind.ContractBackend, libs m
 func (f Faculty) Address() common.Address {
 	return f.address
 }
+
+func (f Faculty) SemesterExists(opts *bind.CallOpts, semester [32]byte) (bool, error) {
+	return f.contract.SemesterExists(opts, semester)
+}
+
+func (f Faculty) GetCoursesBySemester(opts *bind.CallOpts, semester []byte) ([]common.Address, error) {
+	var s [32]byte
+	copy(s[:], semester[:]) // truncate to 32 bytes
+	return f.contract.GetCoursesBySemester(opts, s)
+}
+
+func (f *Faculty) RegisterSemester(opts *bind.TransactOpts, semester [32]byte, courses []common.Address) (*types.Transaction, error) {
+	return f.contract.RegisterSemester(opts, semester, courses)
+}

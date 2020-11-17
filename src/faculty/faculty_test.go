@@ -97,7 +97,7 @@ func TestFacultyAddCourse(t *testing.T) {
 	}
 	tf.Backend.Commit()
 
-	block, _ := tf.Backend.BlockByNumber(context.Background(), nil)
+	block, _ := tf.Backend.BlockByNumber(context.TODO(), nil)
 	query := ethereum.FilterQuery{
 		ToBlock: block.Number(),
 		Addresses: []common.Address{
@@ -105,7 +105,7 @@ func TestFacultyAddCourse(t *testing.T) {
 		},
 	}
 
-	logs, err := tf.Backend.FilterLogs(context.Background(), query)
+	logs, err := tf.Backend.FilterLogs(context.TODO(), query)
 	if err != nil {
 		t.Fatal(err)
 	}
