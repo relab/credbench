@@ -13,7 +13,7 @@ import (
 
 	"github.com/relab/ct-eth-dapp/cli/datastore"
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
-	keyutils "github.com/relab/ct-eth-dapp/src/accounts"
+	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
 )
 
 var (
@@ -67,8 +67,7 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 		Accounts:       accounts.ToHex(),
 	}
 
-	// TODO select n signers accounts
-	// FIXME assign the first account as the deployer
+	// TODO select n signers accounts instead of only one
 	signersAccounts := datastore.Accounts{accounts[0]}
 	if consensus == "poa" {
 		// same test password for all accounts
@@ -93,7 +92,7 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 func createSignersKeystore(keystorePath string, accounts datastore.Accounts, password string) []string {
 	ks := keystore.NewKeyStore(keystorePath, keystore.StandardScryptN, keystore.StandardScryptP)
 	for _, account := range accounts {
-		key, _, _ := keyutils.GetKeys(account.HexKey)
+		key, _, _ := ctaccounts.GetKeys(account.HexKey)
 		_, _ = ks.ImportECDSA(key, password)
 	}
 	return accounts.ToHex()
@@ -139,11 +138,12 @@ func CreateAccounts(accountStore *datastore.EthAccountStore, n int) ([]*pb.Accou
 func generateAccounts(n int) []*pb.Account {
 	accounts := make([]*pb.Account, n)
 	for i := 0; i < n; i++ {
-		key, address := keyutils.NewKey()
-		hexkey := keyutils.KeyToHex(key)
+		key, address := ctaccounts.NewKey()
+		hexkey := ctaccounts.KeyToHex(key)
 		accounts[i] = &pb.Account{
 			Address:   hexutil.MustDecode(address.Hex()),
 			HexKey:    hexkey,
+			Nonce:     0,
 			Contracts: [][]byte{},
 			Selected:  pb.Type_NONE,
 		}

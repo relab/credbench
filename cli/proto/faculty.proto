@@ -7,9 +7,9 @@ option go_package = "github.com/relab/ct-eth-dapp/bemchmark/proto";
 import "google/protobuf/timestamp.proto";
 
 message Faculty {
-    bytes address = 1; //TODO: maybe rename to byte_address
-    repeated bytes courses = 2;  // List of courses contract addresses
-    repeated bytes adms = 3;     // List of administrator account addresses
-    repeated bytes diplomas = 4; // List of diplomas digests
+    bytes address = 1;
+    repeated bytes adms = 2;
+    repeated bytes semesters = 3;
+    repeated bytes credentials = 4;
     google.protobuf.Timestamp created_on = 5;
 }
