@@ -4,10 +4,13 @@ GOBUILD = $(GOCMD) build
 GOCLEAN = $(GOCMD) clean
 GOTEST = $(GOCMD) test
 GOGET = $(GOCMD) get -u
+GORACE=GORACE="halt_on_error=1"
+GOBUILD_RACE = $(GORACE) $(GOBUILD) -race
+GOTEST_RACE = $(GORACE) $(GOTEST) -race
 
 SRC_ROOT = .
 CLI_DIR = $(SRC_ROOT)/cli
-BENCHPROTO_DIR = $(CLI_DIR)/proto
+CLIPROTO_DIR = $(CLI_DIR)/proto
 PKG_DIR = $(SRC_ROOT)/src
 PKGPROTO_DIR = $(PKG_DIR)/schemes
 CONTRACTS = $(PKG_DIR)/ethereum
@@ -15,8 +18,18 @@ NPM_COMPILE = npm run compile
 
 all: build binary
 
+.PHONY: race
+race: cliproto build
+	@echo "+ building source using Race Detector"
+	$(GOBUILD_RACE) -v -o dist/cli $(CLI_DIR)
+
+.PHONY: racetest
+racetest:
+	@echo "+ building tests using Race Detector"
+	$(GOTEST_RACE) -v $(PKG_DIR)/...
+
 .PHONY: binary
-binary: dist benchproto
+binary: dist cliproto
 	@echo "+ building source"
 	$(GOBUILD) -v -o dist/cli $(CLI_DIR)
 
@@ -28,10 +41,10 @@ build: pkgproto generate
 	@echo "+ building source"
 	$(GOBUILD) -v $(PKG_DIR)/...
 
-.PHONY: benchproto
-benchproto:
+.PHONY: cliproto
+cliproto:
 	@echo "+ compiling bench proto files"
-	@protoc -I=$(BENCHPROTO_DIR) --go_out=paths=source_relative:$(BENCHPROTO_DIR) $(BENCHPROTO_DIR)/*.proto
+	@protoc -I=$(CLIPROTO_DIR) --go_out=paths=source_relative:$(CLIPROTO_DIR) $(CLIPROTO_DIR)/*.proto
 
 .PHONY: pkgproto
 pkgproto:
@@ -42,9 +55,9 @@ generate:
 	@echo "+ go generate"
 	$(GOCMD) generate $(PKG_DIR)/...
 
-.PHONY: npm
-npm:
-	which npm || ( echo "install npm for your system from https://github.com/npm/cli" && exit 1)
+.PHONY: contracts
+contracts:
+	which npm || ( echo "npm is required to compile the contracts, please install npm: https://github.com/npm/cli" && exit 1)
 	cd $(CONTRACTS) && $(NPM_COMPILE)
 
 .PHONY: test
