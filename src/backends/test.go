@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	keyutils "github.com/relab/ct-eth-dapp/src/accounts"
+	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
 	"github.com/relab/ct-eth-dapp/src/ctree/aggregator"
 	"github.com/relab/ct-eth-dapp/src/ctree/notary"
 )
@@ -60,7 +60,7 @@ type TestBackend struct {
 func init() {
 	var accounts []Account
 	for _, acc := range defaultHexkeys {
-		key, addr, _ := keyutils.GetKeys(acc)
+		key, addr, _ := ctaccounts.GetKeys(acc)
 		accounts = append(accounts, Account{Key: key, Address: addr})
 	}
 	TestAccounts = accounts
@@ -145,7 +145,7 @@ func (b *TestBackend) GetTransactionResponse(tx *types.Transaction) (string, err
 		Data:     tx.Data(),
 	}
 
-	res, err := b.CallContract(context.Background(), call, nil)
+	res, err := b.CallContract(context.TODO(), call, nil)
 	if err != nil {
 		return "", err
 	}

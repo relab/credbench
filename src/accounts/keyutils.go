@@ -2,7 +2,7 @@ package accounts
 
 import (
 	"crypto/ecdsa"
-	"crypto/rand"
+	crand "crypto/rand"
 	"fmt"
 	"reflect"
 
@@ -29,7 +29,7 @@ func HexToKey(hexkey string) *ecdsa.PrivateKey {
 }
 
 func NewKey() (*ecdsa.PrivateKey, common.Address) {
-	privateKey, err := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
+	privateKey, err := ecdsa.GenerateKey(crypto.S256(), crand.Reader)
 	if err != nil {
 		log.Panic(err)
 	}

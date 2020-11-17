@@ -58,8 +58,6 @@ func NewWallet(accountAddr common.Address, keystoreDir string) (Wallet, error) {
 		return nil, err
 	}
 
-	log.Infof("Using Ethereum account: %v\n", account.Address.Hex())
-
 	return &wallet{
 		account:    account,
 		privateKey: key,

@@ -200,7 +200,7 @@ contract('Course', accounts => {
             for (d of digests) {
                 await course.registerExam(student, d, { from: teacher });
                 await course.registerExam(student, d, { from: evaluator });
-                await course.confirmCredential(d, { from: student });
+                await course.approveCredential(d, { from: student });
                 await time.increase(time.duration.seconds(1));
             }
         });

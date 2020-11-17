@@ -51,10 +51,13 @@ func (c *client) Backend() (*ethclient.Client, error) {
 
 func (c *client) CheckConnectPeers(timeout time.Duration) error {
 	var peers []*p2p.PeerInfo
-	c.rpc.Call(&peers, "admin_peers")
+	err := c.rpc.Call(&peers, "admin_peers")
+	if err != nil {
+		return err
+	}
 
 	start := time.Now()
-	for len(peers) < 1 { // TODO: get number of peers as parameter
+	for len(peers) < 1 { // TODO: get minimum number of peers as parameter
 		log.Printf("%v peers connected. Waiting for peers...\n", len(peers))
 		t := time.Now()
 		elapsed := t.Sub(start)
@@ -62,7 +65,10 @@ func (c *client) CheckConnectPeers(timeout time.Duration) error {
 			return fmt.Errorf("timeout waiting for peers after %v seconds", elapsed)
 		}
 		time.Sleep(1 * time.Second)
-		c.rpc.Call(&peers, "admin_peers")
+		err = c.rpc.Call(&peers, "admin_peers")
+		if err != nil {
+			return err
+		}
 	}
 	log.Printf("Connected to %v peers.", len(peers))
 	return nil
