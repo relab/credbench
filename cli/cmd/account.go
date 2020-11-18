@@ -1,72 +1,86 @@
 package cmd
 
 import (
+	"crypto/ecdsa"
 	"fmt"
+	"math/big"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
+	"github.com/relab/ct-eth-dapp/cli/genesis"
+	pb "github.com/relab/ct-eth-dapp/cli/proto"
 	"github.com/relab/ct-eth-dapp/cli/transactor"
-	"github.com/relab/ct-eth-dapp/src/accounts"
 )
-
-var (
-	keyStore *keystore.KeyStore
-	wallet   accounts.Wallet
-)
-
-func loadWallet() (err error) {
-	senderAddr := accounts.GetAccountAddress(defaultAccount, keystoreDir)
-	wallet, err = accounts.NewWallet(senderAddr, keystoreDir)
-	return err
-}
-
-func loadKeystore() {
-	keyStore = keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP)
-}
 
 var createAccountCmd = &cobra.Command{
 	Use:   "new",
 	Short: "Create a new account",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := accounts.NewAccount(keystoreDir)
+		a, err := genesis.CreateAccounts(accountStore, 1)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("Account %s successfully created", common.BytesToAddress(a[0].Address))
+	},
+}
+
+func getAddress(hexkey string) common.Address {
+	pkey, err := crypto.HexToECDSA(hexkey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	publicKeyECDSA, ok := pkey.Public().(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("error casting public key to ECDSA")
+	}
+	return crypto.PubkeyToAddress(*publicKeyECDSA)
+}
+
+func addAccount(address common.Address, hexkey string) error {
+	account := &pb.Account{
+		Address:   address.Bytes(),
+		HexKey:    hexkey,
+		Nonce:     0,
+		Contracts: [][]byte{},
+		Selected:  pb.Type_NONE,
+	}
+	err := accountStore.PutAccount(account)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+var importAccountCmd = &cobra.Command{
+	Use:   "import",
+	Short: "Import an account based on hex private key",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		var err error
+		hexkey := args[0]
+		err = addAccount(getAddress(hexkey), hexkey)
 		if err != nil {
 			log.Fatal(err)
 		}
 	},
 }
 
-var importAccountCmd = &cobra.Command{
-	Use:   "import",
-	Short: "Import an account based on private key",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadKeystore()
-	},
-	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		wallet, err = accounts.ImportKey(args[0], keyStore)
-		if err != nil {
-			log.Fatal(err)
-		}
-	},
+func balance(address common.Address) *big.Float {
+	return transactor.GetBalance(address, backend)
 }
 
 var getBalanceCmd = &cobra.Command{
 	Use:   "balance",
 	Short: "Get balance of an account",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadKeystore()
-	},
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		address := common.HexToAddress(args[0])
-		balance := transactor.GetBalance(address, backend)
-		log.Infof("Balance of account %s: %v\n", args[0], balance)
+		fmt.Printf("Balance of account %s: %v\n", args[0], balance(address))
 	},
 }
 
@@ -89,6 +103,7 @@ var getAccountCmd = &cobra.Command{
 		for _, c := range account.Contracts {
 			fmt.Printf("\t  %s\n", common.BytesToAddress(c).Hex())
 		}
+		fmt.Printf("\tBalance: %v (ether)\n", balance(address))
 	},
 }
 

@@ -19,14 +19,13 @@ import (
 
 	"github.com/relab/ct-eth-dapp/cli/datastore"
 	"github.com/relab/ct-eth-dapp/cli/genesis"
-	"github.com/relab/ct-eth-dapp/cli/proto"
 	"github.com/relab/ct-eth-dapp/cli/testconfig"
 	"github.com/relab/ct-eth-dapp/cli/transactor"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 	"github.com/relab/ct-eth-dapp/src/faculty"
 	"github.com/relab/ct-eth-dapp/src/schemes"
 
-	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
+	pb "github.com/relab/ct-eth-dapp/cli/proto"
 	course "github.com/relab/ct-eth-dapp/src/course"
 )
 
@@ -34,27 +33,6 @@ var (
 	executor   *transactor.Transactor
 	testConfig testconfig.TestConfig
 )
-
-func loadGenWallet() error {
-	accounts, err := accountStore.GetByType(1, proto.Type_DEPLOYER)
-	if err != nil || len(accounts) == 0 {
-		if err == datastore.ErrNoAccountsFound {
-			accounts, err = accountStore.GetAndSelect(1, proto.Type_DEPLOYER)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	senderAddr := common.BytesToAddress(accounts[0].GetAddress())
-	account, err := accountStore.GetAccount(senderAddr.Bytes())
-	if err != nil {
-		return err
-	}
-	senderHexKey := account.HexKey
-	// Setup the default test wallet
-	wallet = ctaccounts.NewGenWallet(senderAddr, senderHexKey)
-	return nil
-}
 
 // Generate the test case by deploying the certification tree.
 // It deploy faculty and course contracts, and assign evaluators/owners.
@@ -77,7 +55,7 @@ var generateTestCmd = &cobra.Command{
 }
 
 func setupTestCase() error {
-	opts, err := wallet.GetTxOpts(backend)
+	opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 	if err != nil {
 		return err
 	}
@@ -85,7 +63,7 @@ func setupTestCase() error {
 	if err != nil {
 		return err
 	}
-	opts, err = wallet.GetTxOpts(backend)
+	opts, err = accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 	if err != nil {
 		return err
 	}
@@ -108,10 +86,10 @@ func setupTestCase() error {
 }
 
 func setupFaculties() error {
-	admsAccounts, err := accountStore.GetAndSelect(testConfig.FacultyMembers, proto.Type_ADM)
+	admsAccounts, err := accountStore.GetAndSelect(testConfig.FacultyMembers, pb.Type_ADM)
 	if err != nil || len(admsAccounts) == 0 {
 		log.Debug(err, "...reusing existing accounts")
-		admsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.FacultyMembers, proto.Type_ADM)
+		admsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.FacultyMembers, pb.Type_ADM)
 		if err != nil {
 			return err
 		}
@@ -162,7 +140,7 @@ func setupFaculties() error {
 }
 
 func createFaculty(admsAccounts datastore.Accounts) (common.Address, error) {
-	opts, err := wallet.GetTxOpts(backend) // default deployer
+	opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 	// opts, err := accountStore.GetTxOpts(admsAccounts[0].Address, backend)
 	if err != nil {
 		return common.Address{}, err
@@ -180,7 +158,7 @@ func createFaculty(admsAccounts datastore.Accounts) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	f := &proto.Faculty{
+	f := &pb.Faculty{
 		Address:   fAddr.Bytes(),
 		Adms:      admsAccounts.ToBytes(),
 		CreatedOn: timestamppb.Now(),
@@ -234,10 +212,10 @@ func createSemester(fAddr common.Address, semester [32]byte) ([]common.Address, 
 }
 
 func registerCourse(courseCh chan common.Address) error {
-	evaluatorsAccounts, err := accountStore.GetAndSelect(testConfig.Evaluators, proto.Type_EVALUATOR)
+	evaluatorsAccounts, err := accountStore.GetAndSelect(testConfig.Evaluators, pb.Type_EVALUATOR)
 	if err != nil || len(evaluatorsAccounts) == 0 {
 		log.Debug(err, "...reusing existing accounts")
-		evaluatorsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Evaluators, proto.Type_EVALUATOR)
+		evaluatorsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Evaluators, pb.Type_EVALUATOR)
 		if err != nil {
 			return err
 		}
@@ -248,10 +226,10 @@ func registerCourse(courseCh chan common.Address) error {
 		return err
 	}
 	cs := datastore.NewCourseStore(db, cAddr)
-	studAccounts, err := accountStore.GetAndSelect(testConfig.Students, proto.Type_STUDENT)
+	studAccounts, err := accountStore.GetAndSelect(testConfig.Students, pb.Type_STUDENT)
 	if err != nil {
 		log.Debug(err, "...reusing existing accounts")
-		studAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Students, proto.Type_STUDENT)
+		studAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Students, pb.Type_STUDENT)
 		if err != nil {
 			return err
 		}
@@ -268,7 +246,7 @@ func registerCourse(courseCh chan common.Address) error {
 
 func createCourse(evaluatorsAccounts datastore.Accounts) (common.Address, error) {
 	evaluatorsAddresses := evaluatorsAccounts.ToETHAddress()
-	opts, err := wallet.GetTxOpts(backend) // default deployer
+	opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 	// opts, err := accountStore.GetTxOpts(evaluatorsAccounts[0].Address, backend)
 	if err != nil {
 		return common.Address{}, err
@@ -289,7 +267,7 @@ func createCourse(evaluatorsAccounts datastore.Accounts) (common.Address, error)
 	}
 
 	// Append contract address for all evaluators
-	c := &proto.Course{
+	c := &pb.Course{
 		Address:    cAddr.Bytes(),
 		Evaluators: evaluatorsAccounts.ToBytes(),
 		CreatedOn:  timestamppb.Now(),
@@ -369,7 +347,7 @@ func selectKeys(method string, n int, keys [][]byte) ([][]byte, error) {
 	return keys, nil
 }
 
-func selectAccounts(method string, n int, selectType proto.Type) (datastore.Accounts, error) {
+func selectAccounts(method string, n int, selectType pb.Type) (datastore.Accounts, error) {
 	keys, err := accountStore.GetAllKeys(selectType)
 	if err != nil {
 		return nil, err
@@ -455,24 +433,31 @@ func run_faculty(key []byte, done chan struct{}) {
 	}
 
 	for _, s := range f.Semesters {
-		err = runSemester(s, f)
+		students, err := runSemester(s, f)
 		if err != nil {
 			log.Fatal(err)
+		}
+		if len(students) == 0 {
+			log.Fatal("no students registered")
+		}
+		err = fs.AddStudent(students...)
+		if err != nil {
+			log.Error(err)
 		}
 	}
 
 	done <- struct{}{}
 }
 
-func runSemester(semester []byte, faculty *proto.Faculty) error {
+func runSemester(semester []byte, faculty *pb.Faculty) ([]common.Address, error) {
 	facultyContract, err := getFacultyContract(common.BytesToAddress(faculty.Address))
 	if err != nil {
-		return err
+		return []common.Address{}, err
 	}
 
 	courses, err := facultyContract.GetCoursesBySemester(&bind.CallOpts{Pending: false}, semester)
 	if err != nil {
-		return err
+		return []common.Address{}, err
 	}
 
 	g := new(errgroup.Group)
@@ -480,29 +465,29 @@ func runSemester(semester []byte, faculty *proto.Faculty) error {
 		cs := datastore.NewCourseStore(db, cAddr)
 		c, err := cs.GetCourse()
 		if err != nil {
-			return err
+			return []common.Address{}, err
 		}
 		g.Go(func() error {
 			return runCourse(c)
 		})
 	}
 	if err := g.Wait(); err != nil {
-		return err
+		return []common.Address{}, err
 	}
 
 	adms, err := accountStore.GetAccounts(faculty.Adms...)
 	if err != nil {
-		return err
+		return []common.Address{}, err
 	}
 
 	students, err := issueSemesterCredential(facultyContract, adms, courses)
 	if err != nil {
-		return err
+		return []common.Address{}, err
 	}
 
 	aggregateSemesters(facultyContract, faculty.Adms[0], students)
 
-	return nil
+	return students, nil
 }
 
 func issueSemesterCredential(contract *faculty.Faculty, adms datastore.Accounts, courses []common.Address) ([]common.Address, error) {
@@ -600,7 +585,7 @@ func aggregateSemesters(contract *faculty.Faculty, adm []byte, students []common
 	wgs.Wait()
 }
 
-func runCourse(cc *proto.Course) error {
+func runCourse(cc *pb.Course) error {
 	if len(cc.Evaluators) == 0 {
 		return fmt.Errorf("No evaluators found")
 	}
@@ -635,7 +620,7 @@ func runCourse(cc *proto.Course) error {
 	return nil
 }
 
-func enrollStudent(contract *course.Course, evaluator *proto.Account, student common.Address) (*types.Transaction, error) {
+func enrollStudent(contract *course.Course, evaluator *pb.Account, student common.Address) (*types.Transaction, error) {
 	opts, err := accountStore.GetTxOpts(evaluator.Address, backend)
 	if err != nil {
 		return nil, err
@@ -643,7 +628,7 @@ func enrollStudent(contract *course.Course, evaluator *proto.Account, student co
 	return addStudent(opts, contract, student)
 }
 
-func enrollStudents(contract *course.Course, evaluator *proto.Account, students []common.Address) error {
+func enrollStudents(contract *course.Course, evaluator *pb.Account, students []common.Address) error {
 	for i, student := range students {
 		tx, err := enrollStudent(contract, evaluator, student)
 		if err != nil {
@@ -675,7 +660,7 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 	wgs := sync.WaitGroup{}
 	wgs.Add(len(students))
 	for _, s := range students {
-		go func(student *proto.Account) {
+		go func(student *pb.Account) {
 			defer wgs.Done()
 			studentAddress := common.BytesToAddress(student.Address)
 			for e := 0; e < testConfig.Exams; e++ {
@@ -723,7 +708,7 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 	wgs.Wait()
 }
 
-func aggregateExams(contract *course.Course, evaluator *proto.Account, students []common.Address) {
+func aggregateExams(contract *course.Course, evaluator *pb.Account, students []common.Address) {
 	wgs := sync.WaitGroup{}
 	wgs.Add(len(students))
 	for _, student := range students {
@@ -754,28 +739,13 @@ func newTestCmd() *cobra.Command {
 	testCmd := &cobra.Command{
 		Use:   "test",
 		Short: "Manage tests",
-		PersistentPreRun: func(_ *cobra.Command, _ []string) {
-			err := setupDB(dbPath, dbFile)
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			rootCmd.PersistentPreRun(cmd, args)
+			err := loadDefaultAccount()
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			err = loadGenWallet()
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Infoln("Using generated sender account: ", wallet.Address().Hex())
-
-			clientConn, err := setupClient()
-			if err != nil {
-				log.Fatal(err)
-			}
-			backend, _ = clientConn.Backend()
 			executor = transactor.NewTransactor(backend)
-		},
-		PersistentPostRun: func(_ *cobra.Command, _ []string) {
-			db.Close()
-			backend.Close()
 		},
 	}
 

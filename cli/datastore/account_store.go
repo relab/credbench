@@ -5,7 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/relab/ct-eth-dapp/cli/proto"
+	pb "github.com/relab/ct-eth-dapp/cli/proto"
 )
 
 var ErrEmptyData = errors.New("attempt to store empty data")
@@ -35,7 +35,7 @@ func AddressToBytes(address []common.Address) [][]byte {
 }
 
 // Accounts is a list of Accounts
-type Accounts []*proto.Account
+type Accounts []*pb.Account
 
 // ToBytes returns the accounts as a list of addresses in bytes
 func (accounts Accounts) ToBytes() [][]byte {

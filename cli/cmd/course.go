@@ -28,7 +28,7 @@ var addStudentCmd = &cobra.Command{
 		}
 		studentAddress := common.HexToAddress(args[1])
 
-		opts, err := wallet.GetTxOpts(backend)
+		opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -60,7 +60,7 @@ var rmStudentCmd = &cobra.Command{
 		}
 		studentAddress := common.HexToAddress(args[1])
 
-		opts, err := wallet.GetTxOpts(backend)
+		opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -91,8 +91,8 @@ var renounceCourseCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		// Student is using the default wallet
-		opts, err := wallet.GetTxOpts(backend)
+		// Note: student is considered to be using the default wallet
+		opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -132,7 +132,7 @@ var issueCourseCredentialCmd = &cobra.Command{
 		pb.ParseJSON(args[2], a)
 		digest := pb.Hash(a)
 
-		opts, err := wallet.GetTxOpts(backend)
+		opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -170,7 +170,7 @@ var approveCourseCredentialCmd = &cobra.Command{
 		digest := common.HexToHash(args[1]) // 0x?
 		// FIXME: Validate inputs
 
-		opts, err := wallet.GetTxOpts(backend)
+		opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -278,6 +278,13 @@ func newCourseCmd() *cobra.Command {
 	courseCmd := &cobra.Command{
 		Use:   "course",
 		Short: "Manage course",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			rootCmd.PersistentPreRun(cmd, args)
+			err := loadDefaultAccount()
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
 	}
 	courseCmd.AddCommand(
 		addStudentCmd,

@@ -5,11 +5,17 @@ package proto;
 option go_package = "github.com/relab/ct-eth-dapp/bemchmark/proto";
 
 import "google/protobuf/timestamp.proto";
+import "credential.proto";
+
+message Student {
+    bytes student_id = 1;
+    Credential diploma = 2;
+}
 
 message Faculty {
     bytes address = 1;
     repeated bytes adms = 2;
     repeated bytes semesters = 3;
-    repeated bytes students = 4;
+    map<string, Student> students = 4;
     google.protobuf.Timestamp created_on = 5;
 }

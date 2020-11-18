@@ -9,6 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,13 +20,14 @@ import (
 	"github.com/relab/ct-eth-dapp/cli/datastore"
 	"github.com/relab/ct-eth-dapp/src/client"
 	"github.com/relab/ct-eth-dapp/src/fileutils"
+
+	pb "github.com/relab/ct-eth-dapp/cli/proto"
 )
 
 var (
 	configFile     string
 	backendURL     string
 	defaultAccount string
-	keystoreDir    string
 	datadir        string
 	ipcFile        string
 	waitPeers      bool
@@ -36,9 +38,10 @@ var (
 )
 
 var (
-	backend      *ethclient.Client
-	db           *database.BoltDB
-	accountStore *datastore.EthAccountStore
+	backend       *ethclient.Client
+	db            *database.BoltDB
+	accountStore  *datastore.EthAccountStore
+	defaultSender common.Address
 )
 
 var rootCmd = &cobra.Command{
@@ -84,7 +87,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file")
 	rootCmd.PersistentFlags().StringVar(&defaultAccount, "default_account", "", "Ethereum default account address")
 	rootCmd.PersistentFlags().StringVar(&backendURL, "backendURL", "http://127.0.0.1:8545", "Blockchain backend host:port")
-	rootCmd.PersistentFlags().StringVar(&keystoreDir, "keystore", defaultKeyStore(), "Keystore root directory")
 	rootCmd.PersistentFlags().StringVar(&ipcFile, "ipc", defaultIPC(), "Ethereum Inter-process Communication file")
 	rootCmd.PersistentFlags().BoolVar(&waitPeers, "wait_peers", false, "Minimum number of peers connected")
 	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", "./database", "Path to the database file")
@@ -189,7 +191,6 @@ func setupDB(dbpath, dbfile string) (err error) {
 func parseConfigFile() {
 	datadir = viper.GetString("datadir")
 	defaultAccount = viper.GetString("default_account")
-	keystoreDir = viper.GetString("keystore")
 	backendURL = "http://" + viper.GetString("backend.host") + ":" + viper.GetString("backend.port")
 	ipcFile = viper.GetString("backend.ipc")
 	waitPeers = viper.GetBool("backend.wait_peers")
@@ -214,10 +215,29 @@ func defaultDatadir() string {
 	return filepath.Join(currentUser.HomeDir, ".ctethapp")
 }
 
-func defaultKeyStore() string {
-	return filepath.Join(datadir, "/keystore")
-}
-
 func defaultIPC() string {
 	return filepath.Join(datadir, "/geth.ipc")
+}
+
+func loadDefaultAccount() error {
+	if defaultAccount == "" {
+		accounts, err := accountStore.GetByType(1, pb.Type_DEPLOYER)
+		if err != nil || len(accounts) == 0 {
+			if err == datastore.ErrNoAccountsFound {
+				accounts, err = accountStore.GetAndSelect(1, pb.Type_DEPLOYER)
+				if err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+		defaultSender = common.BytesToAddress(accounts[0].GetAddress())
+		defaultAccount = defaultSender.Hex()
+	} else {
+		defaultSender = common.HexToAddress(defaultAccount)
+	}
+	log.Info("Using sender account: ", defaultAccount)
+
+	return nil
 }

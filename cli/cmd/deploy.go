@@ -29,7 +29,7 @@ func deployNotaryCmd() *cobra.Command {
 		Use:   "notary",
 		Short: "Deploy notary library",
 		Run: func(cmd *cobra.Command, args []string) {
-			opts, err := wallet.GetTxOpts(backend)
+			opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -62,7 +62,7 @@ func deployAggregatorCmd() *cobra.Command {
 		Use:   "aggregator",
 		Short: "Deploy aggregator library",
 		Run: func(cmd *cobra.Command, args []string) {
-			opts, err := wallet.GetTxOpts(backend)
+			opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -94,12 +94,17 @@ var deployAllLibsCmd = &cobra.Command{
 	Use:   "libs",
 	Short: "Deploy all libraries",
 	Run: func(cmd *cobra.Command, args []string) {
-		opts, err := wallet.GetTxOpts(backend)
+		opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		err = deployNotary(opts, backend)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		opts, err = accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -123,7 +128,7 @@ func deployCourseCmd() *cobra.Command {
 				ownersAddr = append(ownersAddr, common.HexToAddress(addr))
 			}
 
-			opts, err := wallet.GetTxOpts(backend)
+			opts, err := accountStore.GetTxOpts(defaultSender.Bytes(), backend)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -223,6 +228,13 @@ func newDeployCmd() *cobra.Command {
 	deployCmd := &cobra.Command{
 		Use:   "deploy",
 		Short: "Deploy contracts",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			rootCmd.PersistentPreRun(cmd, args)
+			err := loadDefaultAccount()
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
 	}
 
 	deployCmd.AddCommand(
