@@ -26,7 +26,6 @@ import (
 	"github.com/relab/ct-eth-dapp/src/faculty"
 	"github.com/relab/ct-eth-dapp/src/schemes"
 
-	pb "github.com/relab/ct-eth-dapp/cli/proto"
 	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
 	course "github.com/relab/ct-eth-dapp/src/course"
 )
@@ -37,10 +36,10 @@ var (
 )
 
 func loadGenWallet() error {
-	accounts, err := accountStore.GetByType(1, pb.Type_DEPLOYER)
+	accounts, err := accountStore.GetByType(1, proto.Type_DEPLOYER)
 	if err != nil || len(accounts) == 0 {
 		if err == datastore.ErrNoAccountsFound {
-			accounts, err = accountStore.GetAndSelect(1, pb.Type_DEPLOYER)
+			accounts, err = accountStore.GetAndSelect(1, proto.Type_DEPLOYER)
 			if err != nil {
 				return err
 			}
@@ -109,10 +108,10 @@ func setupTestCase() error {
 }
 
 func setupFaculties() error {
-	admsAccounts, err := accountStore.GetAndSelect(testConfig.FacultyMembers, pb.Type_ADM)
+	admsAccounts, err := accountStore.GetAndSelect(testConfig.FacultyMembers, proto.Type_ADM)
 	if err != nil || len(admsAccounts) == 0 {
 		log.Debug(err, "...reusing existing accounts")
-		admsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.FacultyMembers, pb.Type_ADM)
+		admsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.FacultyMembers, proto.Type_ADM)
 		if err != nil {
 			return err
 		}
@@ -181,7 +180,7 @@ func createFaculty(admsAccounts datastore.Accounts) (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	f := &pb.Faculty{
+	f := &proto.Faculty{
 		Address:   fAddr.Bytes(),
 		Adms:      admsAccounts.ToBytes(),
 		CreatedOn: timestamppb.Now(),
@@ -235,10 +234,10 @@ func createSemester(fAddr common.Address, semester [32]byte) ([]common.Address, 
 }
 
 func registerCourse(courseCh chan common.Address) error {
-	evaluatorsAccounts, err := accountStore.GetAndSelect(testConfig.Evaluators, pb.Type_EVALUATOR)
+	evaluatorsAccounts, err := accountStore.GetAndSelect(testConfig.Evaluators, proto.Type_EVALUATOR)
 	if err != nil || len(evaluatorsAccounts) == 0 {
 		log.Debug(err, "...reusing existing accounts")
-		evaluatorsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Evaluators, pb.Type_EVALUATOR)
+		evaluatorsAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Evaluators, proto.Type_EVALUATOR)
 		if err != nil {
 			return err
 		}
@@ -249,10 +248,10 @@ func registerCourse(courseCh chan common.Address) error {
 		return err
 	}
 	cs := datastore.NewCourseStore(db, cAddr)
-	studAccounts, err := accountStore.GetAndSelect(testConfig.Students, pb.Type_STUDENT)
+	studAccounts, err := accountStore.GetAndSelect(testConfig.Students, proto.Type_STUDENT)
 	if err != nil {
 		log.Debug(err, "...reusing existing accounts")
-		studAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Students, pb.Type_STUDENT)
+		studAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Students, proto.Type_STUDENT)
 		if err != nil {
 			return err
 		}
@@ -290,7 +289,7 @@ func createCourse(evaluatorsAccounts datastore.Accounts) (common.Address, error)
 	}
 
 	// Append contract address for all evaluators
-	c := &pb.Course{
+	c := &proto.Course{
 		Address:    cAddr.Bytes(),
 		Evaluators: evaluatorsAccounts.ToBytes(),
 		CreatedOn:  timestamppb.Now(),
@@ -370,7 +369,7 @@ func selectKeys(method string, n int, keys [][]byte) ([][]byte, error) {
 	return keys, nil
 }
 
-func selectAccounts(method string, n int, selectType pb.Type) (datastore.Accounts, error) {
+func selectAccounts(method string, n int, selectType proto.Type) (datastore.Accounts, error) {
 	keys, err := accountStore.GetAllKeys(selectType)
 	if err != nil {
 		return nil, err
@@ -417,7 +416,7 @@ func runTestCase() error {
 		return err
 	}
 	for _, key := range keys {
-		go run_faculty(key, executor.Metrics, done)
+		go run_faculty(key, done)
 	}
 
 	wg := &sync.WaitGroup{}
@@ -448,7 +447,7 @@ func runTestCase() error {
 	return nil
 }
 
-func run_faculty(key []byte, results chan transactor.UsageMetric, done chan struct{}) {
+func run_faculty(key []byte, done chan struct{}) {
 	fs := datastore.NewFacultyStore(db, common.BytesToAddress(key))
 	f, err := fs.GetFaculty()
 	if err != nil {
@@ -461,10 +460,11 @@ func run_faculty(key []byte, results chan transactor.UsageMetric, done chan stru
 			log.Fatal(err)
 		}
 	}
+
 	done <- struct{}{}
 }
 
-func runSemester(semester []byte, faculty *pb.Faculty) error {
+func runSemester(semester []byte, faculty *proto.Faculty) error {
 	facultyContract, err := getFacultyContract(common.BytesToAddress(faculty.Address))
 	if err != nil {
 		return err
@@ -499,6 +499,7 @@ func runSemester(semester []byte, faculty *pb.Faculty) error {
 	if err != nil {
 		return err
 	}
+
 	aggregateSemesters(facultyContract, faculty.Adms[0], students)
 
 	return nil
@@ -599,7 +600,7 @@ func aggregateSemesters(contract *faculty.Faculty, adm []byte, students []common
 	wgs.Wait()
 }
 
-func runCourse(cc *pb.Course) error {
+func runCourse(cc *proto.Course) error {
 	if len(cc.Evaluators) == 0 {
 		return fmt.Errorf("No evaluators found")
 	}
@@ -674,7 +675,7 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 	wgs := sync.WaitGroup{}
 	wgs.Add(len(students))
 	for _, s := range students {
-		go func(student *pb.Account) {
+		go func(student *proto.Account) {
 			defer wgs.Done()
 			studentAddress := common.BytesToAddress(student.Address)
 			for e := 0; e < testConfig.Exams; e++ {
@@ -722,7 +723,7 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 	wgs.Wait()
 }
 
-func aggregateExams(contract *course.Course, evaluator *pb.Account, students []common.Address) {
+func aggregateExams(contract *course.Course, evaluator *proto.Account, students []common.Address) {
 	wgs := sync.WaitGroup{}
 	wgs.Add(len(students))
 	for _, student := range students {

@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 
+	"github.com/relab/ct-eth-dapp/cli/datastore"
 	course "github.com/relab/ct-eth-dapp/src/course"
 
 	pb "github.com/relab/ct-eth-dapp/src/schemes"
@@ -248,6 +249,31 @@ var isEnrolledCmd = &cobra.Command{
 	},
 }
 
+var getCourseCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Shows the course details",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		address := common.HexToAddress(args[0])
+		cs := datastore.NewCourseStore(db, address)
+		course, err := cs.GetCourse()
+		if err != nil {
+			log.Error(err)
+		}
+		fmt.Printf("Course Info:\n")
+		fmt.Printf("\tAddress: %s\n", address.Hex())
+		fmt.Printf("\tCreated on: %s\n", course.CreatedOn.AsTime())
+		fmt.Printf("\tEvaluators:\n")
+		for _, e := range course.Evaluators {
+			fmt.Printf("\t  %s\n", common.BytesToAddress(e).Hex())
+		}
+		fmt.Printf("\tStudents:\n")
+		for _, s := range course.Students {
+			fmt.Printf("\t  %s\n", common.BytesToAddress(s).Hex())
+		}
+	},
+}
+
 func newCourseCmd() *cobra.Command {
 	courseCmd := &cobra.Command{
 		Use:   "course",
@@ -261,6 +287,7 @@ func newCourseCmd() *cobra.Command {
 		isEnrolledCmd,
 		issueCourseCredentialCmd,
 		approveCourseCredentialCmd,
+		getCourseCmd,
 	)
 	return courseCmd
 }

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -68,6 +70,28 @@ var getBalanceCmd = &cobra.Command{
 	},
 }
 
+var getAccountCmd = &cobra.Command{
+	Use:   "get",
+	Short: "Shows the account details",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		address := common.HexToAddress(args[0])
+		account, err := accountStore.GetAccount(address.Bytes())
+		if err != nil {
+			log.Error(err)
+		}
+		fmt.Printf("Account Info:\n")
+		fmt.Printf("\tAddress: %s\n", address.Hex())
+		fmt.Printf("\tHexKey: %s\n", account.HexKey)
+		fmt.Printf("\tType: %v\n", account.Selected)
+		fmt.Printf("\tNonce: %v\n", account.Nonce)
+		fmt.Printf("\tContracts:\n")
+		for _, c := range account.Contracts {
+			fmt.Printf("\t  %s\n", common.BytesToAddress(c).Hex())
+		}
+	},
+}
+
 func newAccountCmd() *cobra.Command {
 	accountCmd := &cobra.Command{
 		Use:   "account",
@@ -77,6 +101,7 @@ func newAccountCmd() *cobra.Command {
 		createAccountCmd,
 		importAccountCmd,
 		getBalanceCmd,
+		getAccountCmd,
 	)
 	return accountCmd
 }

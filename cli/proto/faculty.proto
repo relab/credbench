@@ -10,6 +10,6 @@ message Faculty {
     bytes address = 1;
     repeated bytes adms = 2;
     repeated bytes semesters = 3;
-    repeated bytes credentials = 4;
+    repeated bytes students = 4;
     google.protobuf.Timestamp created_on = 5;
 }

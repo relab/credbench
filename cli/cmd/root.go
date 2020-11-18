@@ -70,6 +70,7 @@ func Execute() {
 		newAccountCmd(),
 		newDeployCmd(),
 		newCourseCmd(),
+		newFacultyCmd(),
 		newVerifyCmd(),
 	)
 
