@@ -445,7 +445,6 @@ func run_faculty(key []byte, done chan struct{}) {
 			log.Error(err)
 		}
 	}
-
 	done <- struct{}{}
 }
 
