@@ -87,12 +87,11 @@ func (i *Issuer) IsRevoked(opts *bind.CallOpts, digest [32]byte) (bool, error) {
 	return i.contract.IsRevoked(opts, digest)
 }
 
-// OnVerifyCredential checks whether the credential is valid (on-chain).
-func (i *Issuer) OnVerifyCredential(opts *bind.CallOpts, subject common.Address, digest [32]byte) (bool, error) {
-	return i.contract.VerifyCredential(opts, subject, digest)
-}
-
-func (i *Issuer) OffVerifyCredential(opts *bind.CallOpts, subject common.Address, digest [32]byte) (bool, error) {
+// VerifyCredential checks whether the credential is valid
+func (i *Issuer) VerifyCredential(onchain bool, opts *bind.CallOpts, subject common.Address, digest [32]byte) (bool, error) {
+	if onchain {
+		return i.contract.VerifyCredential(opts, subject, digest)
+	}
 	cp, err := i.contract.GetCredentialProof(opts, digest)
 	if err != nil {
 		return false, err
@@ -131,18 +130,17 @@ func (i *Issuer) OffVerifyCredential(opts *bind.CallOpts, subject common.Address
 	return true, nil
 }
 
-// OnVerifyIssuedCredentials checks whether all credentials of a given subject are valid (on-chain).
-func (i *Issuer) OnVerifyIssuedCredentials(opts *bind.CallOpts, subject common.Address) (bool, error) {
-	return i.contract.VerifyIssuedCredentials(opts, subject)
-}
-
-func (i *Issuer) OffVerifyIssuedCredentials(opts *bind.CallOpts, subject common.Address) (bool, error) {
+// VerifyIssuedCredentials checks whether all credentials of a given subject are valid
+func (i *Issuer) VerifyIssuedCredentials(onchain bool, opts *bind.CallOpts, subject common.Address) (bool, error) {
+	if onchain {
+		return i.contract.VerifyIssuedCredentials(opts, subject)
+	}
 	digests, err := i.contract.GetDigests(opts, subject)
 	if err != nil {
 		return false, err
 	}
 	for _, d := range digests {
-		if ok, err := i.OffVerifyCredential(opts, subject, d); !ok || err != nil {
+		if ok, err := i.VerifyCredential(false, opts, subject, d); !ok || err != nil {
 			return false, err
 		}
 	}

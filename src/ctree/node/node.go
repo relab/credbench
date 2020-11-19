@@ -5,6 +5,8 @@ package node
 //go:generate abigen --abi ../../ethereum/build/abi/NodeInterface.abi --bin ../../ethereum/build/bin/NodeInterface.bin --pkg node --type NodeInterface --out ./inode_contract.go
 
 import (
+	"errors"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -67,25 +69,22 @@ func (n *Node) AggregateCredentials(opts *bind.TransactOpts, subject common.Addr
 	return n.contract.AggregateCredentials(opts, subject, digests)
 }
 
-// OnVerifyCredentialRoot
-func (n *Node) OnVerifyCredentialRoot(opts *bind.CallOpts, subject common.Address, root [32]byte) (bool, error) {
-	return n.contract.VerifyCredentialRoot(opts, subject, root)
-}
-
-func (n *Node) OffVerifyCredentialRoot(opts *bind.CallOpts, subject common.Address, root [32]byte) (bool, error) {
+// VerifyCredentialRoot
+func (n *Node) VerifyCredentialRoot(onchain bool, opts *bind.CallOpts, subject common.Address, root [32]byte) (bool, error) {
+	if onchain {
+		return n.contract.VerifyCredentialRoot(opts, subject, root)
+	}
 	// TODO: implement me
-	return false, nil
+	return false, errors.New("not implemented")
 }
 
 // VerifyCredentialTree performs a pre-order tree traversal over
 // the credential tree of a given subject and verifies if the given
 // root match with the current root on the root of the credential tree
 // and if all the sub-trees were correctly built.
-func (n *Node) OnVerifyCredentialTree(opts *bind.CallOpts, subject common.Address) (bool, error) {
-	return n.contract.VerifyCredentialTree(opts, subject)
-}
-
-func (n *Node) OffVerifyCredentialTree(opts *bind.CallOpts, subject common.Address) (bool, error) {
-	// TODO: implement me
-	return false, nil
+func (n *Node) VerifyCredentialTree(onchain bool, opts *bind.CallOpts, subject common.Address) (bool, error) {
+	if onchain {
+		return n.contract.VerifyCredentialTree(opts, subject)
+	}
+	return false, errors.New("not implemented")
 }
