@@ -8,14 +8,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/relab/ct-eth-dapp/src/ctree/node"
-	"github.com/relab/ct-eth-dapp/src/ctree/notary/issuer"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 )
 
 // Course is a Go wrapper around an on-chain course contract.
 type Course struct {
 	*node.Node
-	*issuer.Issuer
 	address  common.Address
 	contract *CourseContract
 }
@@ -31,11 +29,7 @@ func NewCourse(contractAddr common.Address, backend bind.ContractBackend) (*Cour
 	if err != nil {
 		return nil, err
 	}
-	i, err := issuer.NewIssuer(contractAddr, backend)
-	if err != nil {
-		return nil, err
-	}
-	return &Course{n, i, contractAddr, cc}, nil
+	return &Course{n, contractAddr, cc}, nil
 }
 
 func DeployCourse(auth *bind.TransactOpts, backend bind.ContractBackend, libs map[string]string, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, *Course, error) {
