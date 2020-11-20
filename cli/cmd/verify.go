@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -10,13 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/relab/ct-eth-dapp/src/ctree"
+	"github.com/relab/ct-eth-dapp/src/ctree/node"
 )
 
-var (
-	onChain bool
-	cType   string
-)
+var onChain bool
 
 var verifyCredentialTreeCmd = &cobra.Command{
 	Use:   "tree",
@@ -24,7 +20,7 @@ var verifyCredentialTreeCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cAddr := common.HexToAddress(args[0])
-		c, err := getContract(cAddr)
+		c, err := node.NewNode(cAddr, backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -47,7 +43,7 @@ var verifyCredentialRootCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
 		cAddr := common.HexToAddress(args[0])
-		c, err := getContract(cAddr)
+		c, err := node.NewNode(cAddr, backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -73,7 +69,7 @@ var verifyCredentialCmd = &cobra.Command{
 		cAddr := common.HexToAddress(args[0])
 		sAddr := common.HexToAddress(args[1])
 		digest := common.HexToHash(args[2])
-		c, err := getContract(cAddr)
+		c, err := node.NewNode(cAddr, backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -95,7 +91,7 @@ var verifyIssuedCredentialsCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		cAddr := common.HexToAddress(args[0])
-		c, err := getContract(cAddr)
+		c, err := node.NewNode(cAddr, backend)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -112,24 +108,6 @@ var verifyIssuedCredentialsCmd = &cobra.Command{
 	},
 }
 
-func getContract(address common.Address) (c ctree.Verifier, err error) {
-	switch cType {
-	case "course":
-		c, err = getCourseContract(address)
-		if err != nil {
-			return nil, err
-		}
-	case "faculty":
-		c, err = getFacultyContract(address)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, errors.New("wrong contract type")
-	}
-	return c, err
-}
-
 func newVerifyCmd() *cobra.Command {
 	verifyCmd := &cobra.Command{
 		Use:   "verify",
@@ -144,7 +122,6 @@ func newVerifyCmd() *cobra.Command {
 	}
 
 	verifyCmd.PersistentFlags().BoolVar(&onChain, "onchain", false, "perform an on-chain/off-chain verification")
-	verifyCmd.PersistentFlags().StringVar(&cType, "contract", "course", "contract type (course/faculty)")
 
 	verifyCmd.AddCommand(verifyCredentialCmd)
 	verifyCmd.AddCommand(verifyIssuedCredentialsCmd)
