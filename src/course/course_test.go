@@ -340,9 +340,8 @@ func VerifyCredentialTree(t *testing.T) {
 	}
 	assert.True(t, b)
 
-	b, err = tc.Course.VerifyCredentialTree(true, nil, studentAddress)
+	err = tc.Course.VerifyCredentialTree(true, nil, studentAddress)
 	if err != nil {
 		t.Error(err)
 	}
-	assert.True(t, b)
 }

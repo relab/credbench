@@ -25,15 +25,10 @@ var verifyCredentialTreeCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		sAddr := common.HexToAddress(args[1])
-		ok, err := c.VerifyCredentialTree(onChain, nil, sAddr)
-		if err != nil {
+		if err = c.VerifyCredentialTree(onChain, nil, sAddr); err != nil {
 			log.Fatal(err)
 		}
-		if ok {
-			fmt.Println(Green("Valid"), "credential tree!")
-		} else {
-			fmt.Println(Red("Invalid"), "credential tree!")
-		}
+		fmt.Println(Green("Valid"), "credential tree!")
 	},
 }
 
@@ -49,15 +44,10 @@ var verifyCredentialRootCmd = &cobra.Command{
 		}
 		sAddr := common.HexToAddress(args[1])
 		root := common.HexToHash(args[2])
-		ok, err := c.VerifyCredentialRoot(onChain, nil, sAddr, root)
-		if err != nil {
+		if err = c.VerifyCredentialRoot(onChain, nil, sAddr, root); err != nil {
 			log.Fatal(err)
 		}
-		if ok {
-			fmt.Println(Green("Valid"), "credential root!")
-		} else {
-			fmt.Println(Red("Invalid"), "credential root!")
-		}
+		fmt.Println(Green("Valid"), "credential root!")
 	},
 }
 
@@ -73,15 +63,10 @@ var verifyCredentialCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		ok, err := c.VerifyCredential(onChain, nil, sAddr, digest)
-		if err != nil {
+		if err := c.VerifyCredential(onChain, nil, sAddr, digest); err != nil {
 			log.Fatal(err)
 		}
-		if ok {
-			fmt.Println(Green("Valid"), "credential!")
-		} else {
-			fmt.Println(Red("Invalid"), "credential!")
-		}
+		fmt.Println(Green("Valid"), "credential!")
 	},
 }
 
@@ -96,15 +81,10 @@ var verifyIssuedCredentialsCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		sAddr := common.HexToAddress(args[1])
-		ok, err := c.VerifyIssuedCredentials(onChain, nil, sAddr)
-		if err != nil {
+		if err := c.VerifyIssuedCredentials(onChain, nil, sAddr); err != nil {
 			log.Fatal(err)
 		}
-		if ok {
-			fmt.Println("All credentials are", Green("valid"))
-		} else {
-			fmt.Println("There are", Red("invalid"), "credentials")
-		}
+		fmt.Println("All credentials are", Green("valid"))
 	},
 }
 
