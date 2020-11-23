@@ -9,8 +9,8 @@ GOBUILD_RACE = $(GORACE) $(GOBUILD) -race
 GOTEST_RACE = $(GORACE) $(GOTEST) -race
 
 SRC_ROOT = .
-CLI_DIR = $(SRC_ROOT)/cli
-CLIPROTO_DIR = $(CLI_DIR)/proto
+BENCH_DIR = $(SRC_ROOT)/bench
+BENCHPROTO_DIR = $(BENCH_DIR)/proto
 PKG_DIR = $(SRC_ROOT)/src
 PKGPROTO_DIR = $(PKG_DIR)/schemes
 CONTRACTS = $(PKG_DIR)/ethereum
@@ -19,9 +19,9 @@ NPM_COMPILE = npm run compile
 all: build binary
 
 .PHONY: race
-race: cliproto build
+race: benchproto build
 	@echo "+ building source using Race Detector"
-	$(GOBUILD_RACE) -v -o dist/cli $(CLI_DIR)
+	$(GOBUILD_RACE) -v -o dist/ctbench $(BENCH_DIR)
 
 .PHONY: racetest
 racetest:
@@ -29,9 +29,9 @@ racetest:
 	$(GOTEST_RACE) -v $(PKG_DIR)/...
 
 .PHONY: binary
-binary: dist cliproto
+binary: dist benchproto
 	@echo "+ building source"
-	$(GOBUILD) -v -o dist/cli $(CLI_DIR)
+	$(GOBUILD) -v -o dist/ctbench $(BENCH_DIR)
 
 dist:
 	mkdir $@
@@ -41,10 +41,10 @@ build: pkgproto generate
 	@echo "+ building source"
 	$(GOBUILD) -v $(PKG_DIR)/...
 
-.PHONY: cliproto
-cliproto:
+.PHONY: benchproto
+benchproto:
 	@echo "+ compiling bench proto files"
-	@protoc -I=$(CLIPROTO_DIR) --go_out=paths=source_relative:$(CLIPROTO_DIR) $(CLIPROTO_DIR)/*.proto
+	@protoc -I=$(BENCHPROTO_DIR) --go_out=paths=source_relative:$(BENCHPROTO_DIR) $(BENCHPROTO_DIR)/*.proto
 
 .PHONY: pkgproto
 pkgproto:
