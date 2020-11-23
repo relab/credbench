@@ -4,8 +4,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	proto "google.golang.org/protobuf/proto"
 
-	"github.com/relab/ct-eth-dapp/cli/database"
-	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	"github.com/relab/ct-eth-dapp/bench/database"
+	pb "github.com/relab/ct-eth-dapp/bench/proto"
 )
 
 // Bucket("courses")

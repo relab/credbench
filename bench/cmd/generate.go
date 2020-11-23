@@ -18,16 +18,16 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/relab/ct-eth-dapp/cli/datastore"
-	"github.com/relab/ct-eth-dapp/cli/genesis"
-	"github.com/relab/ct-eth-dapp/cli/testconfig"
-	"github.com/relab/ct-eth-dapp/cli/transactor"
+	"github.com/relab/ct-eth-dapp/bench/datastore"
+	"github.com/relab/ct-eth-dapp/bench/genesis"
+	"github.com/relab/ct-eth-dapp/bench/testconfig"
+	"github.com/relab/ct-eth-dapp/bench/transactor"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 	"github.com/relab/ct-eth-dapp/src/faculty"
 	"github.com/relab/ct-eth-dapp/src/fileutils"
 	"github.com/relab/ct-eth-dapp/src/schemes"
 
-	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	pb "github.com/relab/ct-eth-dapp/bench/proto"
 	course "github.com/relab/ct-eth-dapp/src/course"
 )
 

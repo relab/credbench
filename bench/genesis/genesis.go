@@ -11,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/relab/ct-eth-dapp/cli/datastore"
-	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	"github.com/relab/ct-eth-dapp/bench/datastore"
+	pb "github.com/relab/ct-eth-dapp/bench/proto"
 	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
 )
 

@@ -1,7 +1,7 @@
 package datastore
 
 import (
-	"github.com/relab/ct-eth-dapp/cli/database"
+	"github.com/relab/ct-eth-dapp/bench/database"
 )
 
 type DataStore struct {

@@ -16,13 +16,13 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/relab/ct-eth-dapp/cli/database"
-	"github.com/relab/ct-eth-dapp/cli/datastore"
-	"github.com/relab/ct-eth-dapp/cli/transactor"
+	"github.com/relab/ct-eth-dapp/bench/database"
+	"github.com/relab/ct-eth-dapp/bench/datastore"
+	"github.com/relab/ct-eth-dapp/bench/transactor"
 	"github.com/relab/ct-eth-dapp/src/client"
 	"github.com/relab/ct-eth-dapp/src/fileutils"
 
-	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	pb "github.com/relab/ct-eth-dapp/bench/proto"
 )
 
 var (

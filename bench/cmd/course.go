@@ -11,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 
-	"github.com/relab/ct-eth-dapp/cli/datastore"
-	"github.com/relab/ct-eth-dapp/cli/transactor"
+	"github.com/relab/ct-eth-dapp/bench/datastore"
+	"github.com/relab/ct-eth-dapp/bench/transactor"
 	course "github.com/relab/ct-eth-dapp/src/course"
 
 	pb "github.com/relab/ct-eth-dapp/src/schemes"

@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/relab/ct-eth-dapp/cli/database"
+	"github.com/relab/ct-eth-dapp/bench/database"
 
-	pb "github.com/relab/ct-eth-dapp/cli/proto"
+	pb "github.com/relab/ct-eth-dapp/bench/proto"
 	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
 	proto "google.golang.org/protobuf/proto"
 )

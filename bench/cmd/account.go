@@ -11,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
-	"github.com/relab/ct-eth-dapp/cli/genesis"
-	pb "github.com/relab/ct-eth-dapp/cli/proto"
-	"github.com/relab/ct-eth-dapp/cli/transactor"
+	"github.com/relab/ct-eth-dapp/bench/genesis"
+	pb "github.com/relab/ct-eth-dapp/bench/proto"
+	"github.com/relab/ct-eth-dapp/bench/transactor"
 )
 
 var createAccountCmd = &cobra.Command{
