@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"path/filepath"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -23,16 +24,14 @@ import (
 	"github.com/relab/ct-eth-dapp/cli/transactor"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 	"github.com/relab/ct-eth-dapp/src/faculty"
+	"github.com/relab/ct-eth-dapp/src/fileutils"
 	"github.com/relab/ct-eth-dapp/src/schemes"
 
 	pb "github.com/relab/ct-eth-dapp/cli/proto"
 	course "github.com/relab/ct-eth-dapp/src/course"
 )
 
-var (
-	executor   *transactor.Transactor
-	testConfig testconfig.TestConfig
-)
+var testConfig testconfig.TestConfig
 
 // Generate the test case by deploying the certification tree.
 // It deploy faculty and course contracts, and assign evaluators/owners.
@@ -393,47 +392,56 @@ func runTestCase() error {
 	if err != nil {
 		return err
 	}
+
 	for _, key := range keys {
 		go run_faculty(key, done)
 	}
-
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		gasLimit := big.NewInt(0)
-		if _, ok := gasLimit.SetString(genesis.GasLimit, 10); !ok {
-			log.Fatal("Error setting the gas limit")
-		}
-		gasPrice, _ := new(big.Int).SetString("20000000000", 10)
-		p := transactor.NewTXProfiler(gasLimit, gasPrice)
-		err := p.SaveMetric(executor.Metrics)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	quit := 0
 	for range done {
 		quit++
 		if quit == testConfig.Faculties {
-			executor.Close()
 			close(done)
 		}
 	}
-	wg.Wait()
 	return nil
 }
 
 func run_faculty(key []byte, done chan struct{}) {
+	ldir := filepath.Join(logdir, fmt.Sprintf("/faculty_%x", key))
+	err := fileutils.CreateDir(ldir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	fs := datastore.NewFacultyStore(db, common.BytesToAddress(key))
 	f, err := fs.GetFaculty()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, s := range f.Semesters {
-		students, err := runSemester(s, f)
+	// Semesters are necessarily sequential
+	wg := &sync.WaitGroup{}
+	wg.Add(len(f.Semesters))
+	for i, s := range f.Semesters {
+		runner := transactor.NewTransactor(backend)
+
+		go func() {
+			defer wg.Done()
+			gasLimit := big.NewInt(0)
+			if _, ok := gasLimit.SetString(genesis.GasLimit, 10); !ok {
+				log.Fatal("Error setting the gas limit")
+			}
+			gasPrice, _ := new(big.Int).SetString("20000000000", 10)
+			logger := transactor.NewTXLogger(gasLimit, gasPrice)
+			logFilename := filepath.Join(ldir, fmt.Sprintf("log_%d_%x.log", i, s))
+			err := logger.SaveMetric(logFilename, runner.Metrics)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+		students, err := runSemester(runner, s, f)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -444,11 +452,13 @@ func run_faculty(key []byte, done chan struct{}) {
 		if err != nil {
 			log.Error(err)
 		}
+		runner.Close()
 	}
+	wg.Wait()
 	done <- struct{}{}
 }
 
-func runSemester(semester []byte, faculty *pb.Faculty) ([]common.Address, error) {
+func runSemester(runner *transactor.Transactor, semester []byte, faculty *pb.Faculty) ([]common.Address, error) {
 	facultyContract, err := getFacultyContract(common.BytesToAddress(faculty.Address))
 	if err != nil {
 		return []common.Address{}, err
@@ -467,7 +477,7 @@ func runSemester(semester []byte, faculty *pb.Faculty) ([]common.Address, error)
 			return []common.Address{}, err
 		}
 		g.Go(func() error {
-			return runCourse(c)
+			return runCourse(runner, c)
 		})
 	}
 	if err := g.Wait(); err != nil {
@@ -479,17 +489,17 @@ func runSemester(semester []byte, faculty *pb.Faculty) ([]common.Address, error)
 		return []common.Address{}, err
 	}
 
-	students, err := issueSemesterCredential(facultyContract, adms, courses)
+	students, err := issueSemesterCredential(runner, facultyContract, adms, courses)
 	if err != nil {
 		return []common.Address{}, err
 	}
 
-	aggregateSemesters(facultyContract, faculty.Adms[0], students)
+	aggregateSemesters(runner, facultyContract, faculty.Adms[0], students)
 
 	return students, nil
 }
 
-func issueSemesterCredential(contract *faculty.Faculty, adms datastore.Accounts, courses []common.Address) ([]common.Address, error) {
+func issueSemesterCredential(runner *transactor.Transactor, contract *faculty.Faculty, adms datastore.Accounts, courses []common.Address) ([]common.Address, error) {
 	// Collect all students courses
 	studentPerCourse := make(map[common.Address][]common.Address)
 	for _, c := range courses {
@@ -526,7 +536,7 @@ func issueSemesterCredential(contract *faculty.Faculty, adms datastore.Accounts,
 					log.Error(err)
 				}
 
-				tx, err := registerSemesterCredential(opts, contract, student, digest, witnesses)
+				tx, err := registerSemesterCredential(runner, opts, contract, student, digest, witnesses)
 				if err != nil {
 					log.Error(err)
 				}
@@ -541,7 +551,7 @@ func issueSemesterCredential(contract *faculty.Faculty, adms datastore.Accounts,
 				log.Error(err)
 			}
 
-			tx, err := approveSemesterCredential(opts, contract, digest)
+			tx, err := approveSemesterCredential(runner, opts, contract, digest)
 			if err != nil {
 				log.Error(err)
 			}
@@ -557,7 +567,7 @@ func issueSemesterCredential(contract *faculty.Faculty, adms datastore.Accounts,
 }
 
 // FIXME: DRY (courses/faculties)
-func aggregateSemesters(contract *faculty.Faculty, adm []byte, students []common.Address) {
+func aggregateSemesters(runner *transactor.Transactor, contract *faculty.Faculty, adm []byte, students []common.Address) {
 	wgs := sync.WaitGroup{}
 	wgs.Add(len(students))
 	for _, student := range students {
@@ -575,7 +585,7 @@ func aggregateSemesters(contract *faculty.Faculty, adm []byte, students []common
 				log.Error(err)
 			}
 
-			_, err = aggregateSemesterCredentials(opts, contract, student, digests)
+			_, err = aggregateSemesterCredentials(runner, opts, contract, student, digests)
 			if err != nil {
 				log.Error(err)
 			}
@@ -584,7 +594,7 @@ func aggregateSemesters(contract *faculty.Faculty, adm []byte, students []common
 	wgs.Wait()
 }
 
-func runCourse(cc *pb.Course) error {
+func runCourse(runner *transactor.Transactor, cc *pb.Course) error {
 	if len(cc.Evaluators) == 0 {
 		return fmt.Errorf("No evaluators found")
 	}
@@ -608,28 +618,28 @@ func runCourse(cc *pb.Course) error {
 	}
 
 	// Enroll all students to the course contract
-	err = enrollStudents(contract, evaluators[0], students.ToETHAddress())
+	err = enrollStudents(runner, contract, evaluators[0], students.ToETHAddress())
 	if err != nil {
 		return err
 	}
 	// Issue all exams for all students
-	issueExams(contract, evaluators, students)
+	issueExams(runner, contract, evaluators, students)
 	// Aggregate all exams for all students
-	aggregateExams(contract, evaluators[0], students.ToETHAddress())
+	aggregateExams(runner, contract, evaluators[0], students.ToETHAddress())
 	return nil
 }
 
-func enrollStudent(contract *course.Course, evaluator *pb.Account, student common.Address) (*types.Transaction, error) {
+func enrollStudent(runner *transactor.Transactor, contract *course.Course, evaluator *pb.Account, student common.Address) (*types.Transaction, error) {
 	opts, err := accountStore.GetTxOpts(evaluator.Address, backend)
 	if err != nil {
 		return nil, err
 	}
-	return addStudent(opts, contract, student)
+	return addStudent(runner, opts, contract, student)
 }
 
-func enrollStudents(contract *course.Course, evaluator *pb.Account, students []common.Address) error {
+func enrollStudents(runner *transactor.Transactor, contract *course.Course, evaluator *pb.Account, students []common.Address) error {
 	for i, student := range students {
-		tx, err := enrollStudent(contract, evaluator, student)
+		tx, err := enrollStudent(runner, contract, evaluator, student)
 		if err != nil {
 			return err
 		}
@@ -655,7 +665,7 @@ func enrollStudents(contract *course.Course, evaluator *pb.Account, students []c
 // 	return schemes.Hash(credential)
 // }
 
-func issueExams(contract *course.Course, evaluators datastore.Accounts, students datastore.Accounts) {
+func issueExams(runner *transactor.Transactor, contract *course.Course, evaluators datastore.Accounts, students datastore.Accounts) {
 	wgs := sync.WaitGroup{}
 	wgs.Add(len(students))
 	for _, s := range students {
@@ -676,7 +686,7 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 						log.Fatal(err)
 					}
 
-					tx, err := registerCourseCredential(opts, contract, studentAddress, digest)
+					tx, err := registerCourseCredential(runner, opts, contract, studentAddress, digest)
 					if err != nil {
 						log.Error(err)
 					}
@@ -692,7 +702,7 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 					log.Error(err)
 				}
 
-				tx, err := approveCourseCredential(opts, contract, digest)
+				tx, err := approveCourseCredential(runner, opts, contract, digest)
 				if err != nil {
 					log.Error(err)
 				}
@@ -707,7 +717,7 @@ func issueExams(contract *course.Course, evaluators datastore.Accounts, students
 	wgs.Wait()
 }
 
-func aggregateExams(contract *course.Course, evaluator *pb.Account, students []common.Address) {
+func aggregateExams(runner *transactor.Transactor, contract *course.Course, evaluator *pb.Account, students []common.Address) {
 	wgs := sync.WaitGroup{}
 	wgs.Add(len(students))
 	for _, student := range students {
@@ -725,7 +735,7 @@ func aggregateExams(contract *course.Course, evaluator *pb.Account, students []c
 				log.Error(err)
 			}
 
-			_, err = aggregateCourseCredentials(opts, contract, student, digests)
+			_, err = aggregateCourseCredentials(runner, opts, contract, student, digests)
 			if err != nil {
 				log.Error(err)
 			}
@@ -744,7 +754,6 @@ func newTestCmd() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
-			executor = transactor.NewTransactor(backend)
 		},
 	}
 

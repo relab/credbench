@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"os"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -34,20 +33,21 @@ func (g GasMetric) String() string {
 	return strings.Join(l, "\n")
 }
 
-type TXProfiler struct {
+type TXLogger struct {
 	gasLimit *big.Int
 	gasPrice *big.Int
 }
 
-func NewTXProfiler(gasLimit, gasPrice *big.Int) *TXProfiler {
-	return &TXProfiler{
+func NewTXLogger(gasLimit, gasPrice *big.Int) *TXLogger {
+	return &TXLogger{
 		gasLimit: gasLimit,
 		gasPrice: gasPrice,
 	}
 }
 
-func (p *TXProfiler) SaveMetric(metrics chan UsageMetric) error {
-	f, err := os.OpenFile("gasMetrics_"+fmt.Sprintf("%d", time.Now().UnixNano())+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+// add period on the metric file
+func (p *TXLogger) SaveMetric(filename string, metrics chan UsageMetric) error {
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,11 @@ func (p *TXProfiler) SaveMetric(metrics chan UsageMetric) error {
 	logger := golog.New(f, "", 0)
 	n := 0
 	for m := range metrics {
-		logger.Printf("contract:%s;address:%s;sender:%s;method:%s;gasUsed:%s;gasCost:%s", m.Contract, m.CAddress, m.Sender, m.Method, m.Gas.GasUsed.String(), m.Gas.GasCostWei.String())
+		s := fmt.Sprintf("contract:%s;address:%s;sender:%s;method:%s;gasUsed:%s;gasCost:%s", m.Contract, m.CAddress, m.Sender, m.Method, m.Gas.GasUsed.String(), m.Gas.GasCostWei.String())
+		if len(m.Subject) > 0 {
+			s = s + fmt.Sprintf(";subject:%s", m.Subject)
+		}
+		logger.Printf(s)
 		n++
 	}
 	logger.Printf("totalEntries:%d;gasPrice:%s;gasLimit:%s", n, p.gasPrice, p.gasLimit)
@@ -67,6 +71,7 @@ type UsageMetric struct {
 	Contract string
 	CAddress string
 	Sender   string
+	Subject  string
 	Method   string
 	Gas      GasMetric
 }
@@ -119,6 +124,7 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 	}
 
 	contract := bind.NewBoundContract(contractAddress, parsedABI, t.backend, t.backend, t.backend)
+
 	tx, err := contract.Transact(opts, method, params...)
 	if err != nil {
 		return nil, err
@@ -130,7 +136,7 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 	log.Debugf("Gas Cost (ether): %v\n", WeiToEther(gasCost))
 	// TODO: Estimate Fiat value (USD and NOK)
 
-	t.Metrics <- UsageMetric{
+	metric := UsageMetric{
 		Contract: contractName,
 		CAddress: contractAddress.Hex(),
 		Sender:   opts.From.Hex(),
@@ -141,6 +147,13 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 			GasCostWei: gasCost,
 		},
 	}
+
+	if method == "registerCredential" || method == "aggregateCredentials" {
+		s := params[0].(common.Address)
+		metric.Subject = s.Hex()
+	}
+
+	t.Metrics <- metric
 
 	log.Infof("Tx sent: %x\n", tx.Hash())
 	return tx, nil

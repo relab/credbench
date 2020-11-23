@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/relab/ct-eth-dapp/cli/datastore"
+	"github.com/relab/ct-eth-dapp/cli/transactor"
 	course "github.com/relab/ct-eth-dapp/src/course"
 
 	pb "github.com/relab/ct-eth-dapp/src/schemes"
@@ -33,7 +34,7 @@ var addStudentCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		tx, err := addStudent(opts, c, studentAddress)
+		tx, err := addStudent(executor, opts, c, studentAddress)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -41,8 +42,8 @@ var addStudentCmd = &cobra.Command{
 	},
 }
 
-func addStudent(opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (tx *types.Transaction, err error) {
-	tx, err = executor.SendTX("course", opts, c.Address(), course.CourseContractABI, "addStudent", studentAddress)
+func addStudent(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (tx *types.Transaction, err error) {
+	tx, err = e.SendTX("course", opts, c.Address(), course.CourseContractABI, "addStudent", studentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ var rmStudentCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		tx, err := rmStudent(opts, c, studentAddress)
+		tx, err := rmStudent(executor, opts, c, studentAddress)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -73,8 +74,8 @@ var rmStudentCmd = &cobra.Command{
 	},
 }
 
-func rmStudent(opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (*types.Transaction, error) {
-	tx, err := executor.SendTX("course", opts, c.Address(), course.CourseContractABI, "removeStudent", studentAddress)
+func rmStudent(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (*types.Transaction, error) {
+	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "removeStudent", studentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +98,7 @@ var renounceCourseCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		tx, err := renounce(opts, c, opts.From)
+		tx, err := renounce(executor, opts, c, opts.From)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -105,8 +106,8 @@ var renounceCourseCmd = &cobra.Command{
 	},
 }
 
-func renounce(opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (*types.Transaction, error) {
-	tx, err := executor.SendTX("course", opts, c.Address(), course.CourseContractABI, "renounceCourse", studentAddress)
+func renounce(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (*types.Transaction, error) {
+	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "renounceCourse", studentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +138,7 @@ var issueCourseCredentialCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		tx, err := registerCourseCredential(opts, c, studentAddress, digest)
+		tx, err := registerCourseCredential(executor, opts, c, studentAddress, digest)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -145,8 +146,8 @@ var issueCourseCredentialCmd = &cobra.Command{
 	},
 }
 
-func registerCourseCredential(opts *bind.TransactOpts, c *course.Course, studentAddress common.Address, digest [32]byte) (*types.Transaction, error) {
-	tx, err := executor.SendTX("course", opts, c.Address(), course.CourseContractABI, "registerCredential", studentAddress, digest, []common.Address{})
+func registerCourseCredential(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address, digest [32]byte) (*types.Transaction, error) {
+	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "registerCredential", studentAddress, digest, []common.Address{})
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +176,7 @@ var approveCourseCredentialCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		tx, err := approveCourseCredential(opts, c, digest)
+		tx, err := approveCourseCredential(executor, opts, c, digest)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -183,16 +184,16 @@ var approveCourseCredentialCmd = &cobra.Command{
 	},
 }
 
-func approveCourseCredential(opts *bind.TransactOpts, c *course.Course, digest [32]byte) (*types.Transaction, error) {
-	tx, err := executor.SendTX("course", opts, c.Address(), course.CourseContractABI, "approveCredential", digest)
+func approveCourseCredential(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, digest [32]byte) (*types.Transaction, error) {
+	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "approveCredential", digest)
 	if err != nil {
 		return nil, err
 	}
 	return tx, nil
 }
 
-func aggregateCourseCredentials(opts *bind.TransactOpts, c *course.Course, student common.Address, digests [][32]byte) (*types.Transaction, error) {
-	tx, err := executor.SendTX("course", opts, c.Address(), course.CourseContractABI, "aggregateCredentials", student, digests)
+func aggregateCourseCredentials(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, student common.Address, digests [][32]byte) (*types.Transaction, error) {
+	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "aggregateCredentials", student, digests)
 	if err != nil {
 		return nil, err
 	}

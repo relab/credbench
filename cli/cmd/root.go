@@ -18,6 +18,7 @@ import (
 
 	"github.com/relab/ct-eth-dapp/cli/database"
 	"github.com/relab/ct-eth-dapp/cli/datastore"
+	"github.com/relab/ct-eth-dapp/cli/transactor"
 	"github.com/relab/ct-eth-dapp/src/client"
 	"github.com/relab/ct-eth-dapp/src/fileutils"
 
@@ -29,6 +30,7 @@ var (
 	backendURL     string
 	defaultAccount string
 	datadir        string
+	logdir         string
 	ipcFile        string
 	waitPeers      bool
 	testFile       string
@@ -42,6 +44,7 @@ var (
 	db            *database.BoltDB
 	accountStore  *datastore.EthAccountStore
 	defaultSender common.Address
+	executor      *transactor.Transactor
 )
 
 var rootCmd = &cobra.Command{
@@ -58,6 +61,8 @@ var rootCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		backend, _ = clientConn.Backend()
+		// default transaction runner
+		executor = transactor.NewTransactor(backend)
 	},
 	PersistentPostRun: func(_ *cobra.Command, _ []string) {
 		db.Close()
@@ -83,7 +88,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&datadir, "datadir", defaultDatadir(), "path to the root app directory")
+	rootCmd.PersistentFlags().StringVar(&datadir, "datadir", defaultDatadir(), "path to the data directory")
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file")
 	rootCmd.PersistentFlags().StringVar(&defaultAccount, "default_account", "", "Ethereum default account address")
 	rootCmd.PersistentFlags().StringVar(&backendURL, "backendURL", "http://127.0.0.1:8545", "Blockchain backend host:port")
@@ -128,6 +133,10 @@ func initConfig() {
 
 func initSetup() (err error) {
 	err = fileutils.CreateDir(datadir)
+	if err != nil {
+		return err
+	}
+	err = fileutils.CreateDir(logdir)
 	if err != nil {
 		return err
 	}
@@ -190,6 +199,7 @@ func setupDB(dbpath, dbfile string) (err error) {
 
 func parseConfigFile() {
 	datadir = viper.GetString("datadir")
+	logdir = filepath.Join(datadir, "/logs")
 	defaultAccount = viper.GetString("default_account")
 	backendURL = "http://" + viper.GetString("backend.host") + ":" + viper.GetString("backend.port")
 	ipcFile = viper.GetString("backend.ipc")
