@@ -2,14 +2,13 @@ package transactor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-
-	golog "log"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -33,6 +32,16 @@ func (g GasMetric) String() string {
 	return strings.Join(l, "\n")
 }
 
+type LogEntryFormatter struct{}
+
+func (*LogEntryFormatter) Format(entry *log.Entry) ([]byte, error) {
+	b, err := json.Marshal(entry.Data)
+	if err != nil {
+		return nil, err
+	}
+	return append(b, '\n'), nil
+}
+
 type TXLogger struct {
 	gasLimit *big.Int
 	gasPrice *big.Int
@@ -53,17 +62,31 @@ func (p *TXLogger) SaveMetric(filename string, metrics chan UsageMetric) error {
 	}
 	defer f.Close()
 
-	logger := golog.New(f, "", 0)
-	n := 0
+	logger := log.New()
+	logger.SetOutput(f)
+	logger.SetLevel(log.InfoLevel)
+	logger.SetFormatter(new(LogEntryFormatter))
+	var n uint = 0
 	for m := range metrics {
-		s := fmt.Sprintf("contract:%s;address:%s;sender:%s;method:%s;gasUsed:%s;gasCost:%s", m.Contract, m.CAddress, m.Sender, m.Method, m.Gas.GasUsed.String(), m.Gas.GasCostWei.String())
-		if len(m.Subject) > 0 {
-			s = s + fmt.Sprintf(";subject:%s", m.Subject)
+		entry := log.Fields{
+			"contract": m.Contract,
+			"address":  m.CAddress,
+			"sender":   m.Sender,
+			"method":   m.Method,
+			"gasUsed":  m.Gas.GasUsed,
+			"gasCost":  m.Gas.GasCostWei,
 		}
-		logger.Printf(s)
+		if len(m.Subject) > 0 {
+			entry["subject"] = m.Subject
+		}
+		logger.WithFields(entry).Info()
 		n++
 	}
-	logger.Printf("totalEntries:%d;gasPrice:%s;gasLimit:%s", n, p.gasPrice, p.gasLimit)
+	logger.WithFields(log.Fields{
+		"totalEntries": n,
+		"gasPrice":     p.gasPrice,
+		"gasLimit":     p.gasLimit,
+	}).Info()
 	return nil
 }
 
@@ -148,7 +171,8 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 		},
 	}
 
-	if method == "registerCredential" || method == "aggregateCredentials" {
+	switch method {
+	case "registerCredential", "aggregateCredentials", "addStudent":
 		s := params[0].(common.Address)
 		metric.Subject = s.Hex()
 	}
