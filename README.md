@@ -69,7 +69,7 @@ $ geth attach http://127.0.0.1:8545
 ./dist/ctbench --config dev-config.json deploy libs
 ```
 
-3. Deploy a course using the imported account
+1. Deploy a course
 ```
 ./dist/ctbench --config dev-config.json deploy course --owners=<teacher_address>,<another_teacher_address> --quorum=2
 ```
@@ -83,6 +83,11 @@ $ geth attach http://127.0.0.1:8545
 5. Issuing a credential
 ```
 ./dist/ctbench --config dev-config.json course issue <student_address> <course_address> credential.json
+```
+
+To see all available commands, please type:
+```
+./dist/ctbench help
 ```
 
 ### Run test scenario
