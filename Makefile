@@ -15,7 +15,6 @@ PKG_DIR = $(SRC_ROOT)/src
 PKGPROTO_DIR = $(PKG_DIR)/schemes
 CONTRACTS = $(PKG_DIR)/ethereum
 # TODO: remove npm depencency and move bindings to go code
-NPM_INSTALL = npm install
 NPM_COMPILE = npm run compile
 
 all: build binary
@@ -60,7 +59,7 @@ generate:
 .PHONY: contracts
 contracts:
 	which npm || ( echo "npm is required to compile the contracts, please install npm: https://github.com/npm/cli" && exit 1)
-	cd $(CONTRACTS) && $(NPM_INSTALL) && $(NPM_COMPILE)
+	cd $(CONTRACTS) && $(NPM_COMPILE)
 
 .PHONY: test
 test:

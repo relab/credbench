@@ -144,11 +144,11 @@ func (d *BoltDB) CreateBucketPath(pathStr string) error {
 	return err
 }
 
+// Keys returns the list of keys at a given path
 func (d *BoltDB) Keys(pathStr string) (keys [][]byte, err error) {
 	return d.GetKeysWith(pathStr, func(v []byte) bool { return true })
 }
 
-// Keys returns the list of keys at a given path, encoded as string
 func (d *BoltDB) GetKeysWith(pathStr string, filter func(value []byte) bool) (keys [][]byte, err error) {
 	path, err := normalizePath(pathStr)
 	if err != nil {

@@ -84,7 +84,7 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 			copy(extraData[32+i*common.AddressLength:], byteAddr[:])
 		}
 
-		genesis.ExtraData = hexutil.Bytes(extraData) //default: 0x
+		genesis.ExtraData = hexutil.Bytes(extraData) // default: 0x
 	}
 	return genesis
 }

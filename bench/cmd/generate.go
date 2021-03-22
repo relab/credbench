@@ -225,10 +225,10 @@ func registerCourse(courseCh chan common.Address) error {
 		return err
 	}
 	cs := datastore.NewCourseStore(db, cAddr)
-	studAccounts, err := accountStore.GetAndSelect(testConfig.Students, pb.Type_STUDENT)
+	studAccounts, err := accountStore.GetByType(testConfig.Students, pb.Type_STUDENT)
 	if err != nil {
-		log.Debug(err, "...reusing existing accounts")
-		studAccounts, err = selectAccounts(testConfig.AccountDistribution, testConfig.Students, pb.Type_STUDENT)
+		log.Debugf("err: %v ...selecting %d new student accounts", err, testConfig.Students)
+		studAccounts, err = accountStore.GetAndSelect(testConfig.Students, pb.Type_STUDENT)
 		if err != nil {
 			return err
 		}
@@ -328,9 +328,6 @@ func selectSequentialFrom(n int, index int, keys [][]byte) ([][]byte, error) {
 
 func selectKeys(method string, n int, keys [][]byte) ([][]byte, error) {
 	var err error
-	if n > len(keys) {
-		return nil, fmt.Errorf("insufficient available keys")
-	}
 
 	switch method {
 	case "random":
@@ -341,6 +338,9 @@ func selectKeys(method string, n int, keys [][]byte) ([][]byte, error) {
 			return nil, err
 		}
 	default:
+		if n > len(keys) {
+			return nil, fmt.Errorf("insufficient available keys")
+		}
 		keys = keys[:n]
 	}
 	return keys, nil

@@ -221,10 +221,28 @@ var getStudentsCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Infof("Registered students:\n")
+		fmt.Printf("Registered students:\n")
 		for _, s := range students {
-			log.Infof("%s\n", s.Hex())
+			fmt.Printf("%s\n", s.Hex())
 		}
+	},
+}
+
+var getRootCmd = &cobra.Command{
+	Use:   "getRoot",
+	Short: "Return the root of the given student",
+	Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		c, err := getCourseContract(common.HexToAddress(args[0]))
+		if err != nil {
+			log.Fatal(err)
+		}
+		student := common.HexToAddress(args[1])
+		root, err := c.GetRoot(&bind.CallOpts{Pending: false}, student)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%x\n", root)
 	},
 }
 
@@ -243,9 +261,9 @@ var isEnrolledCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		if ok {
-			log.Infof("Student %s is enrolled\n", student.Hex())
+			fmt.Printf("Student %s is enrolled\n", student.Hex())
 		} else {
-			log.Infof("Student %s not found in course %s\n", student.Hex(), c.Address().Hex())
+			fmt.Printf("Student %s not found in course %s\n", student.Hex(), c.Address().Hex())
 		}
 	},
 }
@@ -296,6 +314,7 @@ func newCourseCmd() *cobra.Command {
 		issueCourseCredentialCmd,
 		approveCourseCredentialCmd,
 		getCourseCmd,
+		getRootCmd,
 	)
 	return courseCmd
 }

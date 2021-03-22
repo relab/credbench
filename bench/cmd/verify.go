@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -25,10 +26,13 @@ var verifyCredentialTreeCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		sAddr := common.HexToAddress(args[1])
+		start := time.Now()
 		if err = c.VerifyCredentialTree(onChain, nil, sAddr); err != nil {
-			log.Fatal(err)
+			elapsed := time.Since(start)
+			log.Fatalf("Verification failed in %v with error: %v\n", elapsed, err)
 		}
-		fmt.Println(Green("Valid"), "credential tree!")
+		elapsed := time.Since(start)
+		fmt.Printf("%s credential tree! Verified in %v\n", Green("Valid"), elapsed)
 	},
 }
 
@@ -44,10 +48,13 @@ var verifyCredentialRootCmd = &cobra.Command{
 		}
 		sAddr := common.HexToAddress(args[1])
 		root := common.HexToHash(args[2])
+		start := time.Now()
 		if err = c.VerifyCredentialRoot(onChain, nil, sAddr, root); err != nil {
-			log.Fatal(err)
+			elapsed := time.Since(start)
+			log.Fatalf("Verification failed in %v with error: %v\n", elapsed, err)
 		}
-		fmt.Println(Green("Valid"), "credential root!")
+		elapsed := time.Since(start)
+		fmt.Printf("%s credential root! Verified in %v\n", Green("Valid"), elapsed)
 	},
 }
 
@@ -63,10 +70,13 @@ var verifyCredentialCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+		start := time.Now()
 		if err := c.VerifyCredential(onChain, nil, sAddr, digest); err != nil {
-			log.Fatal(err)
+			elapsed := time.Since(start)
+			log.Fatalf("Verification failed in %v with error: %v\n", elapsed, err)
 		}
-		fmt.Println(Green("Valid"), "credential!")
+		elapsed := time.Since(start)
+		fmt.Printf("%s credential! Verified in %v\n", Green("Valid"), elapsed)
 	},
 }
 
@@ -81,10 +91,13 @@ var verifyIssuedCredentialsCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		sAddr := common.HexToAddress(args[1])
+		start := time.Now()
 		if err := c.VerifyIssuedCredentials(onChain, nil, sAddr); err != nil {
-			log.Fatal(err)
+			elapsed := time.Since(start)
+			log.Fatalf("Verification failed in %v with error: %v\n", elapsed, err)
 		}
-		fmt.Println("All credentials are", Green("valid"))
+		elapsed := time.Since(start)
+		fmt.Printf("All credentials are %s! Verified in %v\n", Green("Valid"), elapsed)
 	},
 }
 
@@ -103,9 +116,11 @@ func newVerifyCmd() *cobra.Command {
 
 	verifyCmd.PersistentFlags().BoolVar(&onChain, "onchain", false, "perform an on-chain/off-chain verification")
 
-	verifyCmd.AddCommand(verifyCredentialCmd)
-	verifyCmd.AddCommand(verifyIssuedCredentialsCmd)
-	verifyCmd.AddCommand(verifyCredentialTreeCmd)
-	verifyCmd.AddCommand(verifyCredentialRootCmd)
+	verifyCmd.AddCommand(
+		verifyCredentialCmd,
+		verifyIssuedCredentialsCmd,
+		verifyCredentialTreeCmd,
+		verifyCredentialRootCmd,
+	)
 	return verifyCmd
 }
