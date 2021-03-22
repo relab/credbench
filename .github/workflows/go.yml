@@ -20,6 +20,10 @@ jobs:
         go: [1.16]
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
+    - name: Configure git for private relab repo
+      env:
+        TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      run: git config --global url."https://relab-robot:${TOKEN}@github.com".insteadOf "git+ssh://git@github.com"
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
