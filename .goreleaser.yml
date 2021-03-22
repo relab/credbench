@@ -1,0 +1,52 @@
+project_name: ct-eth-dapp
+
+builds:
+  - id: linux
+    main: ./dist/ctbench
+    binary: ctbench
+    flags:
+      - -v
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/relab/ct-eth-dapp.version={{.Version}} -X github.com/relab/ct-eth-dapp.commit={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - 386
+      - arm64
+      - arm
+    goarm:
+      - 7
+  - id: darwin
+    main: ./dist/ctbench
+    binary: ctbench
+    flags:
+      - -v
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/relab/ct-eth-dapp.version={{.Version}} -X github.com/relab/ct-eth-dapp.commit={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+
+snapshot:
+  name_template: "{{.Tag}}-snapshot"
+
+archives:
+  -
+    name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    format: binary
+  -
+    id: homebrew
+    builds:
+    - darwin
+    name_template: "{{ tolower .ProjectName }}-{{ tolower .Os }}-{{ tolower .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    files:
+    - LICENSE
+    - README.md
