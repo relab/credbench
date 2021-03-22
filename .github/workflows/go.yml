@@ -10,6 +10,9 @@ on:
 
 jobs:
   build:
+    env:
+      GOPRIVATE: "github.com/relab/ct-eth"
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
