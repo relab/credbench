@@ -19,7 +19,7 @@ jobs:
     steps:
     - name: Configure git for private relab repo
       env:
-        TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        TOKEN: ${{ secrets.CT_SECRET }}
       run: git config --global url."https://relab-robot:${TOKEN}@github.com".insteadOf "ssh://git@github.com"
     - name: Setup Go
       uses: actions/setup-go@v2
