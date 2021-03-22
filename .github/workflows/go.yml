@@ -43,8 +43,6 @@ jobs:
           ${{ runner.OS }}-
     - name: Build Contracts
       run: make contracts
-      with:
-        token: ${{ TOKEN }}
     - name: Build Source
       run: make build
     #TODO: Remove bench from the default build.
