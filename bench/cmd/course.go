@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 
+	bindings "github.com/relab/bbchain-bindings/course"
 	"github.com/relab/ct-eth-dapp/bench/datastore"
 	"github.com/relab/ct-eth-dapp/bench/transactor"
 	course "github.com/relab/ct-eth-dapp/src/course"
@@ -43,7 +44,7 @@ var addStudentCmd = &cobra.Command{
 }
 
 func addStudent(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (tx *types.Transaction, err error) {
-	tx, err = e.SendTX("course", opts, c.Address(), course.CourseContractABI, "addStudent", studentAddress)
+	tx, err = e.SendTX("course", opts, c.Address(), bindings.CourseABI, "addStudent", studentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ var rmStudentCmd = &cobra.Command{
 }
 
 func rmStudent(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (*types.Transaction, error) {
-	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "removeStudent", studentAddress)
+	tx, err := e.SendTX("course", opts, c.Address(), bindings.CourseABI, "removeStudent", studentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ var renounceCourseCmd = &cobra.Command{
 }
 
 func renounce(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address) (*types.Transaction, error) {
-	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "renounceCourse", studentAddress)
+	tx, err := e.SendTX("course", opts, c.Address(), bindings.CourseABI, "renounceCourse", studentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +148,7 @@ var issueCourseCredentialCmd = &cobra.Command{
 }
 
 func registerCourseCredential(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, studentAddress common.Address, digest [32]byte) (*types.Transaction, error) {
-	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "registerCredential", studentAddress, digest, []common.Address{})
+	tx, err := e.SendTX("course", opts, c.Address(), bindings.CourseABI, "registerCredential", studentAddress, digest, []common.Address{})
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +186,7 @@ var approveCourseCredentialCmd = &cobra.Command{
 }
 
 func approveCourseCredential(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, digest [32]byte) (*types.Transaction, error) {
-	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "approveCredential", digest)
+	tx, err := e.SendTX("course", opts, c.Address(), bindings.CourseABI, "approveCredential", digest)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +194,7 @@ func approveCourseCredential(e *transactor.Transactor, opts *bind.TransactOpts, 
 }
 
 func aggregateCourseCredentials(e *transactor.Transactor, opts *bind.TransactOpts, c *course.Course, student common.Address, digests [][32]byte) (*types.Transaction, error) {
-	tx, err := e.SendTX("course", opts, c.Address(), course.CourseContractABI, "aggregateCredentials", student, digests)
+	tx, err := e.SendTX("course", opts, c.Address(), bindings.CourseABI, "aggregateCredentials", student, digests)
 	if err != nil {
 		return nil, err
 	}

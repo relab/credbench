@@ -189,7 +189,10 @@ func TestCreateDiploma(t *testing.T) {
 				t.Fatalf("RegisterCredential expected no error, got: %v", err)
 			}
 			tf.Backend.Commit()
-			proof := courseInstance.GetCredentialProof(nil, digest)
+			proof, err := courseInstance.GetCredentialProof(nil, digest)
+			if err != nil {
+				t.Fatalf("GetCredentialProof expected no error, got: %v", err)
+			}
 			assert.Equal(t, digest, proof.Digest)
 
 			// Second evaluator confirms
@@ -217,7 +220,10 @@ func TestCreateDiploma(t *testing.T) {
 			t.Fatalf("RegisterCredential expected no error, got: %v", err)
 		}
 		tf.Backend.Commit()
-		proof := courseInstance.GetCredentialProof(nil, digest)
+		proof, err := courseInstance.GetCredentialProof(nil, digest)
+		if err != nil {
+			t.Fatalf("GetCredentialProof expected no error, got: %v", err)
+		}
 		assert.Equal(t, digest, proof.Digest)
 
 		// Second evaluator also signs the credential

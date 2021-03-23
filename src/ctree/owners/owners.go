@@ -1,22 +1,22 @@
 package owners
 
-//go:generate abigen --abi ../../ethereum/build/abi/Owners.abi --bin ../../ethereum/build/bin/Owners.bin --pkg owners --type OwnersContract --out ./owners_contract.go
-
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+
+	bindings "github.com/relab/bbchain-bindings/owners"
 )
 
 // Owners is a Go wrapper around an owners contract.
 type Owners struct {
-	contract *OwnersContract
+	contract *bindings.Owners
 }
 
 // NewOwners creates a struct exposing convenient operations to
 // interact with the Owners contract.
 func NewOwners(contractAddr common.Address, backend bind.ContractBackend) (*Owners, error) {
-	c, err := NewOwnersContract(contractAddr, backend)
+	c, err := bindings.NewOwners(contractAddr, backend)
 	if err != nil {
 		return nil, err
 	}

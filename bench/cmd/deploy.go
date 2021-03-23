@@ -16,12 +16,12 @@ import (
 
 	"github.com/relab/ct-eth-dapp/bench/transactor"
 	"github.com/relab/ct-eth-dapp/src/accounts"
-	"github.com/relab/ct-eth-dapp/src/ctree/aggregator"
-	"github.com/relab/ct-eth-dapp/src/ctree/notary"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 	"github.com/relab/ct-eth-dapp/src/faculty"
 
-	course "github.com/relab/ct-eth-dapp/src/course"
+	aggregator "github.com/relab/bbchain-bindings/aggregator"
+	courseBinding "github.com/relab/bbchain-bindings/course"
+	notaryBinding "github.com/relab/bbchain-bindings/notary"
 )
 
 func deployNotaryCmd() *cobra.Command {
@@ -44,7 +44,7 @@ func deployNotaryCmd() *cobra.Command {
 
 func deployNotary(opts *bind.TransactOpts, backend *ethclient.Client) error {
 	log.Infoln("Deploying Notary...")
-	addr, tx, _, err := LinkAndDeploy(opts, backend, notary.NotaryContractABI, notary.NotaryContractBin, nil, true)
+	addr, tx, _, err := LinkAndDeploy(opts, backend, notaryBinding.NotaryABI, notaryBinding.NotaryBin, nil, true)
 	if err != nil {
 		return fmt.Errorf("failed to deploy the contract: %v", err)
 	}
@@ -165,7 +165,7 @@ func DeployCourse(opts *bind.TransactOpts, backend *ethclient.Client, owners []c
 		"Notary":        notaryAddr,
 	}
 
-	cAddr, tx, _, err := LinkAndDeploy(opts, backend, course.CourseContractABI, course.CourseContractBin, libs, false, owners, quorum)
+	cAddr, tx, _, err := LinkAndDeploy(opts, backend, courseBinding.CourseABI, courseBinding.CourseBin, libs, false, owners, quorum)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

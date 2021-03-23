@@ -8,10 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
+	aggregator "github.com/relab/bbchain-bindings/aggregator"
+	bindings "github.com/relab/bbchain-bindings/course"
 	"github.com/relab/ct-eth-dapp/src/accounts"
 	"github.com/relab/ct-eth-dapp/src/backends"
-	"github.com/relab/ct-eth-dapp/src/ctree/aggregator"
-	"github.com/relab/ct-eth-dapp/src/ctree/notary"
 	"github.com/relab/ct-eth-dapp/src/encode"
 
 	pb "github.com/relab/ct-eth-dapp/src/schemes"
@@ -65,7 +65,7 @@ func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [3
 	credential := pb.NewFakeAssignmentGradeCredential(evaluatorAddr, courseEntity, ag)
 	digest := pb.Hash(credential)
 
-	ch := make(chan *CourseContractCredentialIssued)
+	ch := make(chan *bindings.CourseCredentialIssued)
 	sub, _ := tc.Course.contract.WatchCredentialIssued(nil, ch, [][32]byte{digest}, []common.Address{to}, nil)
 	defer func() {
 		sub.Unsubscribe()
@@ -81,14 +81,17 @@ func (tc *TestCourse) RegisterTestCredential(t *testing.T, to common.Address) [3
 	event := <-ch
 	assert.Equal(t, digest, event.Digest)
 
-	proof := tc.Course.GetCredentialProof(nil, digest)
+	proof, err := tc.Course.GetCredentialProof(nil, digest)
+	if err != nil {
+		t.Error(err)
+	}
 	assert.Equal(t, digest, proof.Digest)
 
 	return digest
 }
 
 func (tc *TestCourse) ConfirmTestCredential(t *testing.T, from *ecdsa.PrivateKey, digest [32]byte) {
-	ch := make(chan *CourseContractCredentialSigned)
+	ch := make(chan *bindings.CourseCredentialSigned)
 	sub, _ := tc.Course.contract.WatchCredentialSigned(nil, ch, nil, [][32]byte{digest})
 	defer func() {
 		sub.Unsubscribe()
@@ -115,7 +118,7 @@ func deployLibs(opts *bind.TransactOpts, backend *backends.TestBackend) (map[str
 	}
 	libs["CredentialSum"] = aggregatorAddr.Hex()
 
-	notaryAddr, _, _, err := notary.DeployNotaryContract(opts, backend)
+	notaryAddr, _, _, err := bindings.DeployNotary(opts, backend)
 	if err != nil {
 		return libs, err
 	}
@@ -243,7 +246,10 @@ func TestIssuerRegisterCredential(t *testing.T) {
 
 	digest := tc.RegisterTestCredential(t, studentAddress)
 
-	proof := tc.Course.GetCredentialProof(nil, digest)
+	proof, err := tc.Course.GetCredentialProof(nil, digest)
+	if err != nil {
+		t.Error(err)
+	}
 
 	assert.Equal(t, studentAddress, proof.Subject, "Subject address should be equal")
 	assert.Equal(t, tc.Evaluators[0].Address, proof.Registrar, "Registrar address should be equal")
@@ -262,12 +268,18 @@ func TestStudentSignCredential(t *testing.T) {
 
 	digest := tc.RegisterTestCredential(t, studentAddress)
 
-	proof := tc.Course.GetCredentialProof(nil, digest)
+	proof, err := tc.Course.GetCredentialProof(nil, digest)
+	if err != nil {
+		t.Error(err)
+	}
 	assert.False(t, proof.Approved)
 
 	tc.ConfirmTestCredential(t, studentKey, digest)
 
-	proof = tc.Course.GetCredentialProof(nil, digest)
+	proof, err = tc.Course.GetCredentialProof(nil, digest)
+	if err != nil {
+		t.Error(err)
+	}
 	assert.True(t, proof.Approved)
 }
 

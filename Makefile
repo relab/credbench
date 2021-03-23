@@ -13,9 +13,6 @@ BENCH_DIR = $(SRC_ROOT)/bench
 BENCHPROTO_DIR = $(BENCH_DIR)/proto
 PKG_DIR = $(SRC_ROOT)/src
 PKGPROTO_DIR = $(PKG_DIR)/schemes
-CONTRACTS = $(PKG_DIR)/ethereum
-# TODO: remove npm depencency and move bindings to go code
-NPM_COMPILE = npm run compile
 
 all: build binary
 
@@ -38,7 +35,7 @@ dist:
 	mkdir $@
 
 .PHONY: build
-build: pkgproto generate
+build: pkgproto
 	@echo "+ building source"
 	$(GOBUILD) -v $(PKG_DIR)/...
 
@@ -51,15 +48,6 @@ benchproto:
 pkgproto:
 	@echo "+ compiling pkg proto files"
 	@protoc -I=$(PKGPROTO_DIR) --go_out=paths=source_relative:$(PKGPROTO_DIR) $(PKGPROTO_DIR)/*.proto
-
-generate:
-	@echo "+ go generate"
-	$(GOCMD) generate $(PKG_DIR)/...
-
-.PHONY: contracts
-contracts:
-	which npm || ( echo "npm is required to compile the contracts, please install npm: https://github.com/npm/cli" && exit 1)
-	cd $(CONTRACTS) && $(NPM_COMPILE)
 
 .PHONY: test
 test:

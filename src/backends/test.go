@@ -13,9 +13,9 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 
+	aggregator "github.com/relab/bbchain-bindings/aggregator"
+	notary "github.com/relab/bbchain-bindings/notary"
 	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
-	"github.com/relab/ct-eth-dapp/src/ctree/aggregator"
-	"github.com/relab/ct-eth-dapp/src/ctree/notary"
 )
 
 // Account represents a test account
@@ -107,7 +107,7 @@ func (b *TestBackend) DeployLibs(opts *bind.TransactOpts) (map[string]string, er
 	}
 
 	if _, ok := b.Deployed["Notary"]; !ok {
-		notaryAddr, _, _, err := notary.DeployNotaryContract(opts, b)
+		notaryAddr, _, _, err := notary.DeployNotary(opts, b)
 		if err != nil {
 			return libs, err
 		}

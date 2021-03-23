@@ -1,12 +1,11 @@
 package faculty
 
-//go:generate abigen --abi ../ethereum/build/abi/Faculty.abi --bin ../ethereum/build/bin/Faculty.bin --pkg faculty --type FacultyContract --out ./faculty_contract.go
-
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
+	bindings "github.com/relab/bbchain-bindings/faculty"
 	"github.com/relab/ct-eth-dapp/src/ctree/node"
 	"github.com/relab/ct-eth-dapp/src/deployer"
 )
@@ -15,13 +14,13 @@ import (
 type Faculty struct {
 	*node.Node
 	address  common.Address
-	contract *FacultyContract
+	contract *bindings.Faculty
 }
 
 // NewFaculty creates a struct exposing convenient operations to
 // interact with the Faculty contract.
 func NewFaculty(contractAddr common.Address, backend bind.ContractBackend) (*Faculty, error) {
-	cc, err := NewFacultyContract(contractAddr, backend)
+	cc, err := bindings.NewFaculty(contractAddr, backend)
 	if err != nil {
 		return nil, err
 	}
@@ -33,15 +32,18 @@ func NewFaculty(contractAddr common.Address, backend bind.ContractBackend) (*Fac
 }
 
 func DeployFaculty(auth *bind.TransactOpts, backend bind.ContractBackend, libs map[string]string, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, *Faculty, error) {
-	contractBin := deployer.LinkContract(FacultyContractBin, libs)
+	contractBin := deployer.LinkContract(bindings.FacultyBin, libs)
 
-	address, tx, contract, err := deployer.DeployContract(auth, backend, FacultyContractABI, contractBin, owners, quorum)
+	address, tx, _, err := deployer.DeployContract(auth, backend, bindings.FacultyABI, contractBin, owners, quorum)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
 
-	c := &FacultyContract{FacultyContractCaller: FacultyContractCaller{contract: contract}, FacultyContractTransactor: FacultyContractTransactor{contract: contract}, FacultyContractFilterer: FacultyContractFilterer{contract: contract}}
-	return address, tx, &Faculty{address: address, contract: c}, nil
+	f, err := NewFaculty(address, backend)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	return address, tx, f, nil
 }
 
 // Address returns the contract address of the faculty.

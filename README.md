@@ -4,30 +4,37 @@
 
 | Software                                         | Version  | Required for |
 | ------------------------------------------------ | -------- | ------------ |
-| [Solidity](https://github.com/ethereum/solidity) | >=0.7.4  | contracts    |
-| [NPM](https://github.com/npm/cli)                | >=6.14.4 | contracts    |
-| [Go](https://golang.org/doc/go1.12)              | >=1.15.5 | client       |
+| [Solidity](https://github.com/ethereum/solidity) | >=0.8.2  | contracts    |
+| [NPM](https://github.com/npm/cli)                | >=7.6.3  | contracts    |
+| [Go](https://golang.org/doc/go1.16)              | >=1.16.2 | client       |
 | [GNU Make](http://ftp.gnu.org/gnu/make/)         | >=4.3.0  | client       |
 | [geth](https://github.com/ethereum/go-ethereum)  | >=1.9.24 | client       |
 
 ## Contracts
 
-### Using the scripts in the src/ethereum
-Install and start a test chain.
+The contracts are available in the repository [bbchain-contracts](https://github.com/relab/bbchain-contracts) and its go-ethereum bindings are available in the [bbchain-bindings](https://github.com/relab/bbchain-bindings) repository.
+
+The current bindings are available in a private repository, thus to be able to install the bindings using go, please do the procedure described below.
+
+Add the following to your `~/.gitconfig`
 ```
-cd src/ethereum
-npm install
-npm run compile
-npm run generate
-npm run ganache-cli
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/
 ```
 
-In other terminal run the command below to run the contract tests.
+Then run the command below to allow go to install from a private repository:
 ```
-npm run test:ganache
+go env -w GOPRIVATE="github.com/relab/bbchain-bindings"
 ```
 
-### Running ganache installed in the local machine
+Then compile the code:
+```
+make all
+```
+
+* For more information please see: https://golang.org/ref/mod#private-modules
+
+## Running ganache installed in the local machine
 ```
 $ ganache-cli --deterministic --host 127.0.0.1 --port 8545 --networkId 5777 --gasLimit 6721975 --gasPrice 20000000000 --verbose
 ```
@@ -38,13 +45,9 @@ $ ./genesis-gen.sh
 $ geth --networkid=42 --nodiscover --rpc --rpcport=8545 --ws --wsport=8546 --rpccorsdomain="*" --datadir ./dev_datadir --dev.period 0 --miner.gasprice=20000000000 --miner.gastarget=6721975 --miner.gaslimit=6721975 --verbosity 5 --mine --miner.etherbase $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) --miner.noverify --maxpeers 0 --password ./dev_datadir/password.txt --unlock $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) --allow-insecure-unlock
 ```
 
-## Client
+## Command-line Client
 
-```
-make all
-```
-
-Then run a test chain using the ganache-cli or geth as previously and execute from the source folder the client binary.
+See the available options by running the benchmark command-line tool:
 
 ```
 ./dist/ctbench
@@ -57,7 +60,7 @@ $ geth attach http://127.0.0.1:8545
 
 ### Testing
 
-#### Issuing a credential
+#### Issuing a Credential
 
 1. Import a testing ganache account that already have funds
 ```
@@ -90,14 +93,14 @@ To see all available commands, please type:
 ./dist/ctbench help
 ```
 
-### Run test scenario
+### Running Test Scenarios
 
 ```
 ./dist/ctbench --config dev-config.json test generate
 ./dist/ctbench --config dev-config.json test run
 ```
 
-### Inspecting the db
+### Inspecting the Test Database
 
 Install boltbrowser
 ```

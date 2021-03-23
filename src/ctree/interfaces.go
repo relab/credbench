@@ -9,11 +9,13 @@ import (
 )
 
 type Issuer interface {
-	Registry
+	NodeInterface
 	Verifier
 }
 
-type Registry interface {
+type NodeInterface interface {
+	Address() common.Address
+
 	// RegisterCredential issues a new credential proof ensuring append-only property.
 	RegisterCredential(opts *bind.TransactOpts, subject common.Address, digest [32]byte, witnesses []common.Address) (*types.Transaction, error)
 
