@@ -53,7 +53,8 @@ $ geth --networkid=42 --nodiscover\
 	 --miner.etherbase $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json)\
 	 --miner.noverify --maxpeers 0\
 	 --password ./dev_datadir/password.txt\
-	 --unlock $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json)\ --allow-insecure-unlock
+	 --unlock $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json)\
+	 --allow-insecure-unlock
 ```
 
 ## Command-line Client
