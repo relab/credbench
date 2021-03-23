@@ -15,8 +15,8 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/relab/ct-eth-dapp/bench/transactor"
-	"github.com/relab/ct-eth-dapp/src/accounts"
-	"github.com/relab/ct-eth-dapp/src/deployer"
+	"github.com/relab/ct-eth-dapp/pkg/accounts"
+	"github.com/relab/ct-eth-dapp/pkg/deployer"
 
 	aggregator "github.com/relab/bbchain-bindings/aggregator"
 	courseBinding "github.com/relab/bbchain-bindings/course"

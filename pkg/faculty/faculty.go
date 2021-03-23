@@ -6,8 +6,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 
 	bindings "github.com/relab/bbchain-bindings/faculty"
-	"github.com/relab/ct-eth-dapp/src/ctree/node"
-	"github.com/relab/ct-eth-dapp/src/deployer"
+	"github.com/relab/ct-eth-dapp/pkg/ctree/node"
+	"github.com/relab/ct-eth-dapp/pkg/deployer"
 )
 
 // Faculty is a Go wrapper around an on-chain faculty contract.

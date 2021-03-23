@@ -19,8 +19,8 @@ import (
 	"github.com/relab/ct-eth-dapp/bench/database"
 	"github.com/relab/ct-eth-dapp/bench/datastore"
 	"github.com/relab/ct-eth-dapp/bench/transactor"
-	"github.com/relab/ct-eth-dapp/src/client"
-	"github.com/relab/ct-eth-dapp/src/fileutils"
+	"github.com/relab/ct-eth-dapp/pkg/client"
+	"github.com/relab/ct-eth-dapp/pkg/fileutils"
 
 	pb "github.com/relab/ct-eth-dapp/bench/proto"
 )

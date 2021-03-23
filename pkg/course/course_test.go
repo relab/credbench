@@ -10,11 +10,11 @@ import (
 
 	aggregator "github.com/relab/bbchain-bindings/aggregator"
 	bindings "github.com/relab/bbchain-bindings/course"
-	"github.com/relab/ct-eth-dapp/src/accounts"
-	"github.com/relab/ct-eth-dapp/src/backends"
-	"github.com/relab/ct-eth-dapp/src/encode"
+	"github.com/relab/ct-eth-dapp/pkg/accounts"
+	"github.com/relab/ct-eth-dapp/pkg/backends"
+	"github.com/relab/ct-eth-dapp/pkg/encode"
 
-	pb "github.com/relab/ct-eth-dapp/src/schemes"
+	pb "github.com/relab/ct-eth-dapp/pkg/schemes"
 )
 
 type TestCourse struct {

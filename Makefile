@@ -11,7 +11,7 @@ GOTEST_RACE = $(GORACE) $(GOTEST) -race
 SRC_ROOT = .
 BENCH_DIR = $(SRC_ROOT)/bench
 BENCHPROTO_DIR = $(BENCH_DIR)/proto
-PKG_DIR = $(SRC_ROOT)/src
+PKG_DIR = $(SRC_ROOT)/pkg
 PKGPROTO_DIR = $(PKG_DIR)/schemes
 
 all: build binary

@@ -14,9 +14,9 @@ import (
 	bindings "github.com/relab/bbchain-bindings/course"
 	"github.com/relab/ct-eth-dapp/bench/datastore"
 	"github.com/relab/ct-eth-dapp/bench/transactor"
-	course "github.com/relab/ct-eth-dapp/src/course"
+	course "github.com/relab/ct-eth-dapp/pkg/course"
 
-	pb "github.com/relab/ct-eth-dapp/src/schemes"
+	pb "github.com/relab/ct-eth-dapp/pkg/schemes"
 )
 
 var addStudentCmd = &cobra.Command{

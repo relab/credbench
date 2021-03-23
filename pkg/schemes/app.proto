@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package schemes;
 
-option go_package = "github.com/relab/ct-eth-dapp/src/schemes";
+option go_package = "github.com/relab/ct-eth-dapp/pkg/schemes";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";

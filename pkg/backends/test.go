@@ -15,7 +15,7 @@ import (
 
 	aggregator "github.com/relab/bbchain-bindings/aggregator"
 	notary "github.com/relab/bbchain-bindings/notary"
-	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
+	ctaccounts "github.com/relab/ct-eth-dapp/pkg/accounts"
 )
 
 // Account represents a test account

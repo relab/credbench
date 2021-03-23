@@ -13,7 +13,7 @@ import (
 
 	"github.com/relab/ct-eth-dapp/bench/datastore"
 	pb "github.com/relab/ct-eth-dapp/bench/proto"
-	ctaccounts "github.com/relab/ct-eth-dapp/src/accounts"
+	ctaccounts "github.com/relab/ct-eth-dapp/pkg/accounts"
 )
 
 var (

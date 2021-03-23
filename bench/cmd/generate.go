@@ -22,13 +22,13 @@ import (
 	"github.com/relab/ct-eth-dapp/bench/genesis"
 	"github.com/relab/ct-eth-dapp/bench/testconfig"
 	"github.com/relab/ct-eth-dapp/bench/transactor"
-	"github.com/relab/ct-eth-dapp/src/deployer"
-	"github.com/relab/ct-eth-dapp/src/faculty"
-	"github.com/relab/ct-eth-dapp/src/fileutils"
-	"github.com/relab/ct-eth-dapp/src/schemes"
+	"github.com/relab/ct-eth-dapp/pkg/deployer"
+	"github.com/relab/ct-eth-dapp/pkg/faculty"
+	"github.com/relab/ct-eth-dapp/pkg/fileutils"
+	"github.com/relab/ct-eth-dapp/pkg/schemes"
 
 	pb "github.com/relab/ct-eth-dapp/bench/proto"
-	course "github.com/relab/ct-eth-dapp/src/course"
+	course "github.com/relab/ct-eth-dapp/pkg/course"
 )
 
 var testConfig testconfig.TestConfig

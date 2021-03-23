@@ -182,3 +182,48 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 	log.Infof("Tx sent: %x\n", tx.Hash())
 	return tx, nil
 }
+
+func (t *Transactor) Deploy(opts *bind.TransactOpts, backend bind.ContractBackend, contractABI string, contractCode string, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(contractABI))
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+
+	input, err := parsed.Pack("", params...)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	msg := ethereum.CallMsg{
+		From: opts.From,
+		// To:       &contractAddress,
+		GasPrice: opts.GasPrice,
+		Value:    opts.Value,
+		Data:     input,
+	}
+	gas, err := t.backend.EstimateGas(context.TODO(), msg)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+
+	address, tx, c, err := bind.DeployContract(opts, parsed, common.FromHex(contractCode), backend, params...)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+
+	gasCost := CalculateGasCost(gas, tx.GasPrice())
+	log.Debugf("Gas Cost (ether): %v\n", WeiToEther(gasCost))
+
+	metric := UsageMetric{
+		Contract: parsed.Constructor.Name,
+		CAddress: address.Hex(),
+		Sender:   opts.From.Hex(),
+		Method:   "deploy",
+		Gas: GasMetric{
+			GasUsed:    new(big.Int).SetUint64(gas),
+			GasPrice:   tx.GasPrice(),
+			GasCostWei: gasCost,
+		},
+	}
+	t.Metrics <- metric
+	return address, tx, c, nil
+}
