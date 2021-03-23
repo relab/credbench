@@ -36,13 +36,24 @@ make all
 
 ## Running ganache installed in the local machine
 ```
-$ ganache-cli --deterministic --host 127.0.0.1 --port 8545 --networkId 5777 --gasLimit 6721975 --gasPrice 20000000000 --verbose
+$ ganache-cli --deterministic\
+	--host 127.0.0.1 --port 8545\
+	--networkId 5777 --gasLimit 6721975\
+	--gasPrice 20000000000 --verbose
 ```
 
 If you prefer, you can use geth instead of [ganache](https://truffleframework.com/ganache) using the command below.
 ```
 $ ./genesis-gen.sh
-$ geth --networkid=42 --nodiscover --rpc --rpcport=8545 --ws --wsport=8546 --rpccorsdomain="*" --datadir ./dev_datadir --dev.period 0 --miner.gasprice=20000000000 --miner.gastarget=6721975 --miner.gaslimit=6721975 --verbosity 5 --mine --miner.etherbase $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) --miner.noverify --maxpeers 0 --password ./dev_datadir/password.txt --unlock $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) --allow-insecure-unlock
+$ geth --networkid=42 --nodiscover\
+	 --rpc --rpcport=8545 --ws --wsport=8546\
+	 --rpccorsdomain="*" --datadir ./dev_datadir --dev.period 0\
+	 --miner.gasprice=20000000000 --miner.gastarget=6721975\
+	 --miner.gaslimit=6721975 --verbosity 5 --mine\
+	 --miner.etherbase $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json)\
+	 --miner.noverify --maxpeers 0\
+	 --password ./dev_datadir/password.txt\
+	 --unlock $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json)\ --allow-insecure-unlock
 ```
 
 ## Command-line Client
