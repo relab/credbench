@@ -17,10 +17,10 @@ import (
 	"github.com/relab/ct-eth-dapp/bench/transactor"
 	"github.com/relab/ct-eth-dapp/src/accounts"
 	"github.com/relab/ct-eth-dapp/src/deployer"
-	"github.com/relab/ct-eth-dapp/src/faculty"
 
 	aggregator "github.com/relab/bbchain-bindings/aggregator"
 	courseBinding "github.com/relab/bbchain-bindings/course"
+	faculty "github.com/relab/bbchain-bindings/faculty"
 	notaryBinding "github.com/relab/bbchain-bindings/notary"
 )
 
@@ -190,7 +190,7 @@ func DeployFaculty(opts *bind.TransactOpts, backend *ethclient.Client, owners []
 		"Notary":        notaryAddr,
 	}
 
-	cAddr, tx, _, err := LinkAndDeploy(opts, backend, faculty.FacultyContractABI, faculty.FacultyContractBin, libs, false, owners, quorum)
+	cAddr, tx, _, err := LinkAndDeploy(opts, backend, faculty.FacultyABI, faculty.FacultyBin, libs, false, owners, quorum)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
