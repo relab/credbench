@@ -4,8 +4,6 @@
 
 | Software                                         | Version  | Required for |
 | ------------------------------------------------ | -------- | ------------ |
-| [Solidity](https://github.com/ethereum/solidity) | >=0.8.2  | contracts    |
-| [NPM](https://github.com/npm/cli)                | >=7.6.3  | contracts    |
 | [Go](https://golang.org/doc/go1.16)              | >=1.16.2 | client       |
 | [GNU Make](http://ftp.gnu.org/gnu/make/)         | >=4.3.0  | client       |
 | [geth](https://github.com/ethereum/go-ethereum)  | >=1.9.24 | client       |
