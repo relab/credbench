@@ -41,12 +41,9 @@ jobs:
           ${{ runner.OS }}-build-${{ env.cache-name }}-
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
-    - name: Build Contracts
-      run: make contracts
     - name: Build Source
       run: make build
-    #TODO: Remove bench from the default build.
-    - name: Make binary benchmark
+    - name: Make cli
       run: make binary
     - name: Lint
       run: make lint
