@@ -8,8 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	aggregator "github.com/relab/bbchain-bindings/aggregator"
+	"github.com/relab/bbchain-bindings/aggregator"
 	bindings "github.com/relab/bbchain-bindings/course"
+	"github.com/relab/bbchain-bindings/notary"
+
 	"github.com/relab/ct-eth-dapp/pkg/accounts"
 	"github.com/relab/ct-eth-dapp/pkg/backends"
 	"github.com/relab/ct-eth-dapp/pkg/encode"
@@ -118,7 +120,7 @@ func deployLibs(opts *bind.TransactOpts, backend *backends.TestBackend) (map[str
 	}
 	libs["CredentialSum"] = aggregatorAddr.Hex()
 
-	notaryAddr, _, _, err := bindings.DeployNotary(opts, backend)
+	notaryAddr, _, _, err := notary.DeployNotary(opts, backend)
 	if err != nil {
 		return libs, err
 	}

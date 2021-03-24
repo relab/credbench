@@ -113,6 +113,7 @@ func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, er
 	transactOpts := bind.NewKeyedTransactor(w.privateKey)
 	transactOpts.GasLimit = uint64(6721975) // FIXME: get from config file
 	transactOpts.GasPrice = gasPrice
+
 	// Note: overflow may happen when converting uint64 to int64
 	transactOpts.Nonce = new(big.Int).SetUint64(nonce)
 	return transactOpts, nil

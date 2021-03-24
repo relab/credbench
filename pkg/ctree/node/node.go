@@ -58,7 +58,11 @@ func NewNode(contractAddr common.Address, backend bind.ContractBackend) (*Node, 
 	return &Node{o, n, contractAddr, backend}, nil
 }
 
-func Deploy(auth *bind.TransactOpts, backend bind.ContractBackend, libs map[string]string, params ...interface{}) (common.Address, *types.Transaction, *Node, error) {
+func Deploy(auth *bind.TransactOpts, backend bind.ContractBackend, deployedLibs map[string]string, params ...interface{}) (common.Address, *types.Transaction, *Node, error) {
+	libs, err := deployer.FindLinkReferences(deployedLibs, bindings.NodeLinkReferences)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
 	contractBin := deployer.LinkContract(bindings.NodeBin, libs)
 
 	address, tx, _, err := deployer.DeployContract(auth, backend, bindings.NodeABI, contractBin, params)

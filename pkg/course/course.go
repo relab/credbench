@@ -31,7 +31,11 @@ func NewCourse(contractAddr common.Address, backend bind.ContractBackend) (*Cour
 	return &Course{n, contractAddr, cc}, nil
 }
 
-func DeployCourse(auth *bind.TransactOpts, backend bind.ContractBackend, libs map[string]string, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, *Course, error) {
+func DeployCourse(auth *bind.TransactOpts, backend bind.ContractBackend, deployedLibs map[string]string, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, *Course, error) {
+	libs, err := deployer.FindLinkReferences(deployedLibs, bindings.CourseLinkReferences)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
 	contractBin := deployer.LinkContract(bindings.CourseBin, libs)
 
 	address, tx, _, err := deployer.DeployContract(auth, backend, bindings.CourseABI, contractBin, owners, quorum)

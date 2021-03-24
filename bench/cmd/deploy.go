@@ -21,6 +21,7 @@ import (
 	aggregator "github.com/relab/bbchain-bindings/aggregator"
 	courseBinding "github.com/relab/bbchain-bindings/course"
 	faculty "github.com/relab/bbchain-bindings/faculty"
+	nodeBinding "github.com/relab/bbchain-bindings/node"
 	notaryBinding "github.com/relab/bbchain-bindings/notary"
 )
 
@@ -202,10 +203,15 @@ func DeployFaculty(opts *bind.TransactOpts, backend *ethclient.Client, owners []
 
 // LinkAndDeploy links a contract with the given libraries and deploy it
 // using the default account
-func LinkAndDeploy(opts *bind.TransactOpts, backend *ethclient.Client, contractABI, contractBin string, libs map[string]string, waitConfirmation bool, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
+func LinkAndDeploy(opts *bind.TransactOpts, backend *ethclient.Client, contractABI, contractBin string, deployedLibs map[string]string, waitConfirmation bool, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
 	log.Infof("Deployer: %s balance: %v\n", opts.From.Hex(), transactor.GetBalance(opts.From, backend))
 
-	if len(libs) > 0 {
+	if len(deployedLibs) > 0 {
+		// FIXME: refactor this
+		libs, err := deployer.FindLinkReferences(deployedLibs, nodeBinding.NodeLinkReferences)
+		if err != nil {
+			return common.Address{}, nil, nil, err
+		}
 		contractBin = deployer.LinkContract(contractBin, libs)
 	}
 

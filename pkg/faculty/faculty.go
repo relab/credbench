@@ -31,7 +31,11 @@ func NewFaculty(contractAddr common.Address, backend bind.ContractBackend) (*Fac
 	return &Faculty{n, contractAddr, cc}, nil
 }
 
-func DeployFaculty(auth *bind.TransactOpts, backend bind.ContractBackend, libs map[string]string, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, *Faculty, error) {
+func DeployFaculty(auth *bind.TransactOpts, backend bind.ContractBackend, deployedLibs map[string]string, owners []common.Address, quorum uint8) (common.Address, *types.Transaction, *Faculty, error) {
+	libs, err := deployer.FindLinkReferences(deployedLibs, bindings.FacultyLinkReferences)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
 	contractBin := deployer.LinkContract(bindings.FacultyBin, libs)
 
 	address, tx, _, err := deployer.DeployContract(auth, backend, bindings.FacultyABI, contractBin, owners, quorum)

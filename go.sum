@@ -273,7 +273,7 @@ github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084/go.mod h1:TjEm7z
 github.com/prometheus/tsdb v0.6.2-0.20190402121629-4f204dcbc150/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/prometheus/tsdb v0.7.1 h1:YZcsG11NqnK4czYLrWd9mpEuAJIHVQLwdrleYfszMAA=
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
-github.com/relab/bbchain-bindings v1.0.0 h1:knlyWZayrzlgxuQbvHQTWOeTfC7kCVUzfnKesNTVrIU=
+github.com/relab/bbchain-bindings v1.0.0 h1:GwN8DPj/7myxRWK+NqbhNVJeNLflLQj9AqlBRZksMr0=
 github.com/relab/bbchain-bindings v1.0.0/go.mod h1:xJh2I7KPYwneLddn1SNpw1liPTiUZ86QvdHEdHgpL1A=
 github.com/rjeczalik/notify v0.9.1 h1:CLCKso/QK1snAlnhNR/CNvNiFU2saUtjV0bx3EwNeCE=
 github.com/rjeczalik/notify v0.9.1/go.mod h1:rKwnCoCGeuQnwBtTSPL9Dad03Vh2n40ePRrjvIXnJho=
