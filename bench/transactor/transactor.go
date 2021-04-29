@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/relab/ct-eth-dapp/bench/eth"
 	"github.com/relab/ct-eth-dapp/bench/metrics"
+	"github.com/relab/ct-eth-dapp/pkg/deployer"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"
@@ -21,22 +23,20 @@ import (
 // Transactor keep gas metrics per account
 type Transactor struct {
 	backend *ethclient.Client
-	Metrics chan metrics.UsageMetric
+	Stats   *metrics.Stats
 }
 
-func NewTransactor(backend *ethclient.Client) *Transactor {
+func NewTransactor(backend *ethclient.Client, gasLimit, gasPrice *big.Int) *Transactor {
 	return &Transactor{
 		backend: backend,
-		Metrics: make(chan metrics.UsageMetric),
+		Stats:   metrics.NewStatsTracker(gasLimit, gasPrice),
 	}
-}
-
-func (t *Transactor) Close() {
-	close(t.Metrics)
 }
 
 // SendTX performs a raw transaction and collect gas metrics
 func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contractAddress common.Address, contractABI string, method string, params ...interface{}) (*types.Transaction, error) {
+	sendTime := time.Now().UnixNano()
+
 	parsedABI, err := abi.JSON(strings.NewReader(contractABI))
 	if err != nil {
 		return nil, err
@@ -64,13 +64,31 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 		return nil, err
 	}
 
+	// async wait for tx confirmation
+	go func() {
+		receipt, err := deployer.WaitTxReceipt(context.TODO(), t.backend, tx, 2*time.Minute)
+		if err != nil {
+			log.Errorf("Execution error in tx %x: %v\n", tx.Hash(), err)
+			return
+		}
+		// we compute the performance metrics of any executed transactions
+		latency := time.Now().UnixNano() - sendTime
+		t.Stats.AddLatency(time.Duration(latency))
+		if gas != receipt.GasUsed {
+			log.Warnf("Gas estimation differs | estimated: %v used:%v\n", gas, receipt.GasUsed)
+		}
+		if receipt.Status == types.ReceiptStatusFailed {
+			log.Errorf("Tx %x execution failed with receipt logs: %v\n", tx.Hash(), receipt.Logs)
+		}
+	}()
+
 	// https://ethereum.github.io/yellowpaper/paper.pdf
 	// log.Debugf("Gas Usage per execution: %d Gas\n", gas-21000) // subtract minimum transaction cost
 	gasCost := eth.CalculateGasCost(gas, tx.GasPrice())
 	log.Debugf("Gas Cost (ether): %v\n", eth.WeiToEther(gasCost))
 	// TODO: Estimate Fiat value (USD and NOK)
 
-	metric := metrics.UsageMetric{
+	metric := metrics.TXMetric{
 		Contract: contractName,
 		CAddress: contractAddress.Hex(),
 		Sender:   opts.From.Hex(),
@@ -87,8 +105,7 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 		s := params[0].(common.Address)
 		metric.Subject = s.Hex()
 	}
-
-	t.Metrics <- metric
+	t.Stats.AddTXMetric(metric)
 
 	log.Infof("Tx sent: %x\n", tx.Hash())
 	return tx, nil
@@ -124,7 +141,7 @@ func (t *Transactor) Deploy(opts *bind.TransactOpts, backend bind.ContractBacken
 	gasCost := eth.CalculateGasCost(gas, tx.GasPrice())
 	log.Debugf("Gas Cost (ether): %v\n", eth.WeiToEther(gasCost))
 
-	metric := metrics.UsageMetric{
+	metric := metrics.TXMetric{
 		Contract: parsed.Constructor.Name,
 		CAddress: address.Hex(),
 		Sender:   opts.From.Hex(),
@@ -135,6 +152,7 @@ func (t *Transactor) Deploy(opts *bind.TransactOpts, backend bind.ContractBacken
 			GasCostWei: gasCost,
 		},
 	}
-	t.Metrics <- metric
+	t.Stats.AddTXMetric(metric)
+
 	return address, tx, c, nil
 }

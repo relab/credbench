@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"math/big"
 	"os"
 	"os/user"
 	"path"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/relab/ct-eth-dapp/bench/database"
 	"github.com/relab/ct-eth-dapp/bench/datastore"
+	"github.com/relab/ct-eth-dapp/bench/genesis"
 	"github.com/relab/ct-eth-dapp/bench/transactor"
 	"github.com/relab/ct-eth-dapp/pkg/client"
 	"github.com/relab/ct-eth-dapp/pkg/fileutils"
@@ -37,6 +39,8 @@ var (
 	dbPath         string
 	dbFile         string
 	consensus      string
+	gasLimit       *big.Int
+	gasPrice       *big.Int
 )
 
 var (
@@ -62,7 +66,12 @@ var rootCmd = &cobra.Command{
 		}
 		backend, _ = clientConn.Backend()
 		// default transaction runner
-		executor = transactor.NewTransactor(backend)
+		gasLimit = big.NewInt(0)
+		if _, ok := gasLimit.SetString(genesis.GasLimit, 10); !ok {
+			log.Fatal("Error setting the gas limit")
+		}
+		gasPrice = defaultGasPrice()
+		executor = transactor.NewTransactor(backend, gasLimit, gasPrice)
 	},
 	PersistentPostRun: func(_ *cobra.Command, _ []string) {
 		db.Close()
@@ -227,6 +236,11 @@ func defaultDatadir() string {
 
 func defaultIPC() string {
 	return filepath.Join(datadir, "/geth.ipc")
+}
+
+func defaultGasPrice() *big.Int {
+	gasPrice, _ := new(big.Int).SetString("20000000000", 10)
+	return gasPrice
 }
 
 func loadDefaultAccount() error {

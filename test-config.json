@@ -1,6 +1,6 @@
 {
     "total_accounts": 100,
-    "account_distribution": "",
+    "account_distribution": "random",
     "faculties": 1,
     "faculty_members": 1,
     "semesters": 1,

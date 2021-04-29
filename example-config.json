@@ -1,25 +1,25 @@
 {
-    "backend": {
-      "host": "127.0.0.1",
-      "ipc": "",
-      "port": "8545",
-      "wait_peers": false
-    },
-    "chain": {
-      "consensus": "poa",
-      "genesis": "<path_to>/dev_datadir/genesis.json"
-    },
-    "database": {
-      "filename": "cteth.db",
-      "path": "<path_to>/dev_datadir/database"
-    },
-    "datadir": "<path_to>/dev_datadir",
-    "default_account": "",
-    "deployed_libs": {
-      "aggregator": "",
-      "notary": ""
-    },
-    "test": {
-      "config": "<path_to>/test-config.json"
-    }
+  "backend": {
+    "host": "127.0.0.1",
+    "ipc": "",
+    "port": "8545",
+    "wait_peers": false
+  },
+  "chain": {
+    "consensus": "poa",
+    "genesis": "<path_to>/dev_datadir/genesis.json"
+  },
+  "database": {
+    "filename": "cteth.db",
+    "path": "<path_to>/dev_datadir/database"
+  },
+  "datadir": "<path_to>/dev_datadir",
+  "default_account": "",
+  "deployed_libs": {
+    "aggregator": "",
+    "notary": ""
+  },
+  "test": {
+    "config": "<path_to>/test-config.json"
   }
+}
