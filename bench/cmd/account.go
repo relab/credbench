@@ -3,7 +3,6 @@ package cmd
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"math/big"
 
 	log "github.com/sirupsen/logrus"
 
@@ -11,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
+	"github.com/relab/ct-eth-dapp/bench/eth"
 	"github.com/relab/ct-eth-dapp/bench/genesis"
 	pb "github.com/relab/ct-eth-dapp/bench/proto"
-	"github.com/relab/ct-eth-dapp/bench/transactor"
 )
 
 var createAccountCmd = &cobra.Command{
@@ -70,17 +69,17 @@ var importAccountCmd = &cobra.Command{
 	},
 }
 
-func balance(address common.Address) *big.Float {
-	return transactor.GetBalance(address, backend)
-}
-
 var getBalanceCmd = &cobra.Command{
 	Use:   "balance",
 	Short: "Get balance of an account",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		address := common.HexToAddress(args[0])
-		fmt.Printf("Balance of account %s: %v\n", args[0], balance(address))
+		balance, err := eth.GetBalance(address, backend)
+		if err != nil {
+			log.Error(err)
+		}
+		fmt.Printf("Balance of account %s: %v\n", args[0], balance)
 	},
 }
 
@@ -94,6 +93,10 @@ var getAccountCmd = &cobra.Command{
 		if err != nil {
 			log.Error(err)
 		}
+		balance, err := eth.GetBalance(address, backend)
+		if err != nil {
+			log.Error(err)
+		}
 		fmt.Printf("Account Info:\n")
 		fmt.Printf("\tAddress: %s\n", address.Hex())
 		fmt.Printf("\tHexKey: %s\n", account.HexKey)
@@ -103,7 +106,7 @@ var getAccountCmd = &cobra.Command{
 		for _, c := range account.Contracts {
 			fmt.Printf("\t  %s\n", common.BytesToAddress(c).Hex())
 		}
-		fmt.Printf("\tBalance: %v (ether)\n", balance(address))
+		fmt.Printf("\tBalance: %v (ether)\n", balance)
 	},
 }
 

@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/relab/ct-eth-dapp/bench/transactor"
+	"github.com/relab/ct-eth-dapp/bench/eth"
 	"github.com/relab/ct-eth-dapp/pkg/accounts"
 	"github.com/relab/ct-eth-dapp/pkg/deployer"
 
@@ -204,7 +204,11 @@ func DeployFaculty(opts *bind.TransactOpts, backend *ethclient.Client, owners []
 // LinkAndDeploy links a contract with the given libraries and deploy it
 // using the default account
 func LinkAndDeploy(opts *bind.TransactOpts, backend *ethclient.Client, contractABI, contractBin string, deployedLibs map[string]string, waitConfirmation bool, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
-	log.Infof("Deployer: %s balance: %v\n", opts.From.Hex(), transactor.GetBalance(opts.From, backend))
+	balance, err := eth.GetBalance(opts.From, backend)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	log.Infof("Deployer: %s balance: %v\n", opts.From.Hex(), balance)
 
 	if len(deployedLibs) > 0 {
 		// FIXME: refactor this

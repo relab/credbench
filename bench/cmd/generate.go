@@ -21,6 +21,7 @@ import (
 
 	"github.com/relab/ct-eth-dapp/bench/datastore"
 	"github.com/relab/ct-eth-dapp/bench/genesis"
+	"github.com/relab/ct-eth-dapp/bench/metrics"
 	"github.com/relab/ct-eth-dapp/bench/testconfig"
 	"github.com/relab/ct-eth-dapp/bench/transactor"
 	"github.com/relab/ct-eth-dapp/pkg/deployer"
@@ -490,7 +491,7 @@ func run_faculty(key []byte, done chan struct{}) {
 				log.Fatal("Error setting the gas limit")
 			}
 			gasPrice, _ := new(big.Int).SetString("20000000000", 10)
-			logger := transactor.NewTXLogger(gasLimit, gasPrice)
+			logger := metrics.NewTXLogger(gasLimit, gasPrice)
 			logFilename := filepath.Join(ldir, fmt.Sprintf("log_%d_%x.log", i, s))
 			err := logger.SaveMetric(logFilename, runner.Metrics)
 			if err != nil {
