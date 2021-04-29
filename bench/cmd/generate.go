@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -35,8 +36,8 @@ var testConfig testconfig.TestConfig
 
 // Generate the test case by deploying the certification tree.
 // It deploy faculty and course contracts, and assign evaluators/owners.
-var generateTestCmd = &cobra.Command{
-	Use:   "generate",
+var generateTestCaseCmd = &cobra.Command{
+	Use:   "tests",
 	Short: "Generate test case",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Infoln("Reading test case configuration at:", testFile)
@@ -51,6 +52,62 @@ var generateTestCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 	},
+}
+
+func generateTestConfigCmd() *cobra.Command {
+	var accountDistribution string
+	var totalAccounts, faculties, adms, semesters, courses, evaluators, exams, students int
+
+	c := &cobra.Command{
+		Use:   "case",
+		Short: "Generate test case config file",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return errors.New("please specify the file name for the test case file")
+			}
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			testCaseFileName := args[0]
+			log.Infoln("Generating test case configuration at:", testCaseFileName)
+			var err error
+			err = testconfig.GenConfigFile(testCaseFileName, accountDistribution, totalAccounts, faculties, adms, semesters, courses, evaluators, exams, students)
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	c.Flags().StringVarP(&accountDistribution, "accDistribution", "d", "random", "Account selection mechanism (random|sequential)")
+	c.Flags().IntVarP(&totalAccounts, "totalAccounts", "t", 100, "Total number of accounts")
+	c.Flags().IntVarP(&faculties, "faculties", "f", 1, "Number of faculties in the certification tree")
+	c.Flags().IntVarP(&adms, "adms", "a", 1, "Number of faculty members")
+	c.Flags().IntVarP(&semesters, "semesters", "p", 1, "Number of semesters")
+	c.Flags().IntVarP(&courses, "courses", "c", 3, "Number of courses in the certification tree")
+	c.Flags().IntVarP(&evaluators, "evaluators", "e", 1, "Number of evaluators per course")
+	c.Flags().IntVarP(&exams, "exams", "x", 2, "Number of exams per student per course")
+	c.Flags().IntVarP(&students, "students", "s", 20, "Number of students per course")
+	return c
+}
+
+func generateTestCmd() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "generate",
+		Short: "Manage tests cases generation",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			rootCmd.PersistentPreRun(cmd, args)
+			err := loadDefaultAccount()
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
+
+	c.AddCommand(
+		generateTestCaseCmd,
+		generateTestConfigCmd(),
+	)
+	return c
 }
 
 func setupTestCase() error {
@@ -758,7 +815,7 @@ func newTestCmd() *cobra.Command {
 	}
 
 	testCmd.AddCommand(
-		generateTestCmd,
+		generateTestCmd(),
 		runTestCmd,
 		newGenAccountsCmd(),
 	)

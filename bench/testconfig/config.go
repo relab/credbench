@@ -26,3 +26,25 @@ func LoadConfig(filename string) (config TestConfig, err error) {
 	err = json.NewDecoder(file).Decode(&config)
 	return
 }
+
+func GenConfigFile(filename string, accountDistribution string, totalAccounts, faculties, adms, semesters, courses, evaluators, exams, students int) error {
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+
+	config := TestConfig{
+		TotalAccounts:       totalAccounts,
+		AccountDistribution: accountDistribution,
+		Faculties:           faculties,
+		FacultyMembers:      adms,
+		Semesters:           semesters,
+		Courses:             courses,
+		Evaluators:          evaluators,
+		Exams:               exams,
+		Students:            students,
+	}
+
+	return json.NewEncoder(file).Encode(config)
+}
