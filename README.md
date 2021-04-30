@@ -43,7 +43,7 @@ $ ganache-cli --deterministic\
 If you prefer, you can use geth instead of [ganache](https://truffleframework.com/ganache) using the command below.
 ```
 $ ./genesis-gen.sh
-$ geth --networkid=42 --nodiscover\
+$ geth --networkid=5777 --nodiscover\
 	 --rpc --rpcport=8545 --ws --wsport=8546\
 	 --rpccorsdomain="*" --datadir ./dev_datadir --dev.period 0\
 	 --miner.gasprice=20000000000 --miner.gastarget=6721975\

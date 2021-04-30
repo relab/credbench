@@ -52,7 +52,7 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 		Value:    opts.Value,
 		Data:     input,
 	}
-	gas, err := t.backend.EstimateGas(context.TODO(), msg)
+	gasLimit, err := t.backend.EstimateGas(context.TODO(), msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to estimate gas needed: %v", err)
 	}
@@ -66,7 +66,7 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 
 	// async wait for tx confirmation
 	go func() {
-		receipt, err := deployer.WaitTxReceipt(context.TODO(), t.backend, tx, 2*time.Minute)
+		receipt, err := deployer.WaitTxReceipt(context.TODO(), t.backend, tx, 1*time.Minute)
 		if err != nil {
 			log.Errorf("Execution error in tx %x: %v\n", tx.Hash(), err)
 			return
@@ -74,8 +74,8 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 		// we compute the performance metrics of any executed transactions
 		latency := time.Now().UnixNano() - sendTime
 		t.Stats.AddLatency(time.Duration(latency))
-		if gas != receipt.GasUsed {
-			log.Warnf("Gas estimation differs | estimated: %v used:%v\n", gas, receipt.GasUsed)
+		if gasLimit != receipt.GasUsed {
+			log.Warnf("Gas estimation differs | estimated: %v used:%v\n", gasLimit, receipt.GasUsed)
 		}
 		if receipt.Status == types.ReceiptStatusFailed {
 			log.Errorf("Tx %x execution failed with receipt logs: %v\n", tx.Hash(), receipt.Logs)
@@ -84,7 +84,7 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 
 	// https://ethereum.github.io/yellowpaper/paper.pdf
 	// log.Debugf("Gas Usage per execution: %d Gas\n", gas-21000) // subtract minimum transaction cost
-	gasCost := eth.CalculateGasCost(gas, tx.GasPrice())
+	gasCost := eth.CalculateGasCost(gasLimit, tx.GasPrice())
 	log.Debugf("Gas Cost (ether): %v\n", eth.WeiToEther(gasCost))
 	// TODO: Estimate Fiat value (USD and NOK)
 
@@ -94,7 +94,7 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 		Sender:   opts.From.Hex(),
 		Method:   method,
 		Gas: metrics.GasMetric{
-			GasUsed:    new(big.Int).SetUint64(gas),
+			GasUsed:    new(big.Int).SetUint64(gasLimit),
 			GasPrice:   tx.GasPrice(),
 			GasCostWei: gasCost,
 		},

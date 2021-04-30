@@ -191,7 +191,7 @@ func setupDB(dbpath, dbfile string) (err error) {
 	if err != nil {
 		return err
 	}
-	accountStore = datastore.NewEthAccountStore(db)
+	accountStore = datastore.NewEthAccountStore(db, big.NewInt(int64(genesis.ChainID)))
 
 	err = datastore.CreateCourseStore(db)
 	if err != nil {

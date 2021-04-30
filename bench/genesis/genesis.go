@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	ChainID        = 42
+	ChainID        = 5777
 	Difficulty     = "1"
 	GasLimit       = "6721975"
 	DefaultBalance = "100000000000000000000"

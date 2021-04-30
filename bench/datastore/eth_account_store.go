@@ -28,16 +28,23 @@ var ethAccountsBucket = "eth_accounts"
 
 // EthAccountStore implements account store for ethereum accounts
 type EthAccountStore struct {
-	lock sync.Mutex
-	ds   DataStore
+	lock    sync.Mutex
+	ds      DataStore
+	chainID *big.Int
 }
 
 func CreateEthAccountStore(db *database.BoltDB) error {
 	return db.CreateBucketPath(ethAccountsBucket)
 }
 
-func NewEthAccountStore(db *database.BoltDB) *EthAccountStore {
-	return &EthAccountStore{ds: DataStore{db: db, path: ethAccountsBucket}}
+func NewEthAccountStore(db *database.BoltDB, chainID *big.Int) *EthAccountStore {
+	return &EthAccountStore{
+		ds: DataStore{
+			db:   db,
+			path: ethAccountsBucket,
+		},
+		chainID: chainID,
+	}
 }
 
 func (as *EthAccountStore) GetTxOpts(key []byte, backend bind.ContractBackend) (*bind.TransactOpts, error) {
@@ -64,10 +71,12 @@ func (as *EthAccountStore) GetTxOpts(key []byte, backend bind.ContractBackend) (
 	}
 
 	pk := ctaccounts.HexToKey(account.HexKey)
-	transactOpts := bind.NewKeyedTransactor(pk)
+	transactOpts, err := bind.NewKeyedTransactorWithChainID(pk, as.chainID)
+	if err != nil {
+		return nil, err
+	}
 	transactOpts.GasLimit = uint64(6721975) // FIXME: get from config file
 	transactOpts.GasPrice = gasPrice
-	// Note: overflow may happen when converting uint64 to int64
 	transactOpts.Nonce = new(big.Int).SetUint64(account.Nonce)
 
 	err = as.incNonce(account)

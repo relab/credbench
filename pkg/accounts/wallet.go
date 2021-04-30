@@ -31,9 +31,10 @@ type wallet struct {
 	privateKey *ecdsa.PrivateKey
 	keyStore   *keystore.KeyStore
 	unlocked   bool
+	chainID    *big.Int
 }
 
-func NewWallet(accountAddr common.Address, keystoreDir string) (Wallet, error) {
+func NewWallet(accountAddr common.Address, keystoreDir string, chainID *big.Int) (Wallet, error) {
 	var account ethAccounts.Account
 	var err error
 
@@ -63,40 +64,8 @@ func NewWallet(accountAddr common.Address, keystoreDir string) (Wallet, error) {
 		privateKey: key,
 		keyStore:   keyStore,
 		unlocked:   false,
+		chainID:    chainID,
 	}, nil
-}
-
-func ImportKey(hexkey string, keyStore *keystore.KeyStore) (Wallet, error) {
-	key, err := crypto.HexToECDSA(hexkey)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing the private key: %v", err)
-	}
-
-	password, _ := getPassword(true)
-	account, err := keyStore.ImportECDSA(key, password)
-	if err != nil {
-		return nil, fmt.Errorf("Error importing the private key: %v", err)
-	}
-
-	log.Infof("Account address %v successfully imported\n", account.Address.Hex())
-	return &wallet{
-		account:    account,
-		privateKey: key,
-		keyStore:   keyStore,
-		unlocked:   true,
-	}, nil
-}
-
-func NewAccount(keystoreDir string) (err error) {
-	var account ethAccounts.Account
-
-	keyStore := keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP)
-	account, err = createAccount(keyStore)
-	if err != nil {
-		return err
-	}
-	log.Infof("Account created: %v\n", account.Address.Hex())
-	return nil
 }
 
 func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, error) {
@@ -110,11 +79,15 @@ func (w *wallet) GetTxOpts(backend bind.ContractBackend) (*bind.TransactOpts, er
 		return nil, err
 	}
 
-	transactOpts := bind.NewKeyedTransactor(w.privateKey)
+	// EIP155 replay protected TX
+	// https://github.com/ethereum/go-ethereum/pull/22339
+	transactOpts, err := bind.NewKeyedTransactorWithChainID(w.privateKey, w.chainID)
+	if err != nil {
+		return nil, err
+	}
 	transactOpts.GasLimit = uint64(6721975) // FIXME: get from config file
 	transactOpts.GasPrice = gasPrice
 
-	// Note: overflow may happen when converting uint64 to int64
 	transactOpts.Nonce = new(big.Int).SetUint64(nonce)
 	return transactOpts, nil
 }
@@ -167,6 +140,39 @@ func (w *wallet) HexAddress() string {
 
 func (w *wallet) PrivateKey() *ecdsa.PrivateKey {
 	return w.privateKey
+}
+
+func ImportKey(hexkey string, keyStore *keystore.KeyStore) (Wallet, error) {
+	key, err := crypto.HexToECDSA(hexkey)
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing the private key: %v", err)
+	}
+
+	password, _ := getPassword(true)
+	account, err := keyStore.ImportECDSA(key, password)
+	if err != nil {
+		return nil, fmt.Errorf("Error importing the private key: %v", err)
+	}
+
+	log.Infof("Account address %v successfully imported\n", account.Address.Hex())
+	return &wallet{
+		account:    account,
+		privateKey: key,
+		keyStore:   keyStore,
+		unlocked:   true,
+	}, nil
+}
+
+func NewAccount(keystoreDir string) (err error) {
+	var account ethAccounts.Account
+
+	keyStore := keystore.NewKeyStore(keystoreDir, keystore.StandardScryptN, keystore.StandardScryptP)
+	account, err = createAccount(keyStore)
+	if err != nil {
+		return err
+	}
+	log.Infof("Account created: %v\n", account.Address.Hex())
+	return nil
 }
 
 func GetAccountAddress(addr string, keystoreDir string) common.Address {

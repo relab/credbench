@@ -14,14 +14,15 @@ echo "Using benchmark config: ${BENCH_CONFIG}"
 
 function generate_genesis() {
   echo "Removing development datadir..."
-  rm -rf dev_datadir
+  rm -rf ./dev_datadir
 
   TEST_CONFIG="${1:-test-config.json}"
   echo "Using test config: ${TEST_CONFIG}"
 
   ${BENCH_BIN} --config ${BENCH_CONFIG} genesis $(jq -r '.total_accounts' ${TEST_CONFIG})
 
-  geth --networkid=42 --nodiscover --datadir=./dev_datadir init dev_datadir/genesis.json
+  geth --networkid=5777 --nodiscover \
+    --datadir=./dev_datadir init ./dev_datadir/genesis.json
 }
 
 # | Courses | Exams per Course | Students |
@@ -44,11 +45,20 @@ function generate_test_config() {
 }
 
 function run_geth() {
-  geth --networkid=42 --nodiscover --rpc --rpcport=8545 --ws --wsport=8546 --rpccorsdomain="*" --datadir ./dev_datadir --dev.period 0 --miner.gasprice=${GAS_PRICE} --miner.gastarget=${GAS_LIMIT} --miner.gaslimit=${GAS_LIMIT} --verbosity 5 --mine --miner.etherbase $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) --miner.noverify --maxpeers 0 --password ./dev_datadir/password.txt --unlock $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) --allow-insecure-unlock
+  geth --networkid=5777 --nodiscover --http --http.api=admin,debug,web3,eth,txpool,personal,clique,miner,net \
+    --http.port=8545 --ws --ws.port=8546 --http.corsdomain="127.0.0.1" \
+    --datadir ./dev_datadir --dev.period 0 --miner.gasprice=${GAS_PRICE} \
+    --miner.gastarget=${GAS_LIMIT} --miner.gaslimit=${GAS_LIMIT} \
+    --verbosity 5 --mine \
+    --miner.etherbase $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) \
+    --miner.noverify --maxpeers 0 --password ./dev_datadir/password.txt \
+    --unlock $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) \
+    --allow-insecure-unlock
 }
 
 function run_ganache() {
-  ganache-cli --deterministic --host 127.0.0.1 --port 8545 --networkId 5777 --gasLimit ${GAS_LIMIT} --gasPrice ${GAS_PRICE}
+  ganache-cli --deterministic --host 127.0.0.1 --port 8545 \
+    --networkId 5777 --gasLimit ${GAS_LIMIT} --gasPrice ${GAS_PRICE}
 }
 
 usage() {
