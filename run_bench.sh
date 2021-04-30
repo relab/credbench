@@ -42,7 +42,7 @@ function generate_test_config() {
 function run_geth() {
   geth --networkid=5777 --nodiscover --http --http.api=admin,debug,web3,eth,txpool,personal,clique,miner,net \
     --http.port=8545 --ws --ws.port=8546 --http.corsdomain="127.0.0.1" \
-    --datadir ./dev_datadir --dev.period 0 --miner.gasprice=${GAS_PRICE} \
+    --datadir ./dev_datadir --dev --dev.period 2 --miner.gasprice=${GAS_PRICE} \
     --miner.gastarget=${GAS_LIMIT} --miner.gaslimit=${GAS_LIMIT} \
     --verbosity 5 --mine \
     --miner.etherbase $(jq -r '.alloc | keys_unsorted[0]' dev_datadir/genesis.json) \
