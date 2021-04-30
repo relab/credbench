@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Project directory
 BASE_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 BIN_DIR=${BASE_PATH}/dist
 BENCH_BIN=${BIN_DIR}/ctbench
@@ -21,18 +20,14 @@ function generate_genesis() {
 
   ${BENCH_BIN} --config ${BENCH_CONFIG} genesis $(jq -r '.total_accounts' ${TEST_CONFIG})
 
+  sleep 1
+
   geth --networkid=5777 --nodiscover \
     --datadir=./dev_datadir init ./dev_datadir/genesis.json
 }
 
-# | Courses | Exams per Course | Students |
-# |---------|------------------|----------|
-# | 10      | 2, 5             | 200      |
-# | 100     | 2, 5             | 200      |
-# | 1000    | 2                | 100      |
-
 function generate_test_config() {
-  echo "Creatinf test cases directory..."
+  echo "Creating test cases directory..."
   mkdir -p ./testcases
   for c in 10 100 1000; do
     for x in 2 5; do
@@ -66,8 +61,8 @@ usage() {
     echo 'options:'
     echo '    -genesis Generate genesis file'
     echo '    -testcase Generate test case configuration'
-    echo '    -ganache Runs pre-configure ganache'
-    echo '    -geth Runs pre-configure geth'
+    echo '    -ganache Run pre-configured ganache'
+    echo '    -geth Run pre-configured geth'
     echo
 }
 

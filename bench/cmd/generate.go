@@ -452,29 +452,26 @@ func runTestCase() error {
 	// test case runner
 	runner := transactor.NewTransactor(backend, gasLimit, gasPrice)
 	runner.Stats.Start()
-	defer runner.Stats.End()
 
-	wg := &sync.WaitGroup{}
-	wg.Add(len(keys))
 	for _, key := range keys {
-		go run_faculty(wg, runner, key, done)
+		go run_faculty(runner, key, done)
 	}
 
 	quit := 0
 	for range done {
 		quit++
 		if quit == testConfig.Faculties {
-			wg.Wait() // wait all faculties finish to write their logs
 			close(done)
 		}
 	}
 
+	runner.Stats.End()
 	stats := runner.Stats.GetBenchmarkResult()
 	fmt.Fprint(os.Stdout, stats.Format())
 	return nil
 }
 
-func run_faculty(wg *sync.WaitGroup, runner *transactor.Transactor, key []byte, done chan struct{}) {
+func run_faculty(runner *transactor.Transactor, key []byte, done chan struct{}) {
 	ldir := filepath.Join(logdir, fmt.Sprintf("/faculty_%x", key))
 	err := fileutils.CreateDir(ldir)
 	if err != nil {
@@ -488,12 +485,15 @@ func run_faculty(wg *sync.WaitGroup, runner *transactor.Transactor, key []byte, 
 	}
 
 	// Semesters are necessarily sequential
+	wg := &sync.WaitGroup{}
+	wg.Add(len(f.Semesters))
 	for i, s := range f.Semesters {
+		stop := make(chan struct{})
 		// start logger
 		go func() {
 			defer wg.Done()
-			logFilename := filepath.Join(ldir, fmt.Sprintf("log_%d_%x.log", i, s))
-			err := runner.Stats.StartLogger(logFilename)
+			logFilename := filepath.Join(ldir, fmt.Sprintf("log_%d_%x.log", i+1, s))
+			err := runner.Stats.Log(logFilename, stop)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -510,7 +510,9 @@ func run_faculty(wg *sync.WaitGroup, runner *transactor.Transactor, key []byte, 
 		if err != nil {
 			log.Error(err)
 		}
+		stop <- struct{}{}
 	}
+	wg.Wait()
 	done <- struct{}{}
 }
 

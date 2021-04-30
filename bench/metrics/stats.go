@@ -46,6 +46,7 @@ type TXMetric struct {
 	Subject  string
 	Method   string
 	Gas      GasMetric
+	Latency  int64
 }
 
 func (u TXMetric) String() string {
@@ -64,9 +65,8 @@ type Stats struct {
 	startMs   runtime.MemStats
 	endMs     runtime.MemStats
 
-	count    uint64
-	mean, m2 float64
-
+	count     uint64
+	mean, m2  float64
 	totalGas  *big.Int
 	gasLimit  *big.Int
 	gasPrice  *big.Int
@@ -75,45 +75,11 @@ type Stats struct {
 
 func NewStatsTracker(gasLimit, gasPrice *big.Int) *Stats {
 	return &Stats{
+		totalGas:  big.NewInt(0),
 		gasLimit:  gasLimit,
 		gasPrice:  gasPrice,
 		txMetrics: make(chan TXMetric),
 	}
-}
-
-func (s *Stats) StartLogger(filename string) error {
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	logger := log.New()
-	logger.SetOutput(f)
-	logger.SetLevel(log.InfoLevel)
-	logger.SetFormatter(new(LogEntryFormatter))
-	var n uint = 0
-	for m := range s.txMetrics {
-		entry := log.Fields{
-			"contract": m.Contract,
-			"address":  m.CAddress,
-			"sender":   m.Sender,
-			"method":   m.Method,
-			"gasUsed":  m.Gas.GasUsed,
-			"gasCost":  m.Gas.GasCostWei,
-		}
-		if len(m.Subject) > 0 {
-			entry["subject"] = m.Subject
-		}
-		logger.WithFields(entry).Info()
-		n++
-	}
-	logger.WithFields(log.Fields{
-		"totalEntries": n,
-		"gasPrice":     s.gasPrice,
-		"gasLimit":     s.gasLimit,
-	}).Info()
-	return nil
 }
 
 // Start records the start time and memory stats
@@ -135,16 +101,55 @@ func (s *Stats) End() {
 	close(s.txMetrics)
 }
 
-func (s *Stats) AddTXMetric(m TXMetric) {
-	s.mx.Lock()
-	s.totalGas.Add(s.totalGas, m.Gas.GasUsed)
-	s.mx.Unlock()
+func (s *Stats) Log(filename string, stop chan struct{}) error {
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
-	s.txMetrics <- m
+	logger := log.New()
+	logger.SetOutput(f)
+	logger.SetLevel(log.InfoLevel)
+	logger.SetFormatter(new(LogEntryFormatter))
+	var n uint = 0
+	for {
+		select {
+		case m := <-s.txMetrics:
+			entry := log.Fields{
+				"contract": m.Contract,
+				"address":  m.CAddress,
+				"sender":   m.Sender,
+				"method":   m.Method,
+				"gasUsed":  m.Gas.GasUsed,
+				"gasCost":  m.Gas.GasCostWei,
+				"latency":  float64(m.Latency) / float64(time.Millisecond),
+			}
+			if len(m.Subject) > 0 {
+				entry["subject"] = m.Subject
+			}
+			logger.WithFields(entry).Info()
+			n++
+		case <-stop:
+			logger.WithFields(log.Fields{
+				"totalEntries": n,
+				"gasPrice":     s.gasPrice,
+				"gasLimit":     s.gasLimit,
+			}).Info()
+			return nil
+		}
+	}
 }
 
-// AddLatency adds a latency measurement
-func (s *Stats) AddLatency(l time.Duration) {
+func (s *Stats) AddTXMetric(m TXMetric) {
+	select {
+	case s.txMetrics <- m:
+	default:
+	}
+}
+
+// AddExecMetric adds tx execution measurement
+func (s *Stats) AddExecMetric(l time.Duration, gasUsed *big.Int) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
@@ -154,10 +159,11 @@ func (s *Stats) AddLatency(l time.Duration) {
 	s.mean += delta / float64(s.count)
 	delta2 := float64(l) - s.mean
 	s.m2 += delta * delta2
+	s.totalGas.Add(s.totalGas, gasUsed)
 }
 
 type BenchmarkResult struct {
-	TotalOps    uint64
+	TotalTxs    uint64
 	TotalGas    uint64
 	TotalTime   int64
 	Throughput  float64
@@ -173,7 +179,10 @@ func (br *BenchmarkResult) Format() string {
 	latencySD := math.Sqrt(br.LatencyVar) / float64(time.Millisecond)
 	latencyVariance := math.Pow(latencySD, 2)
 	b := new(strings.Builder)
-	fmt.Fprintf(b, "%.2f ops/sec\t", br.Throughput)
+	fmt.Fprintf(b, "%d txs\t", br.TotalTxs)
+	fmt.Fprintf(b, "%d gas\t", br.TotalGas)
+	fmt.Fprintf(b, "%.2f s\t", float64(time.Duration(br.TotalTime).Seconds()))
+	fmt.Fprintf(b, "%.2f tx/sec\t", br.Throughput)
 	fmt.Fprintf(b, "%.2f ms\t", latency)
 	fmt.Fprintf(b, "%.2f ms\t", latencySD)
 	fmt.Fprintf(b, "%.2f ms\t", latencyVariance)
@@ -188,16 +197,16 @@ func (s *Stats) GetBenchmarkResult() *BenchmarkResult {
 	defer s.mx.Unlock()
 
 	br := &BenchmarkResult{}
-	br.TotalOps = s.count
+	br.TotalTxs = s.count
 	br.TotalGas = s.totalGas.Uint64()
 	br.TotalTime = int64(s.endTime.Sub(s.startTime))
-	br.Throughput = float64(br.TotalOps) / float64(time.Duration(br.TotalTime).Seconds())
+	br.Throughput = float64(br.TotalTxs) / float64(time.Duration(br.TotalTime).Seconds())
 	br.LatencyAvg = s.mean
 	if s.count > 2 {
 		br.LatencyVar = s.m2 / float64(s.count-1)
 	}
-	br.AllocsPerOp = (s.endMs.Mallocs - s.startMs.Mallocs) / br.TotalOps
-	br.MemPerOp = (s.endMs.TotalAlloc - s.startMs.TotalAlloc) / br.TotalOps
+	br.AllocsPerOp = (s.endMs.Mallocs - s.startMs.Mallocs) / br.TotalTxs
+	br.MemPerOp = (s.endMs.TotalAlloc - s.startMs.TotalAlloc) / br.TotalTxs
 	return br
 }
 

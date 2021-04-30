@@ -71,41 +71,41 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 			log.Errorf("Execution error in tx %x: %v\n", tx.Hash(), err)
 			return
 		}
-		// we compute the performance metrics of any executed transactions
-		latency := time.Now().UnixNano() - sendTime
-		t.Stats.AddLatency(time.Duration(latency))
 		if gasLimit != receipt.GasUsed {
 			log.Warnf("Gas estimation differs | estimated: %v used:%v\n", gasLimit, receipt.GasUsed)
 		}
 		if receipt.Status == types.ReceiptStatusFailed {
 			log.Errorf("Tx %x execution failed with receipt logs: %v\n", tx.Hash(), receipt.Logs)
 		}
+		// we compute the performance metrics of any executed transactions
+		latency := time.Now().UnixNano() - sendTime
+		t.Stats.AddExecMetric(time.Duration(latency), new(big.Int).SetUint64(gasLimit))
+		// https://ethereum.github.io/yellowpaper/paper.pdf
+		// log.Debugf("Gas Usage per execution: %d Gas\n", gas-21000) // subtract minimum transaction cost
+		gasCost := eth.CalculateGasCost(gasLimit, tx.GasPrice())
+		log.Debugf("Gas Cost (ether): %v\n", eth.WeiToEther(gasCost))
+		// TODO: Estimate Fiat value (USD and NOK)
+
+		metric := metrics.TXMetric{
+			Contract: contractName,
+			CAddress: contractAddress.Hex(),
+			Sender:   opts.From.Hex(),
+			Method:   method,
+			Gas: metrics.GasMetric{
+				GasUsed:    new(big.Int).SetUint64(gasLimit),
+				GasPrice:   tx.GasPrice(),
+				GasCostWei: gasCost,
+			},
+			Latency: latency,
+		}
+
+		switch method {
+		case "registerCredential", "aggregateCredentials", "addStudent":
+			s := params[0].(common.Address)
+			metric.Subject = s.Hex()
+		}
+		t.Stats.AddTXMetric(metric)
 	}()
-
-	// https://ethereum.github.io/yellowpaper/paper.pdf
-	// log.Debugf("Gas Usage per execution: %d Gas\n", gas-21000) // subtract minimum transaction cost
-	gasCost := eth.CalculateGasCost(gasLimit, tx.GasPrice())
-	log.Debugf("Gas Cost (ether): %v\n", eth.WeiToEther(gasCost))
-	// TODO: Estimate Fiat value (USD and NOK)
-
-	metric := metrics.TXMetric{
-		Contract: contractName,
-		CAddress: contractAddress.Hex(),
-		Sender:   opts.From.Hex(),
-		Method:   method,
-		Gas: metrics.GasMetric{
-			GasUsed:    new(big.Int).SetUint64(gasLimit),
-			GasPrice:   tx.GasPrice(),
-			GasCostWei: gasCost,
-		},
-	}
-
-	switch method {
-	case "registerCredential", "aggregateCredentials", "addStudent":
-		s := params[0].(common.Address)
-		metric.Subject = s.Hex()
-	}
-	t.Stats.AddTXMetric(metric)
 
 	log.Infof("Tx sent: %x\n", tx.Hash())
 	return tx, nil
@@ -113,6 +113,8 @@ func (t *Transactor) SendTX(contractName string, opts *bind.TransactOpts, contra
 
 // Deploy performs a raw transaction to deploy a contract and collect gas metrics
 func (t *Transactor) Deploy(opts *bind.TransactOpts, backend bind.ContractBackend, contractABI string, contractCode string, params ...interface{}) (common.Address, *types.Transaction, *bind.BoundContract, error) {
+	sendTime := time.Now().UnixNano()
+
 	parsed, err := abi.JSON(strings.NewReader(contractABI))
 	if err != nil {
 		return common.Address{}, nil, nil, err
@@ -128,7 +130,7 @@ func (t *Transactor) Deploy(opts *bind.TransactOpts, backend bind.ContractBacken
 		Value:    opts.Value,
 		Data:     input,
 	}
-	gas, err := t.backend.EstimateGas(context.TODO(), msg)
+	gasLimit, err := t.backend.EstimateGas(context.TODO(), msg)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -138,21 +140,40 @@ func (t *Transactor) Deploy(opts *bind.TransactOpts, backend bind.ContractBacken
 		return common.Address{}, nil, nil, err
 	}
 
-	gasCost := eth.CalculateGasCost(gas, tx.GasPrice())
-	log.Debugf("Gas Cost (ether): %v\n", eth.WeiToEther(gasCost))
+	go func() {
+		receipt, err := deployer.WaitTxReceipt(context.TODO(), t.backend, tx, 1*time.Minute)
+		if err != nil {
+			log.Errorf("Execution error in tx %x: %v\n", tx.Hash(), err)
+			return
+		}
+		if gasLimit != receipt.GasUsed {
+			log.Warnf("Gas estimation differs | estimated: %v used:%v\n", gasLimit, receipt.GasUsed)
+		}
+		if receipt.Status == types.ReceiptStatusFailed {
+			log.Errorf("Tx %x execution failed with receipt logs: %v\n", tx.Hash(), receipt.Logs)
+		}
 
-	metric := metrics.TXMetric{
-		Contract: parsed.Constructor.Name,
-		CAddress: address.Hex(),
-		Sender:   opts.From.Hex(),
-		Method:   "deploy",
-		Gas: metrics.GasMetric{
-			GasUsed:    new(big.Int).SetUint64(gas),
-			GasPrice:   tx.GasPrice(),
-			GasCostWei: gasCost,
-		},
-	}
-	t.Stats.AddTXMetric(metric)
+		latency := time.Now().UnixNano() - sendTime
+		t.Stats.AddExecMetric(time.Duration(latency), new(big.Int).SetUint64(gasLimit))
+
+		gasCost := eth.CalculateGasCost(gasLimit, tx.GasPrice())
+		log.Debugf("Gas Cost (ether): %v\n", eth.WeiToEther(gasCost))
+
+		metric := metrics.TXMetric{
+			Contract: parsed.Constructor.Name,
+			CAddress: address.Hex(),
+			Sender:   opts.From.Hex(),
+			Method:   "deploy",
+			Gas: metrics.GasMetric{
+				GasUsed:    new(big.Int).SetUint64(gasLimit),
+				GasPrice:   tx.GasPrice(),
+				GasCostWei: gasCost,
+			},
+			Latency: latency,
+		}
+
+		t.Stats.AddTXMetric(metric)
+	}()
 
 	return address, tx, c, nil
 }
