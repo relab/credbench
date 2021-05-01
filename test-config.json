@@ -1,11 +1,11 @@
 {
-    "total_accounts": 100,
-    "account_distribution": "random",
+    "total_accounts": 10,
+    "account_distribution": "",
     "faculties": 1,
     "faculty_members": 1,
     "semesters": 1,
-    "courses": 3,
+    "courses": 1,
     "evaluators": 2,
     "exams": 5,
-    "students": 1
+    "students": 2
 }

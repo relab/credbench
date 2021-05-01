@@ -77,7 +77,7 @@ func generateTestConfigCmd() *cobra.Command {
 		},
 	}
 
-	c.Flags().StringVarP(&accountDistribution, "accDistribution", "d", "random", "Account selection mechanism (random|sequential)")
+	c.Flags().StringVarP(&accountDistribution, "accDistribution", "d", "", "Account selection mechanism (random|sequential)")
 	c.Flags().IntVarP(&totalAccounts, "totalAccounts", "t", 100, "Total number of accounts")
 	c.Flags().IntVarP(&faculties, "faculties", "f", 1, "Number of faculties in the certification tree")
 	c.Flags().IntVarP(&adms, "adms", "a", 1, "Number of faculty members")
