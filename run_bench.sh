@@ -10,7 +10,6 @@ GAS_PRICE=20000000000
 BENCH_CONFIG="${BENCH_CONFIG:-dev-config.json}"
 echo "Using benchmark config: ${BENCH_CONFIG}"
 
-
 function generate_genesis() {
   echo "Removing development datadir..."
   rm -rf ./dev_datadir

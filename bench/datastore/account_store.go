@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"encoding/hex"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -18,6 +19,8 @@ func ToETHAddress(byteAddresses [][]byte) []common.Address {
 	return addresses
 }
 
+// ToHex encodes the byte representation of a list of addresses to
+// a list of strings addresses with 0x prefix.
 func ToHex(byteAddresses [][]byte) []string {
 	addresses := make([]string, len(byteAddresses))
 	for i, a := range byteAddresses {
@@ -32,6 +35,12 @@ func AddressToBytes(address []common.Address) [][]byte {
 		addresses[i] = a.Bytes()
 	}
 	return addresses
+}
+
+// GetStringAddress returns the string represtation of the address
+// of an account without prepend the 0x prefix.
+func GetStringAddress(account *pb.Account) string {
+	return hex.EncodeToString(account.GetAddress())
 }
 
 // Accounts is a list of Accounts

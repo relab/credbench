@@ -14,7 +14,7 @@ BENCHPROTO_DIR = $(BENCH_DIR)/proto
 PKG_DIR = $(SRC_ROOT)/pkg
 PKGPROTO_DIR = $(PKG_DIR)/schemes
 
-all: tools build bench
+all: build bench
 
 bench: dist benchproto
 	@echo "+ building source"
@@ -37,6 +37,7 @@ pkgproto:
 
 .PHONY: tools
 tools:
+	@echo "+ installing tools"
 	@go mod download
 	@cat tools.go | grep _ | awk -F'"' '{print $$2}' | xargs -I % go install %
 

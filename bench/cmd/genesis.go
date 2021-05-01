@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"errors"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/relab/ct-eth-dapp/bench/genesis"
 	"github.com/spf13/cobra"
+
+	"github.com/relab/ct-eth-dapp/bench/datastore"
+	"github.com/relab/ct-eth-dapp/bench/genesis"
+	"github.com/relab/ct-eth-dapp/bench/helm"
+	pb "github.com/relab/ct-eth-dapp/bench/proto"
 )
 
 var genesisCmd = &cobra.Command{
@@ -19,6 +23,50 @@ var genesisCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		err = genesis.GenerateGenesis(datadir, consensus, accountStore, n)
+		if err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+func getAccountAddresses() ([]string, error) {
+	accounts, err := accountStore.All()
+	if err != nil {
+		return nil, err
+	}
+	return accounts.ToHex(), nil
+}
+
+var exportHelmCmd = &cobra.Command{
+	Use:   "helm",
+	Short: "Export helm file",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("please specify the number of replicas")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		replicaCount, err := strconv.Atoi(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		accounts, err := getAccountAddresses()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Get initial validator account
+		validators, err := accountStore.GetByType(1, pb.Type_SEALER)
+		if err != nil {
+			log.Fatal(err)
+		}
+		validatorAccount := validators[0]
+		// address without the 0x prefix
+		validatorAddress := datastore.GetStringAddress(validatorAccount)
+
+		err = helm.ExportHelmFile(datadir, genesis.ChainID, genesis.GasLimit, genesis.GasPrice, genesis.DefaultBalance, validatorAddress, validatorAccount.GetHexKey(), replicaCount, accounts)
 		if err != nil {
 			log.Fatal(err)
 		}

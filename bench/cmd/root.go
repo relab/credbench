@@ -83,6 +83,7 @@ func Execute() {
 	rootCmd.AddCommand(
 		listenCmd,
 		genesisCmd,
+		exportHelmCmd,
 		newTestCmd(),
 		newAccountCmd(),
 		newDeployCmd(),
@@ -105,7 +106,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&waitPeers, "wait_peers", false, "Minimum number of peers connected")
 	rootCmd.PersistentFlags().StringVar(&dbPath, "dbPath", "./database", "Path to the database file")
 	rootCmd.PersistentFlags().StringVar(&dbFile, "dbFile", "cteth.db", "File name of the database")
-	rootCmd.PersistentFlags().StringVar(&consensus, "consensus", "ethash", "Consensus engine: poa/ethash")
+	rootCmd.PersistentFlags().StringVar(&consensus, "consensus", "ethash", "Consensus engine: clique/ethash")
 	rootCmd.PersistentFlags().StringVar(&testFile, "testFile", "test-config.json", "test case config file")
 
 	cobra.OnInitialize(initConfig)
@@ -239,7 +240,7 @@ func defaultIPC() string {
 }
 
 func defaultGasPrice() *big.Int {
-	gasPrice, _ := new(big.Int).SetString("20000000000", 10)
+	gasPrice, _ := new(big.Int).SetString(genesis.GasPrice, 10)
 	return gasPrice
 }
 

@@ -6,7 +6,7 @@
     "wait_peers": false
   },
   "chain": {
-    "consensus": "poa",
+    "consensus": "clique",
     "genesis": "<path_to>/dev_datadir/genesis.json"
   },
   "database": {

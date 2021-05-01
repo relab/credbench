@@ -20,7 +20,10 @@ var (
 	ChainID        = 5777
 	Difficulty     = "1"
 	GasLimit       = "6721975"
+	GasPrice       = "20000000000"
 	DefaultBalance = "100000000000000000000"
+	CliquePeriod   = 0
+	CliqueEpoch    = 2000
 )
 
 type GenesisData struct {
@@ -31,7 +34,9 @@ type GenesisData struct {
 	N              int      // len(Accounts) - 1
 	Accounts       []string // Account addresses
 	ExtraData      hexutil.Bytes
-	POA            bool
+	Clique         bool
+	CliquePeriod   int
+	CliqueEpoch    int
 }
 
 func GenerateGenesis(datadirPath string, consensus string, accountStore *datastore.EthAccountStore, n int) error {
@@ -40,14 +45,14 @@ func GenerateGenesis(datadirPath string, consensus string, accountStore *datasto
 		return err
 	}
 	// Select one deployer (first account on the genesis)
-	// We are also using it as a signer on the poa
+	// We are also using it as a signer on the clique
 	deployer := accounts[0].Address
 	_, err = accountStore.SelectAccount(pb.Type_SEALER, deployer)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Configured POA Sealer: %s\n", common.BytesToAddress(accounts[0].Address).Hex())
+	log.Infof("Configured Clique Sealer/Validator: %s\n", common.BytesToAddress(accounts[0].Address).Hex())
 	genesisFile := filepath.Join(datadirPath, "genesis.json")
 	return createGenesisFile(genesisFile, newGenesisData(datadirPath, consensus, accounts))
 }
@@ -69,16 +74,19 @@ func newGenesisData(datadirPath string, consensus string, accounts datastore.Acc
 
 	// TODO select n signers accounts instead of only one
 	signersAccounts := datastore.Accounts{accounts[0]}
-	if consensus == "poa" {
+	if consensus == "clique" {
 		// same test password for all accounts
 		keystorePath := filepath.Join(datadirPath, "keystore")
 		signers := createSignersKeystore(keystorePath, signersAccounts, "123")
 		_ = createTestPasswordFile(datadirPath, "123")
-		// POA requires extradata to be the concatenation of 32 zero bytes,
+		// Clique is a proof-of-authority consensus.
+		// It requires extradata to be the concatenation of 32 zero bytes,
 		// all signer addresses (without 0x prefix) and 65 further zero bytes.
 		// https://geth.ethereum.org/docs/interface/private-network
 		extraData := make([]byte, 32+len(signers)*common.AddressLength+65)
-		genesis.POA = true
+		genesis.Clique = true
+		genesis.CliquePeriod = CliquePeriod
+		genesis.CliqueEpoch = CliqueEpoch
 		for i, signer := range signers {
 			byteAddr := common.HexToAddress(signer).Bytes()
 			copy(extraData[32+i*common.AddressLength:], byteAddr[:])
@@ -162,9 +170,9 @@ const genesisTmpl = `
         "byzantiumBlock": 0,
         "constantinopleBlock": 0,
         "petersburgBlock": 0,
-        {{if .POA }}"clique": {
-            "period": 0,
-            "epoch": 2000
+        {{if .Clique }}"clique": {
+            "period": {{ .CliquePeriod }},
+            "epoch": {{ .CliqueEpoch }}
         }{{ else }}"ethash": {}{{ end }}
     },
     "coinbase": "{{index .Accounts 0}}",
