@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/ethereum/go-ethereum v1.10.2
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.2
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/relab/bbchain-bindings v1.0.0
