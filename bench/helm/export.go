@@ -66,17 +66,19 @@ geth:
     http:
       enable: true
       port: 8545
+      addr: "0.0.0.0"
       api: debug,web3,eth,txpool,personal,clique,miner,net
-      corsdomains: "localhost"
-      vhosts: "localhost"
+      corsdomains: "*"
+      vhosts: "*"
     cache: "1024"
     ws:
       enable: true
       port: 8546
-      api: eth,net,web3,txpool
+      addr: "0.0.0.0"
+      api: eth,net,web3,txpool,personal
       origins: "*"
     mine: true
-    extraFlags: [--nousb --allow-insecure-unlock]
+    extraFlags: [--allow-insecure-unlock]
   genesis:
     difficulty: "0x1"
     gasLimit: "{{ .GasLimit }}"
