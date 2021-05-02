@@ -1,9 +1,9 @@
 package helm
 
 import (
+	"html/template"
 	"os"
 	"path/filepath"
-	"text/template"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -78,10 +78,10 @@ geth:
     mine: true
     extraFlags: [--nousb --allow-insecure-unlock]
   genesis:
-    difficulty: "1"
-    gasLimit: {{ .GasLimit }}
-    gasTarget: {{ .GasLimit }}
-    gasPrice: {{ .GasPrice }}
+    difficulty: "0x1"
+    gasLimit: "{{ .GasLimit }}"
+    gasTarget: "{{ .GasLimit }}"
+    gasPrice: "{{ .GasPrice }}"
     networkId: {{ .NetworkID }}
     clique:
       enable: {{ .EnableClique }}
@@ -92,11 +92,11 @@ geth:
     # https://geth.ethereum.org/docs/rpc/ns-clique
     validatorAddress: {{ .ValidatorAddress }}
     validatorKey: {{ .ValidatorKey }}
-  accounts:
-    {{- range $account := .Accounts }}
-    - address: "{{ $account.Address }}"
-      balance: "{{ $account.Balance }}"
-    {{- end }}
+    accounts:
+      {{- range $account := .Accounts }}
+      - address: "{{ $account.Address }}"
+        balance: "{{ $account.Balance }}"
+      {{- end }}
   persistence:
     enabled: {{ .EnablePersistence }}
     # storageClass: "-"

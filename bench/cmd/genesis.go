@@ -11,6 +11,7 @@ import (
 	"github.com/relab/ct-eth-dapp/bench/genesis"
 	"github.com/relab/ct-eth-dapp/bench/helm"
 	pb "github.com/relab/ct-eth-dapp/bench/proto"
+	"github.com/relab/ct-eth-dapp/pkg/accounts"
 )
 
 var genesisCmd = &cobra.Command{
@@ -52,7 +53,7 @@ var exportHelmCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		accounts, err := getAccountAddresses()
+		addresses, err := getAccountAddresses()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -63,10 +64,13 @@ var exportHelmCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		validatorAccount := validators[0]
-		// address without the 0x prefix
+		// address and hexkey should be without the 0x prefix
 		validatorAddress := datastore.GetStringAddress(validatorAccount)
-
-		err = helm.ExportHelmFile(datadir, genesis.ChainID, genesis.GasLimit, genesis.GasPrice, genesis.DefaultBalance, validatorAddress, validatorAccount.GetHexKey(), replicaCount, accounts)
+		validatorKey := validatorAccount.GetHexKey()
+		if accounts.Has0xPrefix(validatorKey) {
+			validatorKey = validatorKey[2:]
+		}
+		err = helm.ExportHelmFile(datadir, genesis.ChainID, genesis.GasLimit, genesis.GasPrice, genesis.DefaultBalance, validatorAddress, validatorKey, replicaCount, addresses)
 		if err != nil {
 			log.Fatal(err)
 		}
