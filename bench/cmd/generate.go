@@ -104,6 +104,7 @@ func generateTestCmd() *cobra.Command {
 
 	c.AddCommand(
 		generateTestCaseCmd,
+		// FIXME: remove dependency of config generation command from persistentPreRun setup
 		generateTestConfigCmd(),
 	)
 	return c
@@ -508,7 +509,7 @@ func run_faculty(runner *transactor.Transactor, key []byte, done chan struct{}) 
 		}
 		err = fs.AddStudent(students...)
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 		stop <- struct{}{}
 	}
@@ -591,32 +592,32 @@ func issueSemesterCredential(runner *transactor.Transactor, contract *faculty.Fa
 
 				opts, err := accountStore.GetTxOpts(adm.Address, backend)
 				if err != nil {
-					log.Error(err)
+					log.Fatal(err)
 				}
 
 				tx, err := registerSemesterCredential(runner, opts, contract, student, digest, witnesses)
 				if err != nil {
-					log.Error(err)
+					log.Fatal(err)
 				}
 
 				err = deployer.WaitTxConfirmation(context.Background(), backend, tx, 0)
 				if err != nil {
-					log.Error(err)
+					log.Fatal(err)
 				}
 			}
 			opts, err := accountStore.GetTxOpts(student.Bytes(), backend)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 
 			tx, err := approveSemesterCredential(runner, opts, contract, digest)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 
 			err = deployer.WaitTxConfirmation(context.TODO(), backend, tx, 0)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 		}(s, w)
 	}
@@ -635,17 +636,22 @@ func aggregateSemesters(runner *transactor.Transactor, contract *faculty.Faculty
 
 			digests, err := contract.GetDigests(nil, student)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 
 			opts, err := accountStore.GetTxOpts(adm, backend)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 
-			_, err = aggregateSemesterCredentials(runner, opts, contract, student, digests)
+			tx, err := aggregateSemesterCredentials(runner, opts, contract, student, digests)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
+			}
+
+			err = deployer.WaitTxConfirmation(context.TODO(), backend, tx, 0)
+			if err != nil {
+				log.Fatal(err)
 			}
 		}()
 	}
@@ -746,28 +752,28 @@ func issueExams(runner *transactor.Transactor, contract *course.Course, evaluato
 
 					tx, err := registerCourseCredential(runner, opts, contract, studentAddress, digest)
 					if err != nil {
-						log.Error(err)
+						log.Fatal(err)
 					}
 
 					err = deployer.WaitTxConfirmation(context.Background(), backend, tx, 0)
 					if err != nil {
-						log.Error(err)
+						log.Fatal(err)
 					}
 				}
 
 				opts, err := accountStore.GetTxOpts(student.Address, backend)
 				if err != nil {
-					log.Error(err)
+					log.Fatal(err)
 				}
 
 				tx, err := approveCourseCredential(runner, opts, contract, digest)
 				if err != nil {
-					log.Error(err)
+					log.Fatal(err)
 				}
 
 				err = deployer.WaitTxConfirmation(context.TODO(), backend, tx, 0)
 				if err != nil {
-					log.Error(err)
+					log.Fatal(err)
 				}
 			}
 		}(s)
@@ -785,17 +791,22 @@ func aggregateExams(runner *transactor.Transactor, contract *course.Course, eval
 
 			digests, err := contract.GetDigests(nil, student)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 
 			opts, err := accountStore.GetTxOpts(evaluator.Address, backend)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 
-			_, err = aggregateCourseCredentials(runner, opts, contract, student, digests)
+			tx, err := aggregateCourseCredentials(runner, opts, contract, student, digests)
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
+			}
+
+			err = deployer.WaitTxConfirmation(context.TODO(), backend, tx, 0)
+			if err != nil {
+				log.Fatal(err)
 			}
 		}()
 	}
