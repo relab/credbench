@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/relab/ct-eth-dapp/pkg/course"
+	"github.com/relab/credbench/pkg/course"
 	"github.com/spf13/cobra"
 )
 

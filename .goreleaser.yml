@@ -1,4 +1,4 @@
-project_name: ct-eth-dapp
+project_name: credbench
 
 builds:
   - id: linux
@@ -8,7 +8,7 @@ builds:
       - -v
       - -trimpath
     ldflags:
-      - -s -w -X github.com/relab/ct-eth-dapp.version={{.Version}} -X github.com/relab/ct-eth-dapp.commit={{.ShortCommit}}
+      - -s -w -X github.com/relab/credbench.version={{.Version}} -X github.com/relab/credbench.commit={{.ShortCommit}}
     env:
       - CGO_ENABLED=0
     goos:
@@ -27,7 +27,7 @@ builds:
       - -v
       - -trimpath
     ldflags:
-      - -s -w -X github.com/relab/ct-eth-dapp.version={{.Version}} -X github.com/relab/ct-eth-dapp.commit={{.ShortCommit}}
+      - -s -w -X github.com/relab/credbench.version={{.Version}} -X github.com/relab/credbench.commit={{.ShortCommit}}
     env:
       - CGO_ENABLED=0
     goos:

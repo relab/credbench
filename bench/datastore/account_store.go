@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	pb "github.com/relab/ct-eth-dapp/bench/proto"
+	pb "github.com/relab/credbench/bench/proto"
 )
 
 var ErrEmptyData = errors.New("attempt to store empty data")

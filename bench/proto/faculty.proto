@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "github.com/relab/ct-eth-dapp/bench/proto";
+option go_package = "github.com/relab/credbench/bench/proto";
 
 import "google/protobuf/timestamp.proto";
 import "credential.proto";

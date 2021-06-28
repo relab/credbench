@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/relab/ct-eth-dapp/pkg/ctree/node"
+	"github.com/relab/credbench/pkg/ctree/node"
 )
 
 var onChain bool

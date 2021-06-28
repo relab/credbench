@@ -14,15 +14,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/relab/ct-eth-dapp/bench/eth"
-	"github.com/relab/ct-eth-dapp/pkg/accounts"
-	"github.com/relab/ct-eth-dapp/pkg/deployer"
+	"github.com/relab/credbench/bench/eth"
+	"github.com/relab/credbench/pkg/accounts"
+	"github.com/relab/credbench/pkg/deployer"
 
-	aggregator "github.com/relab/bbchain-bindings/aggregator"
-	courseBinding "github.com/relab/bbchain-bindings/course"
-	faculty "github.com/relab/bbchain-bindings/faculty"
-	nodeBinding "github.com/relab/bbchain-bindings/node"
-	notaryBinding "github.com/relab/bbchain-bindings/notary"
+	aggregator "github.com/relab/go-credbindings/aggregator"
+	courseBinding "github.com/relab/go-credbindings/course"
+	faculty "github.com/relab/go-credbindings/faculty"
+	nodeBinding "github.com/relab/go-credbindings/node"
+	notaryBinding "github.com/relab/go-credbindings/notary"
 )
 
 func deployNotaryCmd() *cobra.Command {

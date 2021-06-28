@@ -11,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/relab/ct-eth-dapp/bench/datastore"
-	pb "github.com/relab/ct-eth-dapp/bench/proto"
-	ctaccounts "github.com/relab/ct-eth-dapp/pkg/accounts"
+	"github.com/relab/credbench/bench/datastore"
+	pb "github.com/relab/credbench/bench/proto"
+	ctaccounts "github.com/relab/credbench/pkg/accounts"
 )
 
 var (

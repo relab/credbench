@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/relab/ct-eth-dapp/bench/eth"
+	"github.com/relab/credbench/bench/eth"
 	log "github.com/sirupsen/logrus"
 )
 

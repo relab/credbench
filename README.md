@@ -6,31 +6,18 @@
 | ------------------------------------------------ | -------- | ------------ |
 | [Go](https://golang.org/doc/go1.16)              | >=1.16.2 | client       |
 | [GNU Make](http://ftp.gnu.org/gnu/make/)         | >=4.3.0  | client       |
-| [geth](https://github.com/ethereum/go-ethereum)  | >=1.9.24 | client       |
+| [geth](https://github.com/ethereum/go-ethereum)  | >=1.10.2 | client       |
 
 ## Contracts
 
-The contracts are available in the repository [bbchain-contracts](https://github.com/relab/bbchain-contracts) and its go-ethereum bindings are available in the [bbchain-bindings](https://github.com/relab/bbchain-bindings) repository.
+The contracts are available in the repository [credcontracts](https://github.com/relab/credcontracts) and its go-ethereum bindings are available in the [go-credbindings](https://github.com/relab/go-credbindings) repository.
 
-The current bindings are available in a private repository, thus to be able to install the bindings using go, please do the procedure described below.
+## Build
 
-Add the following to your `~/.gitconfig`
-```
-[url "ssh://git@github.com/"]
-	insteadOf = https://github.com/
-```
-
-Then run the command below to allow go to install from a private repository:
-```
-go env -w GOPRIVATE="github.com/relab/bbchain-bindings"
-```
-
-Then compile the code:
+Then compile the code
 ```
 make all
 ```
-
-* For more information please see: https://golang.org/ref/mod#private-modules
 
 ## Running ganache installed in the local machine
 ```

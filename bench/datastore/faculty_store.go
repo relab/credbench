@@ -2,8 +2,8 @@ package datastore
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/relab/ct-eth-dapp/bench/database"
-	pb "github.com/relab/ct-eth-dapp/bench/proto"
+	"github.com/relab/credbench/bench/database"
+	pb "github.com/relab/credbench/bench/proto"
 	proto "google.golang.org/protobuf/proto"
 )
 

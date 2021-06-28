@@ -19,16 +19,16 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/relab/ct-eth-dapp/bench/datastore"
-	"github.com/relab/ct-eth-dapp/bench/testconfig"
-	"github.com/relab/ct-eth-dapp/bench/transactor"
-	"github.com/relab/ct-eth-dapp/pkg/deployer"
-	"github.com/relab/ct-eth-dapp/pkg/faculty"
-	"github.com/relab/ct-eth-dapp/pkg/fileutils"
-	"github.com/relab/ct-eth-dapp/pkg/schemes"
+	"github.com/relab/credbench/bench/datastore"
+	"github.com/relab/credbench/bench/testconfig"
+	"github.com/relab/credbench/bench/transactor"
+	"github.com/relab/credbench/pkg/deployer"
+	"github.com/relab/credbench/pkg/faculty"
+	"github.com/relab/credbench/pkg/fileutils"
+	"github.com/relab/credbench/pkg/schemes"
 
-	pb "github.com/relab/ct-eth-dapp/bench/proto"
-	course "github.com/relab/ct-eth-dapp/pkg/course"
+	pb "github.com/relab/credbench/bench/proto"
+	course "github.com/relab/credbench/pkg/course"
 )
 
 var testConfig testconfig.TestConfig

@@ -7,11 +7,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/relab/ct-eth-dapp/bench/datastore"
-	"github.com/relab/ct-eth-dapp/bench/genesis"
-	"github.com/relab/ct-eth-dapp/bench/helm"
-	pb "github.com/relab/ct-eth-dapp/bench/proto"
-	keyutils "github.com/relab/ct-eth-dapp/pkg/accounts"
+	"github.com/relab/credbench/bench/datastore"
+	"github.com/relab/credbench/bench/genesis"
+	"github.com/relab/credbench/bench/helm"
+	pb "github.com/relab/credbench/bench/proto"
+	keyutils "github.com/relab/credbench/pkg/accounts"
 )
 
 var genesisCmd = &cobra.Command{

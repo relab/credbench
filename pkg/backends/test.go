@@ -13,9 +13,9 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	aggregator "github.com/relab/bbchain-bindings/aggregator"
-	notary "github.com/relab/bbchain-bindings/notary"
-	ctaccounts "github.com/relab/ct-eth-dapp/pkg/accounts"
+	ctaccounts "github.com/relab/credbench/pkg/accounts"
+	aggregator "github.com/relab/go-credbindings/aggregator"
+	notary "github.com/relab/go-credbindings/notary"
 )
 
 // Account represents a test account

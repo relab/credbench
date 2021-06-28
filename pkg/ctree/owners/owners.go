@@ -5,7 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	bindings "github.com/relab/bbchain-bindings/owners"
+	bindings "github.com/relab/go-credbindings/owners"
 )
 
 // Owners is a Go wrapper around an owners contract.

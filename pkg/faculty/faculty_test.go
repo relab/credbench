@@ -10,12 +10,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/relab/ct-eth-dapp/pkg/backends"
-	"github.com/relab/ct-eth-dapp/pkg/course"
-	"github.com/relab/ct-eth-dapp/pkg/ctree/node"
-	"github.com/relab/ct-eth-dapp/pkg/encode"
+	"github.com/relab/credbench/pkg/backends"
+	"github.com/relab/credbench/pkg/course"
+	"github.com/relab/credbench/pkg/ctree/node"
+	"github.com/relab/credbench/pkg/encode"
 
-	pb "github.com/relab/ct-eth-dapp/pkg/schemes"
+	pb "github.com/relab/credbench/pkg/schemes"
 )
 
 type TestFaculty struct {

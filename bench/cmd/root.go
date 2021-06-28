@@ -17,14 +17,14 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/relab/ct-eth-dapp/bench/database"
-	"github.com/relab/ct-eth-dapp/bench/datastore"
-	"github.com/relab/ct-eth-dapp/bench/genesis"
-	"github.com/relab/ct-eth-dapp/bench/transactor"
-	"github.com/relab/ct-eth-dapp/pkg/client"
-	"github.com/relab/ct-eth-dapp/pkg/fileutils"
+	"github.com/relab/credbench/bench/database"
+	"github.com/relab/credbench/bench/datastore"
+	"github.com/relab/credbench/bench/genesis"
+	"github.com/relab/credbench/bench/transactor"
+	"github.com/relab/credbench/pkg/client"
+	"github.com/relab/credbench/pkg/fileutils"
 
-	pb "github.com/relab/ct-eth-dapp/bench/proto"
+	pb "github.com/relab/credbench/bench/proto"
 )
 
 var (

@@ -9,10 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	bindings "github.com/relab/bbchain-bindings/faculty"
-	"github.com/relab/ct-eth-dapp/bench/datastore"
-	"github.com/relab/ct-eth-dapp/bench/transactor"
-	faculty "github.com/relab/ct-eth-dapp/pkg/faculty"
+	"github.com/relab/credbench/bench/datastore"
+	"github.com/relab/credbench/bench/transactor"
+	faculty "github.com/relab/credbench/pkg/faculty"
+	bindings "github.com/relab/go-credbindings/faculty"
 )
 
 func registerSemesterCredential(e *transactor.Transactor, opts *bind.TransactOpts, f *faculty.Faculty, studentAddress common.Address, digest [32]byte, witnesses []common.Address) (*types.Transaction, error) {

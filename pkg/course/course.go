@@ -5,9 +5,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	bindings "github.com/relab/bbchain-bindings/course"
-	"github.com/relab/ct-eth-dapp/pkg/ctree/node"
-	"github.com/relab/ct-eth-dapp/pkg/deployer"
+	"github.com/relab/credbench/pkg/ctree/node"
+	"github.com/relab/credbench/pkg/deployer"
+	bindings "github.com/relab/go-credbindings/course"
 )
 
 // Course is a Go wrapper around an on-chain course contract.

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/relab/ct-eth-dapp/bench/eth"
-	"github.com/relab/ct-eth-dapp/bench/metrics"
-	"github.com/relab/ct-eth-dapp/pkg/deployer"
+	"github.com/relab/credbench/bench/eth"
+	"github.com/relab/credbench/bench/metrics"
+	"github.com/relab/credbench/pkg/deployer"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum"

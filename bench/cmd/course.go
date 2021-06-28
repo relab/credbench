@@ -11,12 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 
-	bindings "github.com/relab/bbchain-bindings/course"
-	"github.com/relab/ct-eth-dapp/bench/datastore"
-	"github.com/relab/ct-eth-dapp/bench/transactor"
-	course "github.com/relab/ct-eth-dapp/pkg/course"
+	"github.com/relab/credbench/bench/datastore"
+	"github.com/relab/credbench/bench/transactor"
+	course "github.com/relab/credbench/pkg/course"
+	bindings "github.com/relab/go-credbindings/course"
 
-	pb "github.com/relab/ct-eth-dapp/pkg/schemes"
+	pb "github.com/relab/credbench/pkg/schemes"
 )
 
 var addStudentCmd = &cobra.Command{

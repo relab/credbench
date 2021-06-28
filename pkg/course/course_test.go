@@ -8,15 +8,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/relab/bbchain-bindings/aggregator"
-	bindings "github.com/relab/bbchain-bindings/course"
-	"github.com/relab/bbchain-bindings/notary"
+	"github.com/relab/go-credbindings/aggregator"
+	bindings "github.com/relab/go-credbindings/course"
+	"github.com/relab/go-credbindings/notary"
 
-	"github.com/relab/ct-eth-dapp/pkg/accounts"
-	"github.com/relab/ct-eth-dapp/pkg/backends"
-	"github.com/relab/ct-eth-dapp/pkg/encode"
+	"github.com/relab/credbench/pkg/accounts"
+	"github.com/relab/credbench/pkg/backends"
+	"github.com/relab/credbench/pkg/encode"
 
-	pb "github.com/relab/ct-eth-dapp/pkg/schemes"
+	pb "github.com/relab/credbench/pkg/schemes"
 )
 
 type TestCourse struct {

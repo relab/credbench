@@ -9,13 +9,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
-	"github.com/relab/ct-eth-dapp/pkg/ctree"
-	"github.com/relab/ct-eth-dapp/pkg/ctree/notary"
-	"github.com/relab/ct-eth-dapp/pkg/ctree/owners"
-	"github.com/relab/ct-eth-dapp/pkg/deployer"
-	"github.com/relab/ct-eth-dapp/pkg/encode"
+	"github.com/relab/credbench/pkg/ctree"
+	"github.com/relab/credbench/pkg/ctree/notary"
+	"github.com/relab/credbench/pkg/ctree/owners"
+	"github.com/relab/credbench/pkg/deployer"
+	"github.com/relab/credbench/pkg/encode"
 
-	bindings "github.com/relab/bbchain-bindings/node"
+	bindings "github.com/relab/go-credbindings/node"
 )
 
 // FIXME: duplicated in ctree

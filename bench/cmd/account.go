@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 
-	"github.com/relab/ct-eth-dapp/bench/eth"
-	"github.com/relab/ct-eth-dapp/bench/genesis"
-	pb "github.com/relab/ct-eth-dapp/bench/proto"
+	"github.com/relab/credbench/bench/eth"
+	"github.com/relab/credbench/bench/genesis"
+	pb "github.com/relab/credbench/bench/proto"
 )
 
 var createAccountCmd = &cobra.Command{

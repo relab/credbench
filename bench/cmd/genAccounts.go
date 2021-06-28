@@ -5,7 +5,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/relab/ct-eth-dapp/bench/genesis"
+	"github.com/relab/credbench/bench/genesis"
 	"github.com/spf13/cobra"
 )
 
