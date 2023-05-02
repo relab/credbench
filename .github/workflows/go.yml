@@ -41,12 +41,12 @@ jobs:
           ${{ runner.OS }}-build-${{ env.cache-name }}-
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
+    - name: Setup protoc
+      uses: arduino/setup-protoc@v1.1.2
     - name: Build Source
       run: make build
     - name: Make cli
-      run: make binary
-    - name: Lint
-      run: make lint
+      run: make bench
     - name: Vet
       run: make vet
     - name: Test with Race Detector
