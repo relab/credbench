@@ -43,6 +43,8 @@ jobs:
           ${{ runner.OS }}-
     - name: Setup protoc
       uses: arduino/setup-protoc@v1.1.2
+    - name: Install tools
+      run: make tools
     - name: Build Source
       run: make build
     - name: Make cli
